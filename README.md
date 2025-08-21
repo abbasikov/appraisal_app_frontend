@@ -1,12 +1,51 @@
-# React + Vite
+# Appraisal App Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for the Appraisal Report Management System.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Application runs at: http://localhost:5173
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Environment Setup
+
+Create `.env` file:
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+## Features
+
+- **Authentication**: Login with username/email, signup, email verification
+- **Role-based Access**: Admin, Appraiser, Client with different permissions
+- **Form Handling**: Smart field preservation on errors
+
+## Project Structure
+
+```
+src/
+├── components/     # Reusable UI components
+├── pages/         # Page components (Login, Signup, Dashboard, etc.)
+├── services/      # API calls and axios configuration
+├── context/       # Authentication state management
+└── hooks/         # Custom hooks (useToast)
+```
+
+## User Roles
+
+| Feature | Admin | Appraiser | Client |
+|---------|-------|-----------|--------|
+| Dashboard | ✅ | ✅ | ✅ |
+| Properties | ✅ | ✅ | ❌ |
+| Appraisals | ✅ | ✅ | ✅ (view) |
+| Users Management | ✅ | ❌ | ❌ |
+
+## Scripts
+
+- `npm run dev` - Development server
+- `npm run build` - Production build
+- `npm run preview` - Preview build

@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
-  const { user, isAdmin, isAppraiser, isClient } = useAuth();
+  const { user, isAdmin, isEditor, isReader } = useAuth();
 
   const stats = [
     { name: 'Total Appraisals', value: '12', icon: DocumentTextIcon, change: '+4.75%', changeType: 'positive' },

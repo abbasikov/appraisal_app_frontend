@@ -34,8 +34,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const response = await authService.signin(credentials);
-    const userData = await authService.getCurrentUser();
-    setUser(userData);
+    // Only get user data if we actually got a token (successful login)
+    if (response.access_token) {
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
+    }
     return response;
   };
 
@@ -44,15 +47,28 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const loginWithMFA = async (credentials, otpCode) => {
+    try {
+      const response = await authService.signinMFA(credentials, otpCode);
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
+      return response;
+    } catch (error) {
+      // Don't clear user state on MFA error, just re-throw
+      throw error;
+    }
+  };
+
   const value = {
     user,
     login,
+    loginWithMFA,
     logout,
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
-    isAppraiser: user?.role === 'appraiser',
-    isClient: user?.role === 'client'
+    isEditor: user?.role === 'editor',
+    isReader: user?.role === 'reader'
   };
 
   return (

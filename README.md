@@ -21,8 +21,10 @@ VITE_API_URL=http://localhost:8000
 ## Features
 
 - **Authentication**: Login with username/email, signup, email verification
-- **Role-based Access**: Admin, Appraiser, Client with different permissions
+- **Two-Factor Authentication (2FA)**: OTP MFA with authenticator apps
+- **Role-based Access**: Admin, Editor, Reader with different permissions
 - **Form Handling**: Smart field preservation on errors
+- **Security Settings**: Manage 2FA in Settings page
 
 ## Project Structure
 
@@ -37,12 +39,20 @@ src/
 
 ## User Roles
 
-| Feature | Admin | Appraiser | Client |
-|---------|-------|-----------|--------|
+| Feature | Admin | Editor | Reader |
+|---------|-------|--------|---------|
 | Dashboard | ✅ | ✅ | ✅ |
 | Properties | ✅ | ✅ | ❌ |
 | Appraisals | ✅ | ✅ | ✅ (view) |
 | Users Management | ✅ | ❌ | ❌ |
+| 2FA Settings | ✅ | ✅ | ✅ |
+
+## Two-Factor Authentication
+
+- **Setup**: Scan QR code with Google Authenticator, Authy, or any TOTP app
+- **Login**: Enter 6-digit code after username/password
+- **Management**: Enable/disable in Settings page
+- **Security**: Industry-standard TOTP protocol, works offline
 
 ## Scripts
 

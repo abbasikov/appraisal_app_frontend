@@ -13,9 +13,7 @@ const Signup = () => {
     first_name: '',
     last_name: '',
     phone: '',
-    role: 'appraiser',
-    license_number: '',
-    certification_level: ''
+    role: 'editor'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -179,8 +177,8 @@ const Signup = () => {
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               >
-                <option value="appraiser">Appraiser</option>
-                <option value="client">Client</option>
+                <option value="editor">Editor</option>
+                <option value="reader">Reader</option>
               </select>
               <p className="mt-1 text-xs text-gray-500">
                 Admin accounts are created separately by system administrators
@@ -201,36 +199,7 @@ const Signup = () => {
               />
             </div>
 
-            {formData.role === 'appraiser' && (
-              <>
-                <div>
-                  <label htmlFor="license_number" className="block text-sm font-medium text-gray-700">
-                    License Number (Optional)
-                  </label>
-                  <input
-                    id="license_number"
-                    name="license_number"
-                    type="text"
-                    value={formData.license_number}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="certification_level" className="block text-sm font-medium text-gray-700">
-                    Certification Level (Optional)
-                  </label>
-                  <input
-                    id="certification_level"
-                    name="certification_level"
-                    type="text"
-                    value={formData.certification_level}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-              </>
-            )}
+
           </div>
 
           <div>

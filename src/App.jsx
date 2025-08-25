@@ -10,6 +10,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
+import Settings from './pages/Settings';
 import Unauthorized from './pages/Unauthorized';
 
 function App() {
@@ -40,7 +41,7 @@ function App() {
             <Route 
               path="/properties" 
               element={
-                <ProtectedRoute roles={['admin', 'appraiser']}>
+                <ProtectedRoute roles={['admin', 'editor']}>
                   <div>Properties Page (Coming Soon)</div>
                 </ProtectedRoute>
               } 
@@ -58,7 +59,7 @@ function App() {
             <Route 
               path="/reports" 
               element={
-                <ProtectedRoute roles={['admin', 'appraiser']}>
+                <ProtectedRoute roles={['admin', 'editor']}>
                   <div>Reports Page (Coming Soon)</div>
                 </ProtectedRoute>
               } 
@@ -78,7 +79,7 @@ function App() {
               path="/settings" 
               element={
                 <ProtectedRoute>
-                  <div>Settings Page (Coming Soon)</div>
+                  <Settings />
                 </ProtectedRoute>
               } 
             />

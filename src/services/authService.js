@@ -8,6 +8,27 @@ export const authService = {
 
   async signin(credentials) {
     const response = await api.post('/auth/signin', credentials);
+    
+    // Check if OTP is required
+    if (response.data.requiresOTP) {
+      return { requiresOTP: true, message: response.data.message };
+    }
+    
+    // Normal login with token
+    if (response.data.access_token) {
+      localStorage.setItem('token', response.data.access_token);
+      const user = await this.getCurrentUser();
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+    return response.data;
+  },
+
+  async signinMFA(credentials, otpCode) {
+    const response = await api.post('/auth/signin-mfa', {
+      username: credentials.username,
+      password: credentials.password,
+      otp_code: otpCode
+    });
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
       const user = await this.getCurrentUser();

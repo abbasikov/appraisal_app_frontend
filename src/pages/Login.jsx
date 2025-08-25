@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ToastContainer';
+import OTPInput from '../components/OTPInput';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { api } from '../services/api';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -12,8 +14,10 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [requiresOTP, setRequiresOTP] = useState(false);
+  const [otpError, setOtpError] = useState('');
   
-  const { login } = useAuth();
+  const { login, loginWithMFA } = useAuth();
   const navigate = useNavigate();
   const { toasts, showSuccess, showError, removeToast } = useToast();
 
@@ -21,18 +25,26 @@ const Login = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (loading) return; // Prevent double submission
+    if (loading) return;
     
     setLoading(true);
 
     try {
-      await login(formData);
-      showSuccess('Login successful! Redirecting...', 3000);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
+      const response = await login(formData);
+      
+      // Check if OTP is required
+      if (response.requiresOTP) {
+        setRequiresOTP(true);
+      } else if (response.access_token) {
+        // Successful login with token
+        showSuccess('Login successful! Redirecting...', 3000);
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } else {
+        showError('Unexpected response from server', 5000);
+      }
     } catch (error) {
-      // Clear password on error but keep username/email
       setFormData(prev => ({ ...prev, password: '' }));
       
       if (error.response?.status === 401) {
@@ -45,6 +57,29 @@ const Login = () => {
       } else {
         showError('Login failed. Please try again.', 5000);
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOTPSubmit = async (otpCode) => {
+    setLoading(true);
+    setOtpError('');
+
+    try {
+      await loginWithMFA(formData, otpCode);
+      showSuccess('Login successful! Redirecting...', 3000);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
+    } catch (error) {
+      // Stay on OTP screen and show error
+      if (error.response?.status === 401) {
+        setOtpError('Invalid OTP code. Please try again.');
+      } else {
+        setOtpError('Login failed. Please try again.');
+      }
+      // Don't navigate away, stay on OTP screen
     } finally {
       setLoading(false);
     }
@@ -74,7 +109,36 @@ const Login = () => {
             </p>
           </div>
           
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
+          {requiresOTP ? (
+            <div className="mt-8 space-y-6">
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Two-Factor Authentication
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Please enter the 6-digit code from your authenticator app
+                </p>
+              </div>
+              
+              <OTPInput 
+                onSubmit={handleOTPSubmit}
+                loading={loading}
+                error={otpError}
+              />
+              
+              <button
+                onClick={() => {
+                  setRequiresOTP(false);
+                  setOtpError('');
+                  setFormData(prev => ({ ...prev, password: '' }));
+                }}
+                className="w-full text-center text-sm text-blue-600 hover:text-blue-500"
+              >
+                ← Back to login
+              </button>
+            </div>
+          ) : (
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
             <div className="space-y-4">
               <div>
                 <label htmlFor="username" className="block text-sm font-medium text-gray-700">
@@ -142,6 +206,7 @@ const Login = () => {
               </button>
             </div>
           </form>
+          )}
         </div>
       </div>
     </>

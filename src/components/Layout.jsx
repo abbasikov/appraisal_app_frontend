@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children }) => {
-  const { user, logout, isAdmin, isAppraiser } = useAuth();
+  const { user, logout, isAdmin, isEditor } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -20,12 +20,12 @@ const Layout = ({ children }) => {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, roles: ['admin', 'appraiser', 'client'] },
-    { name: 'Properties', href: '/properties', icon: BuildingOfficeIcon, roles: ['admin', 'appraiser'] },
-    { name: 'Appraisals', href: '/appraisals', icon: DocumentTextIcon, roles: ['admin', 'appraiser', 'client'] },
-    { name: 'Reports', href: '/reports', icon: DocumentTextIcon, roles: ['admin', 'appraiser'] },
+    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, roles: ['admin', 'editor', 'reader'] },
+    { name: 'Properties', href: '/properties', icon: BuildingOfficeIcon, roles: ['admin', 'editor'] },
+    { name: 'Appraisals', href: '/appraisals', icon: DocumentTextIcon, roles: ['admin', 'editor', 'reader'] },
+    { name: 'Reports', href: '/reports', icon: DocumentTextIcon, roles: ['admin', 'editor'] },
     { name: 'Users', href: '/users', icon: UserGroupIcon, roles: ['admin'] },
-    { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, roles: ['admin', 'appraiser', 'client'] },
+    { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, roles: ['admin', 'editor', 'reader'] },
   ];
 
   const filteredNavigation = navigation.filter(item => 

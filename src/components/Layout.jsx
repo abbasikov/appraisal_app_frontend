@@ -21,7 +21,8 @@ const Layout = ({ children }) => {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, roles: ['admin', 'editor', 'reader'] },
-    { name: 'Properties', href: '/properties', icon: BuildingOfficeIcon, roles: ['admin', 'editor'] },
+    { name: 'Clients', href: '/clients', icon: UserGroupIcon, roles: ['admin', 'editor'] },
+    { name: 'Projects', href: '/projects', icon: BuildingOfficeIcon, roles: ['admin', 'editor'] },
     { name: 'Appraisals', href: '/appraisals', icon: DocumentTextIcon, roles: ['admin', 'editor', 'reader'] },
     { name: 'Reports', href: '/reports', icon: DocumentTextIcon, roles: ['admin', 'editor'] },
     { name: 'Users', href: '/users', icon: UserGroupIcon, roles: ['admin'] },

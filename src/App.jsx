@@ -12,6 +12,12 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Unauthorized from './pages/Unauthorized';
+import ClientList from './pages/clients/ClientList';
+import AddClient from './pages/clients/AddClient';
+import EditClient from './pages/clients/EditClient';
+import ProjectList from './pages/projects/ProjectList';
+import AddProject from './pages/projects/AddProject';
+import EditProject from './pages/projects/EditProject';
 
 function App() {
   return (
@@ -37,12 +43,57 @@ function App() {
               } 
             />
             
-            {/* Appraiser and Admin routes */}
+            {/* Client and Project routes */}
             <Route 
-              path="/properties" 
+              path="/clients" 
               element={
                 <ProtectedRoute roles={['admin', 'editor']}>
-                  <div>Properties Page (Coming Soon)</div>
+                  <ClientList />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/clients/new" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <AddClient />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/clients/:id/edit" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <EditClient />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <ProjectList />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects/new" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <AddProject />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects/:id/edit" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <EditProject />
                 </ProtectedRoute>
               } 
             />

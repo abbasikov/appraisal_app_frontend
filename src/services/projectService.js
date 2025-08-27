@@ -31,5 +31,26 @@ export const projectService = {
   async deleteProject(id) {
     const response = await api.delete(`/projects/${id}`);
     return response.data;
+  },
+
+  async addDropboxLinks(projectId, links) {
+    console.log('Sending to API:', links);
+    const response = await api.post(`/projects/${projectId}/dropbox-links`, links);
+    return response.data;
+  },
+
+  async getProjectPhotos(projectId) {
+    const response = await api.get(`/projects/${projectId}/photos`);
+    return response.data;
+  },
+
+  async importPhotos(projectId) {
+    const response = await api.post(`/projects/${projectId}/import-photos`);
+    return response.data;
+  },
+
+  async deletePhoto(photoId) {
+    const response = await api.delete(`/photos/${photoId}`);
+    return response.data;
   }
 };

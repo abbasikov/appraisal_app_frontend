@@ -209,6 +209,12 @@ const ProjectList = () => {
                     {(isAdmin || isEditor) && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
+                          <Link 
+                            to={`/projects/${project.id}`}
+                            className="text-blue-600 hover:text-blue-900 mr-4"
+                          >
+                            View
+                          </Link>
                           <button
                             onClick={() => navigate(`/projects/${project.id}/edit`)}
                             className="text-blue-600 hover:text-blue-900"

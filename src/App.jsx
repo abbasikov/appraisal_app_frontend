@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
@@ -18,11 +19,13 @@ import EditClient from './pages/clients/EditClient';
 import ProjectList from './pages/projects/ProjectList';
 import AddProject from './pages/projects/AddProject';
 import EditProject from './pages/projects/EditProject';
+import ProjectDetails from './pages/projects/ProjectDetails';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <ToastProvider>
+        <Router>
         <div className="App">
           <Routes>
             {/* Public routes */}
@@ -99,6 +102,15 @@ function App() {
             />
             
             <Route 
+              path="/projects/:id" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <ProjectDetails />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
               path="/appraisals" 
               element={
                 <ProtectedRoute>
@@ -140,7 +152,8 @@ function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
-      </Router>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

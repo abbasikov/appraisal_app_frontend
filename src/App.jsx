@@ -25,6 +25,8 @@ import TemplateUpload from './pages/templates/TemplateUpload';
 import TemplateDetails from './pages/templates/TemplateDetails';
 import FieldMappingEditor from './pages/templates/FieldMappingEditor';
 import ReportGenerator from './pages/templates/ReportGenerator';
+import UserManagement from './pages/users/UserManagement';
+import SetupPassword from './pages/SetupPassword';
 
 function App() {
   return (
@@ -39,6 +41,7 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/setup-password" element={<SetupPassword />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Protected routes */}
@@ -179,12 +182,12 @@ function App() {
               } 
             />
             
-            {/* Admin only routes */}
+            {/* User Management routes */}
             <Route 
               path="/users" 
               element={
-                <ProtectedRoute roles={['admin']}>
-                  <div>Users Management (Coming Soon)</div>
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <UserManagement />
                 </ProtectedRoute>
               } 
             />

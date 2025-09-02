@@ -113,11 +113,10 @@ const PhotoTable = ({ photos, onPhotoDelete }) => {
                   {photo.original_filename}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {/* Show file size under filename */}
-                  {formatFileSize(photo.file_size)}
-                  {photo.width && photo.height && (
-                    <span className="ml-2">• {photo.width} × {photo.height}</span>
+                  {photo.dropbox_folder_path && photo.dropbox_folder_path !== '/' && (
+                    <div className="text-xs text-blue-600">📁 {photo.dropbox_folder_path}</div>
                   )}
+                  {photo.width && photo.height && `${photo.width} × ${photo.height}`}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

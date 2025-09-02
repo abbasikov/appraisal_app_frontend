@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { projectService } from '../../services/projectService';
 import { clientService } from '../../services/clientService';
 import Layout from '../../components/Layout';
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 
 const ProjectList = () => {
   const [projects, setProjects] = useState([]);
@@ -211,13 +211,22 @@ const ProjectList = () => {
                         <div className="flex space-x-2">
                           <Link 
                             to={`/projects/${project.id}`}
-                            className="text-blue-600 hover:text-blue-900 mr-4"
+                            className="text-blue-600 hover:text-blue-900"
+                            title="View Project Details"
                           >
                             View
+                          </Link>
+                          <Link 
+                            to={`/projects/${project.id}#reports`}
+                            className="text-green-600 hover:text-green-900"
+                            title="Generate Reports"
+                          >
+                            <DocumentArrowDownIcon className="h-4 w-4" />
                           </Link>
                           <button
                             onClick={() => navigate(`/projects/${project.id}/edit`)}
                             className="text-blue-600 hover:text-blue-900"
+                            title="Edit Project"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
@@ -225,6 +234,7 @@ const ProjectList = () => {
                             <button
                               onClick={() => handleDelete(project.id, project.project_name)}
                               className="text-red-600 hover:text-red-900"
+                              title="Delete Project"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>

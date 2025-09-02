@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
+import { templateService } from '../../services/templateService';
 import Layout from '../../components/Layout';
 import DropboxLinksManager from '../../components/DropboxLinksManager';
 import PhotoTable from '../../components/PhotoTable';
+import ProjectReports from '../../components/ProjectReports';
+import { useAuth } from '../../context/AuthContext';
 
 const ProjectDetails = () => {
   const { id } = useParams();
@@ -11,10 +14,21 @@ const ProjectDetails = () => {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { isAdmin, isEditor } = useAuth();
 
   useEffect(() => {
     fetchProjectDetails();
     fetchPhotos();
+    
+    // Scroll to reports section if hash is present
+    if (window.location.hash === '#reports') {
+      setTimeout(() => {
+        const reportsSection = document.getElementById('reports-section');
+        if (reportsSection) {
+          reportsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500);
+    }
   }, [id]);
 
   const fetchProjectDetails = async () => {
@@ -39,6 +53,8 @@ const ProjectDetails = () => {
     }
   };
 
+
+
   const handleLinksUpdate = () => {
     console.log('Refreshing project data after links update...');
     fetchProjectDetails();
@@ -55,6 +71,8 @@ const ProjectDetails = () => {
       }
     }
   };
+
+
 
   if (loading) {
     return (
@@ -129,6 +147,14 @@ const ProjectDetails = () => {
               onLinksUpdate={handleLinksUpdate}
             />
           </div>
+
+          {/* Reports Section */}
+          {(isAdmin || isEditor) && (
+            <div id="reports-section" className="bg-white p-6 rounded-lg shadow mb-6">
+              <h2 className="text-lg font-semibold mb-4">Generate Reports</h2>
+              <ProjectReports project={project} />
+            </div>
+          )}
 
           {/* Photos Section */}
           <div className="bg-white p-6 rounded-lg shadow">

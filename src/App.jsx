@@ -20,6 +20,13 @@ import ProjectList from './pages/projects/ProjectList';
 import AddProject from './pages/projects/AddProject';
 import EditProject from './pages/projects/EditProject';
 import ProjectDetails from './pages/projects/ProjectDetails';
+import TemplateList from './pages/templates/TemplateList';
+import TemplateUpload from './pages/templates/TemplateUpload';
+import TemplateDetails from './pages/templates/TemplateDetails';
+import FieldMappingEditor from './pages/templates/FieldMappingEditor';
+import ReportGenerator from './pages/templates/ReportGenerator';
+import UserManagement from './pages/users/UserManagement';
+import SetupPassword from './pages/SetupPassword';
 
 function App() {
   return (
@@ -34,6 +41,7 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/setup-password" element={<SetupPassword />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Protected routes */}
@@ -110,6 +118,52 @@ function App() {
               } 
             />
             
+            {/* Template routes */}
+            <Route 
+              path="/templates" 
+              element={
+                <ProtectedRoute>
+                  <TemplateList />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/templates/upload" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <TemplateUpload />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/templates/:id" 
+              element={
+                <ProtectedRoute>
+                  <TemplateDetails />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/templates/:id/mappings" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <FieldMappingEditor />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/templates/:id/generate" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <ReportGenerator />
+                </ProtectedRoute>
+              } 
+            />
+            
             <Route 
               path="/appraisals" 
               element={
@@ -128,12 +182,12 @@ function App() {
               } 
             />
             
-            {/* Admin only routes */}
+            {/* User Management routes */}
             <Route 
               path="/users" 
               element={
-                <ProtectedRoute roles={['admin']}>
-                  <div>Users Management (Coming Soon)</div>
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <UserManagement />
                 </ProtectedRoute>
               } 
             />

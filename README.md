@@ -1,6 +1,6 @@
 # Appraisal Report Management System - Frontend
 
-React + Vite frontend with Tailwind CSS, authentication, and project management.
+React + Vite frontend with Tailwind CSS, authentication, project management, and user management.
 
 ## Quick Start
 
@@ -40,6 +40,12 @@ VITE_APP_NAME="Appraisal Report Management"
 - Role-based access control
 - Email verification for new users
 
+### User Management (Admin/Editor)
+- Invite users with email notifications
+- Role management and permissions
+- Password setup flow for invited users
+- User deletion with proper access control
+
 ### Project Management
 - Create and manage projects
 - Link clients to projects
@@ -47,9 +53,10 @@ VITE_APP_NAME="Appraisal Report Management"
 - Track project status and progress
 
 ### Dropbox Integration
-- Add Dropbox shared folder links
-- Import photos from shared folders
-- View photo thumbnails and metadata
+- Add up to 10 Dropbox shared folder links per project
+- Import photos from shared folders and subfolders
+- View photo thumbnails with folder path information
+- Photos sorted chronologically by EXIF date
 - Delete imported photos
 
 ### Client Management
@@ -59,14 +66,16 @@ VITE_APP_NAME="Appraisal Report Management"
 
 ## User Roles
 
-- **Admin**: Full system access, user management
-- **Editor**: Create/edit projects and clients
+- **Admin**: Full system access, user management, role changes
+- **Editor**: Create/edit projects and clients, invite Editor/Reader users
 - **Reader**: View-only access
 
 ## Pages
 
 - `/login` - User authentication
+- `/setup-password` - Password setup for invited users
 - `/dashboard` - Main dashboard
+- `/users` - User management (Admin/Editor only)
 - `/clients` - Client management
 - `/projects` - Project list
 - `/projects/:id` - Project details with Dropbox integration
@@ -96,15 +105,30 @@ src/
 ### Key Components
 - `Layout` - Main layout with navigation
 - `DropboxLinksManager` - Dropbox folder management
-- `PhotoTable` - Photo display with thumbnails
+- `PhotoTable` - Photo display with thumbnails and folder paths
+- `UserManagement` - User invitation and management
 - `ProtectedRoute` - Route protection by role
 
 ## API Integration
 
 ### Services
 - `authService` - Authentication and user management
+- `userService` - User invitation and management
 - `clientService` - Client operations
 - `projectService` - Project and photo operations
 
 ### Authentication
 All API requests include JWT token in Authorization header.
+
+## Deployment
+
+### Production Build
+```bash
+npm run build
+```
+
+### Environment Setup
+- Update `VITE_API_URL` to production backend URL
+- Configure web server to serve static files
+- Set up SSL certificates
+- Configure CDN for better performance

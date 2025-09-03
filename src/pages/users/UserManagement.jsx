@@ -13,6 +13,7 @@ const UserManagement = () => {
     email: '',
     first_name: '',
     last_name: '',
+    mobile_number: '',
     role: 'reader'
   });
   const [error, setError] = useState('');
@@ -43,7 +44,7 @@ const UserManagement = () => {
       await userService.inviteUser(inviteForm);
       setSuccess('Invitation sent successfully!');
       setShowInviteModal(false);
-      setInviteForm({ email: '', first_name: '', last_name: '', role: 'reader' });
+      setInviteForm({ email: '', first_name: '', last_name: '', mobile_number: '', role: 'reader' });
       fetchUsers();
     } catch (error) {
       setError(error.response?.data?.detail || 'Failed to send invitation');
@@ -242,6 +243,15 @@ const UserManagement = () => {
                       required
                       value={inviteForm.last_name}
                       onChange={(e) => setInviteForm({...inviteForm, last_name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
+                    <input
+                      type="tel"
+                      value={inviteForm.mobile_number}
+                      onChange={(e) => setInviteForm({...inviteForm, mobile_number: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>

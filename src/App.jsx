@@ -26,6 +26,9 @@ import TemplateDetails from './pages/templates/TemplateDetails';
 import FieldMappingEditor from './pages/templates/FieldMappingEditor';
 import ReportGenerator from './pages/templates/ReportGenerator';
 import UserManagement from './pages/users/UserManagement';
+import AccountList from './pages/accounts/AccountList';
+import AddAccount from './pages/accounts/AddAccount';
+import EditAccount from './pages/accounts/EditAccount';
 import SetupPassword from './pages/SetupPassword';
 
 function App() {
@@ -50,6 +53,34 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Account routes */}
+            <Route 
+              path="/accounts" 
+              element={
+                <ProtectedRoute>
+                  <AccountList />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/accounts/add" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <AddAccount />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/accounts/:id/edit" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <EditAccount />
                 </ProtectedRoute>
               } 
             />

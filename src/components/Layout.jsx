@@ -21,6 +21,7 @@ const Layout = ({ children }) => {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, roles: ['admin', 'editor', 'reader'] },
+    { name: 'Accounts', href: '/accounts', icon: UserGroupIcon, roles: ['admin', 'editor', 'reader'] },
     { name: 'Clients', href: '/clients', icon: UserGroupIcon, roles: ['admin', 'editor'] },
     { name: 'Projects', href: '/projects', icon: BuildingOfficeIcon, roles: ['admin', 'editor'] },
     { name: 'Templates', href: '/templates', icon: DocumentTextIcon, roles: ['admin', 'editor', 'reader'] },

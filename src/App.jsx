@@ -30,6 +30,7 @@ import AccountList from './pages/accounts/AccountList';
 import AddAccount from './pages/accounts/AddAccount';
 import EditAccount from './pages/accounts/EditAccount';
 import SetupPassword from './pages/SetupPassword';
+import WorkOnAppraisal from './pages/appraisal/WorkOnAppraisal';
 
 function App() {
   return (
@@ -200,6 +201,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <div>Appraisals Page (Coming Soon)</div>
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects/:id/appraisal" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <WorkOnAppraisal />
                 </ProtectedRoute>
               } 
             />

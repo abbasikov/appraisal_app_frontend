@@ -2,11 +2,25 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { accountService } from '../../services/accountService';
+import { 
+  ArrowLeftIcon,
+  XMarkIcon,
+  CheckIcon,
+  UserIcon,
+  BuildingOfficeIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  MapPinIcon,
+  GlobeAltIcon,
+  DocumentTextIcon
+} from '@heroicons/react/24/outline';
 
 const AddAccount = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [completedFields, setCompletedFields] = useState(new Set());
+  const [focusedField, setFocusedField] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     account_type: 'client',
@@ -22,20 +36,29 @@ const AddAccount = () => {
   });
 
   const accountTypes = [
-    { value: 'attorney', label: 'Attorney' },
-    { value: 'estate_planner', label: 'Estate Planner' },
-    { value: 'house_manager', label: 'House Manager' },
-    { value: 'financial_manager', label: 'Financial Manager' },
-    { value: 'assistant', label: 'Assistant' },
-    { value: 'appraiser', label: 'Appraiser' },
-    { value: 'client', label: 'Client' }
+    { value: 'attorney', label: 'Attorney', icon: BuildingOfficeIcon, color: 'blue' },
+    { value: 'estate_planner', label: 'Estate Planner', icon: DocumentTextIcon, color: 'green' },
+    { value: 'house_manager', label: 'House Manager', icon: UserIcon, color: 'purple' },
+    { value: 'financial_manager', label: 'Financial Manager', icon: UserIcon, color: 'orange' },
+    { value: 'assistant', label: 'Assistant', icon: UserIcon, color: 'pink' },
+    { value: 'appraiser', label: 'Appraiser', icon: UserIcon, color: 'cyan' },
+    { value: 'client', label: 'Client', icon: UserIcon, color: 'emerald' }
   ];
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Track completed fields for visual feedback
+    if (value.trim()) {
+      setCompletedFields(prev => new Set([...prev, name]));
+    } else {
+      setCompletedFields(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(name);
+        return newSet;
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -53,191 +76,293 @@ const AddAccount = () => {
     }
   };
 
+  const getFieldIcon = (fieldName) => {
+    const icons = {
+      name: UserIcon,
+      email: EnvelopeIcon,
+      phone: PhoneIcon,
+      alt_phone: PhoneIcon,
+      address: MapPinIcon,
+      city: MapPinIcon,
+      state: MapPinIcon,
+      zip_code: MapPinIcon,
+      web_address: GlobeAltIcon,
+      notes: DocumentTextIcon
+    };
+    return icons[fieldName] || UserIcon;
+  };
+
+  const renderField = ({ name, label, type = 'text', required = false, placeholder, rows }) => {
+    const Icon = getFieldIcon(name);
+    const isCompleted = completedFields.has(name);
+    const isFocused = focusedField === name;
+    const isTextarea = type === 'textarea';
+    
+    return (
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-gray-700 flex items-center space-x-2">
+          <Icon className="w-4 h-4 text-gray-400" />
+          <span>{label}</span>
+          {required && <span className="text-red-500">*</span>}
+          {isCompleted && !required && <CheckIcon className="w-4 h-4 text-green-500" />}
+        </label>
+        
+        {isTextarea ? (
+          <textarea
+            name={name}
+            rows={rows || 4}
+            value={formData[name]}
+            onChange={handleChange}
+            onFocus={() => setFocusedField(name)}
+            onBlur={() => setFocusedField('')}
+            className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all duration-200 resize-none ${
+              isFocused
+                ? 'border-blue-500 bg-blue-50/30 shadow-lg shadow-blue-500/10'
+                : isCompleted
+                ? 'border-green-300 bg-green-50/30'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            placeholder={placeholder}
+          />
+        ) : (
+          <input
+            type={type}
+            name={name}
+            required={required}
+            value={formData[name]}
+            onChange={handleChange}
+            onFocus={() => setFocusedField(name)}
+            onBlur={() => setFocusedField('')}
+            className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all duration-200 ${
+              isFocused
+                ? 'border-blue-500 bg-blue-50/30 shadow-lg shadow-blue-500/10'
+                : isCompleted
+                ? 'border-green-300 bg-green-50/30'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            placeholder={placeholder}
+          />
+        )}
+      </div>
+    );
+  };
+
+  const selectedType = accountTypes.find(type => type.value === formData.account_type);
+  const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
+
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Add Account</h1>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-              <p className="text-red-800">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Account Type *
-                </label>
-                <select
-                  name="account_type"
-                  value={formData.account_type}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {accountTypes.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
+      <div className="max-w-3xl mx-auto space-y-8">
+        {/* Header with progress */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate('/accounts')}
+              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeftIcon className="w-6 h-6 text-gray-600" />
+            </button>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
-              </label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <h1 className="text-2xl font-bold text-gray-900">Add Account</h1>
+              <p className="text-gray-600">Create a new account in the system</p>
+            </div>
+          </div>
+          
+          {/* Progress indicator */}
+          <div className="flex items-center space-x-3">
+            <span className="text-sm text-gray-600 font-medium">{progress}% complete</span>
+            <div className="w-20 h-2 bg-gray-200 rounded-full">
+              <div 
+                className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
               />
             </div>
+          </div>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  City
-                </label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 rounded-xl p-4 flex items-center space-x-3">
+            <XMarkIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Form */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          {/* Account Type Header */}
+          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/30">
+            <div className="flex items-center space-x-4">
+              <div className={`p-3 rounded-xl bg-${selectedType?.color}-100 border border-${selectedType?.color}-200`}>
+                {selectedType && <selectedType.icon className={`w-6 h-6 text-${selectedType.color}-600`} />}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  State
-                </label>
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <h2 className="text-lg font-semibold text-gray-900">
+                  New {selectedType?.label || 'Account'}
+                </h2>
+                <p className="text-sm text-gray-600">
+                  {completedFields.size} of {Object.keys(formData).length} fields completed
+                </p>
               </div>
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ZIP Code
-                </label>
-                <input
-                  type="text"
-                  name="zip_code"
-                  value={formData.zip_code}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          <form onSubmit={handleSubmit} className="p-8 space-y-8">
+            {/* Basic Information */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                <UserIcon className="w-5 h-5 text-blue-500" />
+                <span>Basic Information</span>
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderField({
+                  name: 'name',
+                  label: 'Account Name',
+                  required: true,
+                  placeholder: 'Enter account name'
+                })}
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700 flex items-center space-x-2">
+                    <BuildingOfficeIcon className="w-4 h-4 text-gray-400" />
+                    <span>Account Type</span>
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="account_type"
+                    value={formData.account_type}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-blue-500 transition-all duration-200"
+                  >
+                    {accountTypes.map(type => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            {/* Contact Information */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                <EnvelopeIcon className="w-5 h-5 text-green-500" />
+                <span>Contact Information</span>
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderField({
+                  name: 'email',
+                  label: 'Email Address',
+                  type: 'email',
+                  placeholder: 'contact@example.com'
+                })}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alt Phone
-                </label>
-                <input
-                  type="tel"
-                  name="alt_phone"
-                  value={formData.alt_phone}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
+                {renderField({
+                  name: 'phone',
+                  label: 'Primary Phone',
+                  type: 'tel',
+                  placeholder: '(555) 123-4567'
+                })}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+                {renderField({
+                  name: 'alt_phone',
+                  label: 'Alternative Phone',
+                  type: 'tel',
+                  placeholder: '(555) 987-6543'
+                })}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Web Address
-                </label>
-                <input
-                  type="url"
-                  name="web_address"
-                  value={formData.web_address}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                {renderField({
+                  name: 'web_address',
+                  label: 'Website',
+                  type: 'url',
+                  placeholder: 'https://www.example.com'
+                })}
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes
-              </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            {/* Address Information */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                <MapPinIcon className="w-5 h-5 text-purple-500" />
+                <span>Address Information</span>
+              </h3>
+              
+              <div className="space-y-6">
+                {renderField({
+                  name: 'address',
+                  label: 'Street Address',
+                  type: 'textarea',
+                  rows: 3,
+                  placeholder: '123 Main Street, Suite 100'
+                })}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {renderField({
+                    name: 'city',
+                    label: 'City',
+                    placeholder: 'New York'
+                  })}
+
+                  {renderField({
+                    name: 'state',
+                    label: 'State',
+                    placeholder: 'NY'
+                  })}
+
+                  {renderField({
+                    name: 'zip_code',
+                    label: 'ZIP Code',
+                    placeholder: '10001'
+                  })}
+                </div>
+              </div>
             </div>
 
-            <div className="flex justify-end space-x-4">
+            {/* Additional Information */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                <DocumentTextIcon className="w-5 h-5 text-orange-500" />
+                <span>Additional Information</span>
+              </h3>
+              
+              {renderField({
+                name: 'notes',
+                label: 'Notes',
+                type: 'textarea',
+                rows: 4,
+                placeholder: 'Any additional notes or comments...'
+              })}
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => navigate('/accounts')}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                disabled={loading || !formData.name.trim()}
+                className="group px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
               >
-                {loading ? 'Creating...' : 'Create Account'}
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2 inline-block"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <CheckIcon className="w-5 h-5 mr-2 inline-block group-hover:scale-110 transition-transform" />
+                    Create Account
+                  </>
+                )}
               </button>
             </div>
           </form>

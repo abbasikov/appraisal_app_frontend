@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import AppraisalTable from '../../components/AppraisalTable';
+import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import Tabs from '../../components/ui/Tabs';
 import { appraisalService } from '../../services/appraisalService';
 import { projectService } from '../../services/projectService';
 import { useToast } from '../../hooks/useToast';
@@ -9,7 +13,11 @@ import ToastContainer from '../../components/ToastContainer';
 import { 
   ArrowLeftIcon,
   PlayIcon,
-  DocumentTextIcon 
+  DocumentTextIcon,
+  PhotoIcon,
+  Cog6ToothIcon,
+  TableCellsIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 
 const WorkOnAppraisal = () => {
@@ -120,9 +128,12 @@ const WorkOnAppraisal = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <Card className="p-12">
+          <div className="text-center">
+            <LoadingSpinner size="xl" />
+            <p className="text-gray-500 mt-4">Loading appraisal workspace...</p>
+          </div>
+        </Card>
       </Layout>
     );
   }
@@ -133,122 +144,192 @@ const WorkOnAppraisal = () => {
       
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white shadow rounded-lg p-6">
+        <Card className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button
+              <Button
                 onClick={() => navigate(`/projects/${projectId}`)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-              </button>
+                variant="ghost"
+                icon={ArrowLeftIcon}
+                size="sm"
+              />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Work on Appraisal
+                  Appraisal Workspace
                 </h1>
-                <p className="text-sm text-gray-600">
-                  {project?.project_name} - {project?.client?.name}
-                </p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <p className="text-sm text-gray-600">
+                    {project?.project_name}
+                  </p>
+                  <span className="text-gray-400">•</span>
+                  <p className="text-sm text-gray-600">
+                    {project?.client?.name}
+                  </p>
+                </div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              <button
+              <Button
                 onClick={handleSaveAll}
+                loading={saving}
                 disabled={saving}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2"
+                variant="success"
+                icon={DocumentTextIcon}
               >
-                <DocumentTextIcon className="h-4 w-4" />
-                <span>{saving ? 'Saving...' : 'Save All'}</span>
-              </button>
+                Save All
+              </Button>
               
-              <button
+              <Button
                 onClick={handleReviewMode}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                icon={PlayIcon}
               >
-                <PlayIcon className="h-4 w-4" />
-                <span>Review</span>
-              </button>
+                Review Mode
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
 
-        {/* Template Selection */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Template Selection</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Purpose
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                <option value="">Select Purpose</option>
-                <option value="divorce">Divorce</option>
-                <option value="estate">Estate</option>
-                <option value="tax">Tax</option>
-                <option value="insurance">Insurance</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Value Type
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                <option value="">Select Value Type</option>
-                <option value="fair_market">Fair Market Value</option>
-                <option value="replacement">Replacement Value</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Appraisal Type
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                <option value="">Select Type</option>
-                <option value="art">Art</option>
-                <option value="autos">Autos</option>
-                <option value="coins">Coins</option>
-                <option value="collectibles">Collectibles</option>
-                <option value="content">Content</option>
-                <option value="firearms">Firearms</option>
-                <option value="handbags">Handbags</option>
-                <option value="jewelry">Jewelry</option>
-                <option value="watches">Watches</option>
-                <option value="wine">Wine</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        {/* Workspace Tabs */}
+        <Tabs defaultValue="items" className="space-y-6">
+          <Card className="p-6">
+            <Tabs.List>
+              <Tabs.Trigger value="items" className="flex items-center space-x-2">
+                <TableCellsIcon className="w-4 h-4" />
+                <span>Appraisal Items</span>
+              </Tabs.Trigger>
+              <Tabs.Trigger value="settings" className="flex items-center space-x-2">
+                <Cog6ToothIcon className="w-4 h-4" />
+                <span>Settings</span>
+              </Tabs.Trigger>
+              <Tabs.Trigger value="analytics" className="flex items-center space-x-2">
+                <ChartBarIcon className="w-4 h-4" />
+                <span>Analytics</span>
+              </Tabs.Trigger>
+            </Tabs.List>
+          </Card>
 
-        {/* Appraisal Items Table */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">
-                Appraisal Items ({appraisalItems.length})
-              </h3>
+          <Tabs.Content value="settings">
+            <Card>
+              <Card.Header>
+                <h3 className="text-lg font-semibold text-gray-900">Appraisal Configuration</h3>
+                <p className="text-sm text-gray-600 mt-1">Configure template and valuation settings</p>
+              </Card.Header>
+              <Card.Body>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="form-label">Purpose</label>
+                    <select className="form-input">
+                      <option value="">Select Purpose</option>
+                      <option value="divorce">Divorce</option>
+                      <option value="estate">Estate</option>
+                      <option value="tax">Tax</option>
+                      <option value="insurance">Insurance</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="form-label">Value Type</label>
+                    <select className="form-input">
+                      <option value="">Select Value Type</option>
+                      <option value="fair_market">Fair Market Value</option>
+                      <option value="replacement">Replacement Value</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="form-label">Appraisal Type</label>
+                    <select className="form-input">
+                      <option value="">Select Type</option>
+                      <option value="art">Art</option>
+                      <option value="autos">Autos</option>
+                      <option value="coins">Coins</option>
+                      <option value="collectibles">Collectibles</option>
+                      <option value="content">Content</option>
+                      <option value="firearms">Firearms</option>
+                      <option value="handbags">Handbags</option>
+                      <option value="jewelry">Jewelry</option>
+                      <option value="watches">Watches</option>
+                      <option value="wine">Wine</option>
+                    </select>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Tabs.Content>
+
+          <Tabs.Content value="analytics">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="p-6 text-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <TableCellsIcon className="w-6 h-6 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">{appraisalItems.length}</h3>
+                <p className="text-sm text-gray-600">Total Items</p>
+              </Card>
               
-              {appraisalItems.length === 0 && (
-                <button
-                  onClick={handleInitializeItems}
-                  disabled={initializing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {initializing ? 'Initializing...' : 'Initialize from Photos'}
-                </button>
-              )}
+              <Card className="p-6 text-center">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <ChartBarIcon className="w-6 h-6 text-green-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  ${appraisalItems.reduce((sum, item) => sum + (item.appraised_value || 0), 0).toLocaleString()}
+                </h3>
+                <p className="text-sm text-gray-600">Total Value</p>
+              </Card>
+              
+              <Card className="p-6 text-center">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <PhotoIcon className="w-6 h-6 text-purple-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {appraisalItems.filter(item => item.photo_id).length}
+                </h3>
+                <p className="text-sm text-gray-600">Items with Photos</p>
+              </Card>
             </div>
-          </div>
-          
-          <AppraisalTable
-            items={appraisalItems}
-            onItemUpdate={handleItemUpdate}
-            onItemsReorder={handleItemsReorder}
-            loading={loading}
-          />
-        </div>
+          </Tabs.Content>
+
+          <Tabs.Content value="items">
+
+            <div className="space-y-6">
+              {/* Items Header */}
+              <Card>
+                <Card.Header>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Appraisal Items
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {appraisalItems.length} items • Total value: ${appraisalItems.reduce((sum, item) => sum + (item.appraised_value || 0), 0).toLocaleString()}
+                      </p>
+                    </div>
+                    
+                    {appraisalItems.length === 0 && (
+                      <Button
+                        onClick={handleInitializeItems}
+                        loading={initializing}
+                        disabled={initializing}
+                        icon={PhotoIcon}
+                      >
+                        Initialize from Photos
+                      </Button>
+                    )}
+                  </div>
+                </Card.Header>
+              </Card>
+              
+              {/* Appraisal Table */}
+              <AppraisalTable
+                items={appraisalItems}
+                onItemUpdate={handleItemUpdate}
+                onItemsReorder={handleItemsReorder}
+                loading={loading}
+              />
+            </div>
+          </Tabs.Content>
+        </Tabs>
       </div>
     </Layout>
   );

@@ -4,8 +4,14 @@ import {
   ChevronDownIcon,
   PhotoIcon,
   TrashIcon,
-  Bars3Icon
+  Bars3Icon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
+import Card from './ui/Card';
+import Button from './ui/Button';
+import Badge from './ui/Badge';
+import LoadingSpinner from './ui/LoadingSpinner';
+import Modal from './ui/Modal';
 
 const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
   const [draggedItem, setDraggedItem] = useState(null);
@@ -91,235 +97,294 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
     }).format(value);
   };
 
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+  const handlePhotoClick = (item) => {
+    setSelectedPhoto(item);
+    setPhotoModalOpen(true);
+  };
+
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-gray-200 rounded"></div>
-          ))}
+      <Card className="p-12">
+        <div className="text-center">
+          <LoadingSpinner size="lg" />
+          <p className="text-gray-500 mt-4">Loading appraisal items...</p>
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="p-12 text-center">
-        <PhotoIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-        <p className="text-gray-500">No appraisal items found</p>
-        <p className="text-sm text-gray-400 mt-2">
+      <Card className="p-12 text-center">
+        <PhotoIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No appraisal items found</h3>
+        <p className="text-gray-500 mb-6">
           Click "Initialize from Photos" to create items from project photos
         </p>
-      </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+          <p className="text-sm text-blue-700">
+            💡 <strong>Tip:</strong> Upload photos to your project first, then initialize appraisal items to get started quickly.
+          </p>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-              #
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-              Photo
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Room/Area
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Description
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-              Value ($)
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {items.map((item, index) => (
-            <tr
-              key={item.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, item, index)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, index)}
-              className="hover:bg-gray-50 cursor-move"
-            >
-              {/* Line Number */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                <div className="flex items-center space-x-2">
-                  <Bars3Icon className="h-4 w-4 text-gray-400" />
-                  <span>{item.line_number}</span>
-                </div>
-              </td>
+    <>
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="table">
+            <thead className="table-header">
+              <tr>
+                <th className="table-header-cell w-16">#</th>
+                <th className="table-header-cell w-20">Photo</th>
+                <th className="table-header-cell">Room/Area</th>
+                <th className="table-header-cell">Type</th>
+                <th className="table-header-cell">Description</th>
+                <th className="table-header-cell w-32">Value ($)</th>
+                <th className="table-header-cell w-24">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="table-body">
+              {items.map((item, index) => (
+                <tr
+                  key={item.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, item, index)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, index)}
+                  className="table-row cursor-move group"
+                >
+                  {/* Line Number */}
+                  <td className="table-cell">
+                    <div className="flex items-center space-x-2">
+                      <Bars3Icon className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                      <Badge variant="gray" size="sm">{item.line_number}</Badge>
+                    </div>
+                  </td>
 
-              {/* Photo Thumbnail */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                {item.photo_thumbnail ? (
-                  <img
-                    src={`/api/v1/photos/thumbnail/${item.photo_id}`}
-                    alt={item.photo_filename}
-                    className="h-12 w-12 object-cover rounded cursor-pointer hover:opacity-75"
-                    onClick={() => {/* TODO: Implement click-to-enlarge */}}
-                  />
-                ) : (
-                  <div className="h-12 w-12 bg-gray-200 rounded flex items-center justify-center">
-                    <PhotoIcon className="h-6 w-6 text-gray-400" />
-                  </div>
-                )}
-              </td>
+                  {/* Photo Thumbnail */}
+                  <td className="table-cell">
+                    {item.photo_thumbnail ? (
+                      <div className="relative group/photo">
+                        <img
+                          src={`/api/v1/photos/thumbnail/${item.photo_id}`}
+                          alt={item.photo_filename}
+                          className="h-12 w-12 object-cover rounded-lg cursor-pointer hover:shadow-md transition-all duration-200"
+                          onClick={() => handlePhotoClick(item)}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/photo:bg-opacity-20 rounded-lg flex items-center justify-center transition-all duration-200">
+                          <MagnifyingGlassIcon className="h-4 w-4 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <PhotoIcon className="h-6 w-6 text-gray-400" />
+                      </div>
+                    )}
+                  </td>
 
-              {/* Room/Area */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                {editingCell === `${item.id}-room_area` ? (
-                  <input
-                    type="text"
-                    defaultValue={item.room_area || ''}
-                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                    onBlur={(e) => handleCellEdit(item.id, 'room_area', e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleCellEdit(item.id, 'room_area', e.target.value);
-                      }
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <div
-                    className="text-sm text-gray-900 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                    onClick={() => handleCellClick(item.id, 'room_area')}
-                  >
-                    {item.room_area || 'Click to edit'}
-                  </div>
-                )}
-              </td>
+                  {/* Room/Area */}
+                  <td className="table-cell">
+                    {editingCell === `${item.id}-room_area` ? (
+                      <input
+                        type="text"
+                        defaultValue={item.room_area || ''}
+                        className="form-input text-sm"
+                        onBlur={(e) => handleCellEdit(item.id, 'room_area', e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCellEdit(item.id, 'room_area', e.target.value);
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <div
+                        className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                        onClick={() => handleCellClick(item.id, 'room_area')}
+                      >
+                        {item.room_area || <span className="text-gray-400 italic">Click to edit</span>}
+                      </div>
+                    )}
+                  </td>
 
-              {/* Type */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                {editingCell === `${item.id}-item_type` ? (
-                  <select
-                    defaultValue={item.item_type || ''}
-                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                    onBlur={(e) => handleCellEdit(item.id, 'item_type', e.target.value)}
-                    onChange={(e) => handleCellEdit(item.id, 'item_type', e.target.value)}
-                    autoFocus
-                  >
-                    <option value="">Select Type</option>
-                    <option value="art">Art</option>
-                    <option value="jewelry">Jewelry</option>
-                    <option value="furniture">Furniture</option>
-                    <option value="collectibles">Collectibles</option>
-                    <option value="electronics">Electronics</option>
-                    <option value="other">Other</option>
-                  </select>
-                ) : (
-                  <div
-                    className="text-sm text-gray-900 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                    onClick={() => handleCellClick(item.id, 'item_type')}
-                  >
-                    {item.item_type || 'Click to select'}
-                  </div>
-                )}
-              </td>
+                  {/* Type */}
+                  <td className="table-cell">
+                    {editingCell === `${item.id}-item_type` ? (
+                      <select
+                        defaultValue={item.item_type || ''}
+                        className="form-input text-sm"
+                        onBlur={(e) => handleCellEdit(item.id, 'item_type', e.target.value)}
+                        onChange={(e) => handleCellEdit(item.id, 'item_type', e.target.value)}
+                        autoFocus
+                      >
+                        <option value="">Select Type</option>
+                        <option value="art">Art</option>
+                        <option value="jewelry">Jewelry</option>
+                        <option value="furniture">Furniture</option>
+                        <option value="collectibles">Collectibles</option>
+                        <option value="electronics">Electronics</option>
+                        <option value="other">Other</option>
+                      </select>
+                    ) : (
+                      <div
+                        className="cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                        onClick={() => handleCellClick(item.id, 'item_type')}
+                      >
+                        {item.item_type ? (
+                          <Badge variant="info" size="sm" className="capitalize">
+                            {item.item_type}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400 italic text-sm">Click to select</span>
+                        )}
+                      </div>
+                    )}
+                  </td>
 
-              {/* Description */}
-              <td className="px-6 py-4">
-                {editingCell === `${item.id}-description` ? (
-                  <textarea
-                    defaultValue={item.description || ''}
-                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm resize-none"
-                    rows="2"
-                    onBlur={(e) => handleCellEdit(item.id, 'description', e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleCellEdit(item.id, 'description', e.target.value);
-                      }
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <div
-                    className="text-sm text-gray-900 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded max-w-xs"
-                    onClick={() => handleCellClick(item.id, 'description')}
-                  >
-                    {item.description || 'Click to edit'}
-                  </div>
-                )}
-              </td>
+                  {/* Description */}
+                  <td className="table-cell">
+                    {editingCell === `${item.id}-description` ? (
+                      <textarea
+                        defaultValue={item.description || ''}
+                        className="form-input text-sm resize-none"
+                        rows="2"
+                        onBlur={(e) => handleCellEdit(item.id, 'description', e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleCellEdit(item.id, 'description', e.target.value);
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <div
+                        className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200 max-w-xs"
+                        onClick={() => handleCellClick(item.id, 'description')}
+                      >
+                        {item.description || <span className="text-gray-400 italic">Click to edit</span>}
+                      </div>
+                    )}
+                  </td>
 
-              {/* Value */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                {editingCell === `${item.id}-appraised_value` ? (
-                  <input
-                    type="number"
-                    step="0.01"
-                    defaultValue={item.appraised_value || ''}
-                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                    onBlur={(e) => handleCellEdit(item.id, 'appraised_value', parseFloat(e.target.value) || 0)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleCellEdit(item.id, 'appraised_value', parseFloat(e.target.value) || 0);
-                      }
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <div
-                    className="text-sm text-gray-900 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded font-medium"
-                    onClick={() => handleCellClick(item.id, 'appraised_value')}
-                  >
-                    {formatCurrency(item.appraised_value)}
-                  </div>
-                )}
-              </td>
+                  {/* Value */}
+                  <td className="table-cell">
+                    {editingCell === `${item.id}-appraised_value` ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        defaultValue={item.appraised_value || ''}
+                        className="form-input text-sm"
+                        onBlur={(e) => handleCellEdit(item.id, 'appraised_value', parseFloat(e.target.value) || 0)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCellEdit(item.id, 'appraised_value', parseFloat(e.target.value) || 0);
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <div
+                        className="cursor-pointer hover:bg-green-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-green-200"
+                        onClick={() => handleCellClick(item.id, 'appraised_value')}
+                      >
+                        <span className="font-semibold text-green-700">
+                          {formatCurrency(item.appraised_value)}
+                        </span>
+                      </div>
+                    )}
+                  </td>
 
-              {/* Actions */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => handleMoveUp(index)}
-                    disabled={index === 0}
-                    className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                    title="Move up"
-                  >
-                    <ChevronUpIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleMoveDown(index)}
-                    disabled={index === items.length - 1}
-                    className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                    title="Move down"
-                  >
-                    <ChevronDownIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      {/* Summary Row */}
-      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-gray-700">
-            Total Items: {items.length}
-          </span>
-          <span className="text-lg font-bold text-gray-900">
-            Total Value: {formatCurrency(items.reduce((sum, item) => sum + (item.appraised_value || 0), 0))}
-          </span>
+                  {/* Actions */}
+                  <td className="table-cell">
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
+                        variant="ghost"
+                        size="sm"
+                        icon={ChevronUpIcon}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      />
+                      <Button
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === items.length - 1}
+                        variant="ghost"
+                        size="sm"
+                        icon={ChevronDownIcon}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
-    </div>
+        
+        {/* Summary Row */}
+        <div className="bg-gradient-to-r from-blue-50 to-green-50 px-6 py-4 border-t border-gray-200">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <Badge variant="info" size="lg">
+                {items.length} Items
+              </Badge>
+              <span className="text-sm text-gray-600">
+                Last updated: {new Date().toLocaleTimeString()}
+              </span>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600 mb-1">Total Appraised Value</p>
+              <p className="text-2xl font-bold text-green-700">
+                {formatCurrency(items.reduce((sum, item) => sum + (item.appraised_value || 0), 0))}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Photo Modal */}
+      <Modal
+        isOpen={photoModalOpen}
+        onClose={() => setPhotoModalOpen(false)}
+        title={selectedPhoto?.photo_filename || 'Photo'}
+        size="lg"
+      >
+        {selectedPhoto && (
+          <div className="space-y-4">
+            <img
+              src={`/api/v1/photos/${selectedPhoto.photo_id}`}
+              alt={selectedPhoto.photo_filename}
+              className="w-full h-auto rounded-lg shadow-medium"
+            />
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-700">Room/Area:</span>
+                <p className="text-gray-900">{selectedPhoto.room_area || 'Not specified'}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Type:</span>
+                <p className="text-gray-900 capitalize">{selectedPhoto.item_type || 'Not specified'}</p>
+              </div>
+              <div className="col-span-2">
+                <span className="font-medium text-gray-700">Description:</span>
+                <p className="text-gray-900">{selectedPhoto.description || 'No description'}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Appraised Value:</span>
+                <p className="text-green-700 font-semibold">{formatCurrency(selectedPhoto.appraised_value)}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </>
   );
 };
 

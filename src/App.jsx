@@ -69,7 +69,7 @@ function App() {
             />
             
             <Route 
-              path="/accounts/add" 
+              path="/accounts/new" 
               element={
                 <ProtectedRoute roles={['admin', 'editor']}>
                   <AddAccount />

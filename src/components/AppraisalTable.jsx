@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronUpIcon, 
   ChevronDownIcon,
@@ -12,6 +12,7 @@ import Button from './ui/Button';
 import Badge from './ui/Badge';
 import LoadingSpinner from './ui/LoadingSpinner';
 import Modal from './ui/Modal';
+import api from '../services/api';
 
 const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
   const [draggedItem, setDraggedItem] = useState(null);
@@ -105,6 +106,66 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
     setPhotoModalOpen(true);
   };
 
+  const ThumbnailImage = ({ projectId, photoId, alt, className }) => {
+    const [imageSrc, setImageSrc] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+      const fetchThumbnail = async () => {
+        try {
+          setLoading(true);
+          const response = await api.get(`/projects/${projectId}/photos/${photoId}/thumbnail`, {
+            responseType: 'blob'
+          });
+          const imageUrl = URL.createObjectURL(response.data);
+          setImageSrc(imageUrl);
+          setError(false);
+        } catch (err) {
+          console.error('Error loading thumbnail:', err);
+          setError(true);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      if (projectId && photoId) {
+        fetchThumbnail();
+      }
+
+      return () => {
+        if (imageSrc) {
+          URL.revokeObjectURL(imageSrc);
+        }
+      };
+    }, [projectId, photoId]);
+
+    if (loading) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-gray-100 animate-pulse">
+          <span className="text-xs text-gray-400">Loading...</span>
+        </div>
+      );
+    }
+
+    if (error || !imageSrc) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-gray-200">
+          <PhotoIcon className="h-6 w-6 text-gray-400" />
+        </div>
+      );
+    }
+
+    return (
+      <img 
+        src={imageSrc}
+        alt={alt}
+        className={className}
+        onError={() => setError(true)}
+      />
+    );
+  };
+
   if (loading) {
     return (
       <Card className="p-12">
@@ -169,15 +230,17 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
 
                   {/* Photo Thumbnail */}
                   <td className="table-cell">
-                    {item.photo_thumbnail ? (
+                    {item.photo_id ? (
                       <div className="relative group/photo">
-                        <img
-                          src={`/api/v1/photos/thumbnail/${item.photo_id}`}
-                          alt={item.photo_filename}
-                          className="h-12 w-12 object-cover rounded-lg cursor-pointer hover:shadow-md transition-all duration-200"
-                          onClick={() => handlePhotoClick(item)}
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/photo:bg-opacity-20 rounded-lg flex items-center justify-center transition-all duration-200">
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                          <ThumbnailImage 
+                            projectId={item.project_id}
+                            photoId={item.photo_id}
+                            alt={item.photo_filename || 'Photo'}
+                            className="w-full h-full object-cover cursor-pointer hover:shadow-md transition-all duration-200"
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/photo:bg-opacity-20 rounded-lg flex items-center justify-center transition-all duration-200" onClick={() => handlePhotoClick(item)}>
                           <MagnifyingGlassIcon className="h-4 w-4 text-white opacity-0 group-hover/photo:opacity-100 transition-opacity" />
                         </div>
                       </div>
@@ -359,9 +422,12 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
         {selectedPhoto && (
           <div className="space-y-4">
             <img
-              src={`/api/v1/photos/${selectedPhoto.photo_id}`}
-              alt={selectedPhoto.photo_filename}
+              src={`http://localhost:8000/api/v1/projects/${selectedPhoto.project_id}/photos/${selectedPhoto.photo_id}/thumbnail`}
+              alt={selectedPhoto.photo_filename || 'Photo'}
               className="w-full h-auto rounded-lg shadow-medium"
+              onError={(e) => {
+                e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEwMCAxMDBaIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K';
+              }}
             />
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>

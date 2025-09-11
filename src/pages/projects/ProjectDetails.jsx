@@ -1,15 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
-import { templateService } from '../../services/templateService';
 import Layout from '../../components/Layout';
 import DropboxLinksManager from '../../components/DropboxLinksManager';
 import PhotoTable from '../../components/PhotoTable';
 import ProjectReports from '../../components/ProjectReports';
 import { useAuth } from '../../context/AuthContext';
+import {
+  ArrowLeftIcon,
+  BuildingOfficeIcon,
+  UserIcon,
+  CalendarIcon,
+  DocumentTextIcon,
+  CurrencyDollarIcon,
+  PencilSquareIcon,
+  PlayIcon,
+  ChartBarIcon,
+  PhotoIcon,
+  CloudIcon,
+  ExclamationTriangleIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon
+} from '@heroicons/react/24/outline';
 
 const ProjectDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +37,6 @@ const ProjectDetails = () => {
     fetchProjectDetails();
     fetchPhotos();
     
-    // Scroll to reports section if hash is present
     if (window.location.hash === '#reports') {
       setTimeout(() => {
         const reportsSection = document.getElementById('reports-section');
@@ -34,11 +50,10 @@ const ProjectDetails = () => {
   const fetchProjectDetails = async () => {
     try {
       const response = await projectService.getProject(id);
-      console.log('Project details response:', response);
-      console.log('Dropbox links:', response?.dropbox_links);
       setProject(response);
     } catch (err) {
       setError('Failed to load project details');
+      console.error('Error fetching project:', err);
     } finally {
       setLoading(false);
     }
@@ -47,16 +62,14 @@ const ProjectDetails = () => {
   const fetchPhotos = async () => {
     try {
       const response = await projectService.getProjectPhotos(id);
-      setPhotos(response);
+      setPhotos(Array.isArray(response) ? response : []);
     } catch (err) {
       console.error('Failed to load photos:', err);
+      setPhotos([]);
     }
   };
 
-
-
   const handleLinksUpdate = () => {
-    console.log('Refreshing project data after links update...');
     fetchProjectDetails();
     fetchPhotos();
   };
@@ -68,17 +81,56 @@ const ProjectDetails = () => {
         fetchPhotos();
       } catch (err) {
         setError('Failed to delete photo');
+        console.error('Error deleting photo:', err);
       }
     }
   };
 
+  const getStatusColor = (status) => {
+    const colors = {
+      DRAFT: 'bg-gray-100 text-gray-800 border-gray-300',
+      IN_PROGRESS: 'bg-blue-100 text-blue-800 border-blue-300',
+      REVIEW: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      COMPLETED: 'bg-green-100 text-green-800 border-green-300',
+      DELIVERED: 'bg-purple-100 text-purple-800 border-purple-300'
+    };
+    return colors[status] || colors.DRAFT;
+  };
 
+  const getStatusIcon = (status) => {
+    const icons = {
+      DRAFT: DocumentTextIcon,
+      IN_PROGRESS: ClockIcon,
+      REVIEW: ExclamationTriangleIcon,
+      COMPLETED: CheckCircleIcon,
+      DELIVERED: CheckCircleIcon
+    };
+    return icons[status] || DocumentTextIcon;
+  };
 
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="animate-pulse space-y-8">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
+              <div className="space-y-2">
+                <div className="h-8 bg-gray-200 rounded w-64"></div>
+                <div className="h-4 bg-gray-200 rounded w-48"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-gray-200 rounded-2xl h-64"></div>
+                <div className="bg-gray-200 rounded-2xl h-48"></div>
+              </div>
+              <div className="space-y-6">
+                <div className="bg-gray-200 rounded-2xl h-32"></div>
+                <div className="bg-gray-200 rounded-2xl h-48"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -87,100 +139,274 @@ const ProjectDetails = () => {
   if (error) {
     return (
       <Layout>
-        <div className="p-6">
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-red-800">{error}</p>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="bg-red-50 border-l-4 border-red-400 rounded-xl p-6">
+            <div className="flex items-center">
+              <XCircleIcon className="w-6 h-6 text-red-500 mr-3" />
+              <p className="text-red-800 font-medium">{error}</p>
+            </div>
           </div>
         </div>
       </Layout>
     );
   }
 
+  const StatusIcon = getStatusIcon(project?.status);
+
   return (
     <Layout>
-      <div className="p-6">
-        <div className="max-w-6xl mx-auto">
-          {/* Project Header */}
-          <div className="bg-white p-6 rounded-lg shadow mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              {project?.project_name}
-            </h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500">Client</label>
-                <p className="text-gray-900">{project?.client_name}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">Type</label>
-                <p className="text-gray-900">{project?.appraisal_type}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">Status</label>
-                <p className="text-gray-900">{project?.status}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">Case Number</label>
-                <p className="text-gray-900">{project?.case_number || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">Assigned User</label>
-                <p className="text-gray-900">{project?.assigned_user_name || 'Unassigned'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500">Total Value</label>
-                <p className="text-gray-900">${project?.total_value?.toLocaleString() || '0'}</p>
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate('/projects')}
+              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeftIcon className="w-6 h-6 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {project?.project_name || 'Untitled Project'}
+              </h1>
+              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <div className="flex items-center space-x-1">
+                  <BuildingOfficeIcon className="w-4 h-4" />
+                  <span>{project?.client_name || 'No client'}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <DocumentTextIcon className="w-4 h-4" />
+                  <span>{project?.appraisal_type || 'No type'}</span>
+                </div>
               </div>
             </div>
-            {project?.notes && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-500">Notes</label>
-                <p className="text-gray-900">{project.notes}</p>
+          </div>
+
+          {/* Status Badge */}
+          <div className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${getStatusColor(project?.status)}`}>
+            <StatusIcon className="w-5 h-5" />
+            <span className="font-medium capitalize">
+              {project?.status?.replace('_', ' ') || 'Draft'}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Project Overview */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/30">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-blue-100 border border-blue-200">
+                    <BuildingOfficeIcon className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900">Project Overview</h2>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <UserIcon className="w-4 h-4" />
+                      <span>Client</span>
+                    </div>
+                    <p className="text-gray-900 font-medium">{project?.client_name || 'Not assigned'}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <DocumentTextIcon className="w-4 h-4" />
+                      <span>Case Number</span>
+                    </div>
+                    <p className="text-gray-900 font-medium">{project?.case_number || 'N/A'}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <UserIcon className="w-4 h-4" />
+                      <span>Assigned User</span>
+                    </div>
+                    <p className="text-gray-900 font-medium">{project?.assigned_user_name || 'Unassigned'}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <CalendarIcon className="w-4 h-4" />
+                      <span>Inspection Date</span>
+                    </div>
+                    <p className="text-gray-900 font-medium">
+                      {project?.inspection_date 
+                        ? new Date(project.inspection_date).toLocaleDateString()
+                        : 'Not set'
+                      }
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <CalendarIcon className="w-4 h-4" />
+                      <span>Report Date</span>
+                    </div>
+                    <p className="text-gray-900 font-medium">
+                      {project?.report_date 
+                        ? new Date(project.report_date).toLocaleDateString()
+                        : 'Not set'
+                      }
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <CurrencyDollarIcon className="w-4 h-4" />
+                      <span>Total Value</span>
+                    </div>
+                    <p className="text-gray-900 font-medium">
+                      ${project?.total_value?.toLocaleString() || '0'}
+                    </p>
+                  </div>
+                </div>
+                
+                {project?.notes && (
+                  <div className="mt-6 pt-6 border-t border-gray-100">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+                      <DocumentTextIcon className="w-4 h-4" />
+                      <span>Notes</span>
+                    </div>
+                    <p className="text-gray-900 leading-relaxed">{project.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Dropbox Integration */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-cyan-50/30">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-cyan-100 border border-cyan-200">
+                    <CloudIcon className="w-6 h-6 text-cyan-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900">Dropbox Integration</h2>
+                </div>
+              </div>
+              <div className="p-6">
+                <DropboxLinksManager 
+                  projectId={id}
+                  onLinksUpdate={handleLinksUpdate}
+                />
+              </div>
+            </div>
+
+            {/* Photos Section */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-purple-50/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-xl bg-purple-100 border border-purple-200">
+                      <PhotoIcon className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Photos ({photos.length})
+                    </h2>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <PhotoTable photos={photos} onPhotoDelete={handlePhotoDelete} />
+              </div>
+            </div>
+
+            {/* Reports Section */}
+            {(isAdmin || isEditor) && (
+              <div id="reports-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-green-50/30">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-xl bg-green-100 border border-green-200">
+                      <ChartBarIcon className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-gray-900">Generate Reports</h2>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <ProjectReports project={project} />
+                </div>
               </div>
             )}
           </div>
 
-          {/* Dropbox Integration Section */}
-          <div className="bg-white p-6 rounded-lg shadow mb-6">
-            <h2 className="text-lg font-semibold mb-4">Dropbox Integration</h2>
-            <DropboxLinksManager 
-              projectId={id}
-              onLinksUpdate={handleLinksUpdate}
-            />
-          </div>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            {(isAdmin || isEditor) && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => navigate(`/projects/${id}/appraisal`)}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <PlayIcon className="w-5 h-5" />
+                    <span>Work on Appraisal</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => navigate(`/projects/${id}/edit`)}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                  >
+                    <PencilSquareIcon className="w-5 h-5" />
+                    <span>Edit Project</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
-          {/* Action Buttons */}
-          {(isAdmin || isEditor) && (
-            <div className="bg-white p-6 rounded-lg shadow mb-6">
-              <h2 className="text-lg font-semibold mb-4">Project Actions</h2>
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => window.location.href = `/projects/${id}/appraisal`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Work on Appraisal
-                </button>
-                <button
-                  onClick={() => window.location.href = `/projects/${id}/edit`}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Edit Project
-                </button>
+            {/* Project Stats */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Statistics</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center space-x-2">
+                    <PhotoIcon className="w-5 h-5 text-gray-500" />
+                    <span className="text-sm text-gray-600">Photos</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">{photos.length}</span>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center space-x-2">
+                    <CalendarIcon className="w-5 h-5 text-gray-500" />
+                    <span className="text-sm text-gray-600">Created</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    {project?.created_at 
+                      ? new Date(project.created_at).toLocaleDateString()
+                      : 'N/A'
+                    }
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center space-x-2">
+                    <ClockIcon className="w-5 h-5 text-gray-500" />
+                    <span className="text-sm text-gray-600">Last Updated</span>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    {project?.updated_at 
+                      ? new Date(project.updated_at).toLocaleDateString()
+                      : 'N/A'
+                    }
+                  </span>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Reports Section */}
-          {(isAdmin || isEditor) && (
-            <div id="reports-section" className="bg-white p-6 rounded-lg shadow mb-6">
-              <h2 className="text-lg font-semibold mb-4">Generate Reports</h2>
-              <ProjectReports project={project} />
-            </div>
-          )}
-
-          {/* Photos Section */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4">Photos ({photos.length})</h2>
-            <PhotoTable photos={photos} onPhotoDelete={handlePhotoDelete} />
+            {/* Project Purpose */}
+            {project?.purpose && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Purpose</h3>
+                <p className="text-gray-700 leading-relaxed">{project.purpose}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

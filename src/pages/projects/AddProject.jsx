@@ -2,10 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { clientService } from '../../services/clientService';
-import { authService } from '../../services/authService';
 import Layout from '../../components/Layout';
+import { 
+  ArrowLeftIcon,
+  XMarkIcon,
+  CheckIcon,
+  UserIcon,
+  BuildingOfficeIcon,
+  CalendarIcon,
+  DocumentTextIcon,
+  PlusIcon,
+  SparklesIcon,
+  ExclamationTriangleIcon,
+  LightBulbIcon,
+  StarIcon
+} from '@heroicons/react/24/outline';
 
 const AddProject = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [completedFields, setCompletedFields] = useState(new Set());
+  const [focusedField, setFocusedField] = useState('');
+  const [projectNamePreview, setProjectNamePreview] = useState('');
   const [formData, setFormData] = useState({
     project_name: '',
     client_id: '',
@@ -19,10 +38,16 @@ const AddProject = () => {
   });
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [projectNamePreview, setProjectNamePreview] = useState('');
-  const navigate = useNavigate();
+
+  const appraisalTypes = [
+    { value: 'DIVORCE', label: 'Divorce', icon: UserIcon, color: 'blue', description: 'Marital dissolution appraisals' },
+    { value: 'ESTATE', label: 'Estate', icon: BuildingOfficeIcon, color: 'green', description: 'Estate settlement and probate' },
+    { value: 'INSURANCE', label: 'Insurance', icon: DocumentTextIcon, color: 'purple', description: 'Insurance claim evaluations' },
+    { value: 'TAX', label: 'Tax', icon: DocumentTextIcon, color: 'orange', description: 'Tax assessment purposes' },
+    { value: 'DONATION', label: 'Donation', icon: DocumentTextIcon, color: 'pink', description: 'Charitable donation valuations' },
+    { value: 'OTHER', label: 'Other', icon: DocumentTextIcon, color: 'gray', description: 'Custom appraisal purposes' }
+  ];
 
   useEffect(() => {
     fetchData();
@@ -36,8 +61,7 @@ const AddProject = () => {
     try {
       const [clientsData, usersData] = await Promise.all([
         clientService.getClients(0, 1000),
-        // Get users with editor role - this would need a users endpoint
-        // For now, we'll skip this and handle it later
+        // Users endpoint would be needed here - for now skip
         Promise.resolve([])
       ]);
       setClients(Array.isArray(clientsData) ? clientsData : []);
@@ -65,16 +89,22 @@ const AddProject = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Track completed fields for visual feedback
+    if (value.trim()) {
+      setCompletedFields(prev => new Set([...prev, name]));
+    } else {
+      setCompletedFields(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(name);
+        return newSet;
+      });
+    }
+    
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
@@ -105,8 +135,9 @@ const AddProject = () => {
     }
 
     setLoading(true);
+    setError('');
+
     try {
-      // Convert string IDs to integers
       const projectData = {
         ...formData,
         client_id: parseInt(formData.client_id),
@@ -117,191 +148,379 @@ const AddProject = () => {
       navigate('/projects');
     } catch (err) {
       console.error('Error creating project:', err);
-      setErrors({ submit: 'Failed to create project. Please try again.' });
+      setError('Failed to create project. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const selectedAppraisalType = appraisalTypes.find(type => type.value === formData.appraisal_type);
+  const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
+
+  const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3, description = '' }) => {
+    const isCompleted = completedFields.has(name);
+    const isFocused = focusedField === name;
+    const hasError = errors[name];
+
+    return (
+      <div className="space-y-2">
+        <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+          <span>{label}</span>
+          {required && <span className="text-red-500">*</span>}
+          {isCompleted && (
+            <CheckIcon className="w-4 h-4 text-green-500" />
+          )}
+        </label>
+        
+        {description && (
+          <p className="text-xs text-gray-500">{description}</p>
+        )}
+        
+        {type === 'select' ? (
+          <select
+            name={name}
+            value={formData[name]}
+            onChange={handleChange}
+            onFocus={() => setFocusedField(name)}
+            onBlur={() => setFocusedField('')}
+            className={`w-full px-4 py-3 rounded-2xl border-2 transition-all duration-200 ${
+              hasError
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+                : isFocused
+                ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-blue-50/50'
+                : isCompleted
+                ? 'border-green-300 bg-green-50/50'
+                : 'border-gray-200 hover:border-gray-300'
+            } focus:outline-none focus:ring-4`}
+          >
+            {options.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        ) : type === 'textarea' ? (
+          <textarea
+            name={name}
+            value={formData[name]}
+            onChange={handleChange}
+            onFocus={() => setFocusedField(name)}
+            onBlur={() => setFocusedField('')}
+            placeholder={placeholder}
+            rows={rows}
+            className={`w-full px-4 py-3 rounded-2xl border-2 transition-all duration-200 resize-none ${
+              hasError
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+                : isFocused
+                ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-blue-50/50'
+                : isCompleted
+                ? 'border-green-300 bg-green-50/50'
+                : 'border-gray-200 hover:border-gray-300'
+            } focus:outline-none focus:ring-4 placeholder-gray-400`}
+          />
+        ) : (
+          <input
+            type={type}
+            name={name}
+            value={formData[name]}
+            onChange={handleChange}
+            onFocus={() => setFocusedField(name)}
+            onBlur={() => setFocusedField('')}
+            placeholder={placeholder}
+            className={`w-full px-4 py-3 rounded-2xl border-2 transition-all duration-200 ${
+              hasError
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+                : isFocused
+                ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-blue-50/50'
+                : isCompleted
+                ? 'border-green-300 bg-green-50/50'
+                : 'border-gray-200 hover:border-gray-300'
+            } focus:outline-none focus:ring-4 placeholder-gray-400`}
+          />
+        )}
+        
+        {hasError && (
+          <p className="text-red-600 text-sm flex items-center space-x-1">
+            <ExclamationTriangleIcon className="w-4 h-4" />
+            <span>{errors[name]}</span>
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Layout>
-      <div className="p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Create New Project</h1>
-            <button
-              onClick={() => navigate('/projects')}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Cancel
-            </button>
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-700 p-8 shadow-2xl">
+          {/* Animated background elements */}
+          <div className="absolute inset-0">
+            <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 animate-pulse"></div>
+            <div className="absolute -left-5 -bottom-5 w-32 h-32 rounded-full bg-white/5 animate-pulse" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute right-1/4 top-1/4 w-6 h-6 rounded-full bg-white/20 animate-bounce" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute left-1/3 bottom-1/3 w-4 h-4 rounded-full bg-white/15 animate-bounce" style={{ animationDelay: '3s' }}></div>
           </div>
           
-          {errors.submit && (
-            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-              {errors.submit}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <button
+                  onClick={() => navigate('/projects')}
+                  className="inline-flex items-center space-x-2 text-emerald-100 hover:text-white transition-colors duration-200 mb-4"
+                >
+                  <ArrowLeftIcon className="w-5 h-5" />
+                  <span className="font-medium">Back to Projects</span>
+                </button>
+                
+                <div className="flex items-center space-x-3 mb-2">
+                  <PlusIcon className="w-8 h-8 text-white" />
+                  <h1 className="text-3xl font-bold text-white">Create New Project</h1>
+                </div>
+                <p className="text-emerald-100 text-lg">
+                  Set up a new appraisal project with all the details
+                </p>
+                <div className="flex items-center space-x-4 mt-4">
+                  <div className="flex items-center space-x-2 text-white/90">
+                    <SparklesIcon className="w-4 h-4 text-yellow-300" />
+                    <span className="text-sm font-medium">Professional Tools</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-white/90">
+                    <StarIcon className="w-4 h-4 text-yellow-300" />
+                    <span className="text-sm font-medium">Quick Setup</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="hidden lg:block">
+                <div className="text-center text-white/90">
+                  <div className="text-2xl font-bold">{progress}%</div>
+                  <div className="text-sm">Complete</div>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Project Information Section */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-lg font-semibold mb-4">Project Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Client *
-                  </label>
-                  <select
-                    name="client_id"
-                    value={formData.client_id}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.client_id ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select a client</option>
-                    {clients.map(client => (
-                      <option key={client.id} value={client.id}>
-                        {client.name} {client.case_name ? `- ${client.case_name}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.client_id && <p className="text-red-500 text-sm mt-1">{errors.client_id}</p>}
+        {/* Progress & Status */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="font-semibold text-gray-900">Form Progress</h3>
+              <p className="text-sm text-gray-600">
+                {completedFields.size} of {Object.keys(formData).length} fields completed
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600 font-medium">{progress}% complete</span>
+              <div className="w-20 h-2 bg-gray-200 rounded-full">
+                <div 
+                  className="h-2 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Auto-generated Name Preview */}
+        {projectNamePreview && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
+            <div className="flex items-center space-x-3">
+              <LightBulbIcon className="w-5 h-5 text-blue-500" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">
+                  Suggested Project Name
+                </p>
+                <p className="text-sm text-blue-700 font-mono">
+                  {projectNamePreview}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 rounded-xl p-4 flex items-center space-x-3">
+            <XMarkIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+            {/* Project Type Header */}
+            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/30">
+              <div className="flex items-center space-x-4">
+                <div className={`p-3 rounded-xl bg-${selectedAppraisalType?.color}-100 border border-${selectedAppraisalType?.color}-200`}>
+                  {React.createElement(selectedAppraisalType?.icon || BuildingOfficeIcon, {
+                    className: `w-6 h-6 text-${selectedAppraisalType?.color}-600`
+                  })}
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Appraisal Type *
-                  </label>
-                  <select
-                    name="appraisal_type"
-                    value={formData.appraisal_type}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.appraisal_type ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="DIVORCE">Divorce</option>
-                    <option value="ESTATE">Estate</option>
-                    <option value="INSURANCE">Insurance</option>
-                    <option value="TAX">Tax</option>
-                    <option value="DONATION">Donation</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                  {errors.appraisal_type && <p className="text-red-500 text-sm mt-1">{errors.appraisal_type}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Case Number
-                  </label>
-                  <input
-                    type="text"
-                    name="case_number"
-                    value={formData.case_number}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Project Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="project_name"
-                    value={formData.project_name}
-                    onChange={handleChange}
-                    placeholder={projectNamePreview}
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.project_name ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {projectNamePreview && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Auto-generated: {projectNamePreview}
-                    </p>
-                  )}
-                  {errors.project_name && <p className="text-red-500 text-sm mt-1">{errors.project_name}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Inspection Date
-                  </label>
-                  <input
-                    type="date"
-                    name="inspection_date"
-                    value={formData.inspection_date}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Report Date
-                  </label>
-                  <input
-                    type="date"
-                    name="report_date"
-                    value={formData.report_date}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Purpose
-                  </label>
-                  <textarea
-                    name="purpose"
-                    value={formData.purpose}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Describe the purpose of this appraisal..."
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notes
-                  </label>
-                  <textarea
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {selectedAppraisalType?.label} Appraisal Project
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {selectedAppraisalType?.description}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-4">
+            <div className="p-8 space-y-8">
+              {/* Basic Information */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                  <BuildingOfficeIcon className="w-5 h-5 text-blue-500" />
+                  <span>Basic Information</span>
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderField({
+                    name: 'client_id',
+                    label: 'Client',
+                    type: 'select',
+                    required: true,
+                    description: 'Select the client for this appraisal project',
+                    options: [
+                      { value: '', label: 'Select a client' },
+                      ...clients.map(client => ({
+                        value: client.id,
+                        label: `${client.name}${client.case_name ? ` - ${client.case_name}` : ''}`
+                      }))
+                    ]
+                  })}
+
+                  {renderField({
+                    name: 'appraisal_type',
+                    label: 'Appraisal Type',
+                    type: 'select',
+                    required: true,
+                    description: 'Choose the type of appraisal being performed',
+                    options: appraisalTypes
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderField({
+                    name: 'project_name',
+                    label: 'Project Name',
+                    required: true,
+                    placeholder: projectNamePreview || 'Enter project name...',
+                    description: 'A unique name to identify this project'
+                  })}
+
+                  {renderField({
+                    name: 'case_number',
+                    label: 'Case Number',
+                    placeholder: 'Enter case number if applicable...',
+                    description: 'Optional reference number for tracking'
+                  })}
+                </div>
+              </div>
+
+              {/* Scheduling */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                  <CalendarIcon className="w-5 h-5 text-green-500" />
+                  <span>Scheduling</span>
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderField({
+                    name: 'inspection_date',
+                    label: 'Inspection Date',
+                    type: 'date',
+                    description: 'When will the property inspection take place?'
+                  })}
+
+                  {renderField({
+                    name: 'report_date',
+                    label: 'Report Due Date',
+                    type: 'date',
+                    description: 'Expected completion date for the appraisal report'
+                  })}
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                  <DocumentTextIcon className="w-5 h-5 text-purple-500" />
+                  <span>Additional Information</span>
+                </h3>
+                
+                {renderField({
+                  name: 'purpose',
+                  label: 'Purpose',
+                  type: 'textarea',
+                  placeholder: 'Describe the purpose of this appraisal...',
+                  description: 'Explain why this appraisal is being conducted',
+                  rows: 3
+                })}
+
+                {renderField({
+                  name: 'notes',
+                  label: 'Notes',
+                  type: 'textarea',
+                  placeholder: 'Any additional notes or special instructions...',
+                  description: 'Additional details or special requirements',
+                  rows: 4
+                })}
+              </div>
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-4 p-6 border-t border-gray-100 bg-gray-50/50">
               <button
                 type="button"
                 onClick={() => navigate('/projects')}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                disabled={loading || !formData.project_name.trim() || !formData.client_id}
+                className="group px-6 py-3 bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
               >
-                {loading ? 'Creating...' : 'Create Project'}
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2 inline-block"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <PlusIcon className="w-5 h-5 mr-2 inline-block group-hover:scale-110 transition-transform" />
+                    Create Project
+                  </>
+                )}
               </button>
             </div>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
+
+      <style>{`
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-slide-up {
+          animation: slide-up 0.6s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
     </Layout>
   );
 };

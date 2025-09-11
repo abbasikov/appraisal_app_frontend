@@ -311,18 +311,18 @@ const Login = () => {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
               </div>
-              <div className="relative flex justify-center text-sm">
+              {/* <div className="relative flex justify-center text-sm">
                 <span className="px-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-500">New to AppraisalPro?</span>
-              </div>
+              </div> */}
             </div>
             
-            <Link 
+            {/* <Link 
               to="/signup" 
               className="group inline-flex items-center space-x-2 font-semibold text-blue-600 hover:text-blue-700 transition-all duration-200 hover:scale-105"
             >
               <span>Create your account</span>
               <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
-            </Link>
+            </Link> */}
             
             <p className="text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
               By signing in, you agree to our Terms of Service and Privacy Policy. 

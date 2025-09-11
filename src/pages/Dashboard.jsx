@@ -111,7 +111,7 @@ const Dashboard = () => {
       description: 'Start a new appraisal project',
       icon: PlusIcon,
       gradient: 'from-blue-500 to-blue-600',
-      action: () => navigate('/projects/add'),
+      action: () => navigate('/projects/new'),
       show: isAdmin || isEditor
     },
     {
@@ -119,7 +119,7 @@ const Dashboard = () => {
       description: 'Register a new client',
       icon: UserGroupIcon,
       gradient: 'from-green-500 to-emerald-600',
-      action: () => navigate('/clients/add'),
+      action: () => navigate('/clients/new'),
       show: isAdmin || isEditor
     },
     {
@@ -369,7 +369,7 @@ const Dashboard = () => {
                       <p className="text-gray-500">No active projects</p>
                       {(isAdmin || isEditor) && (
                         <button 
-                          onClick={() => navigate('/projects/add')}
+                          onClick={() => navigate('/projects/new')}
                           className="mt-2 text-blue-600 hover:text-blue-700 font-medium"
                         >
                           Create your first project

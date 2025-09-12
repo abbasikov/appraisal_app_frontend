@@ -67,11 +67,29 @@ const AddClient = () => {
 
     setLoading(true);
     try {
-      await clientService.createClient(formData);
+      // Clean the form data - remove empty strings to avoid validation errors
+      const cleanedData = {};
+      Object.keys(formData).forEach(key => {
+        const value = formData[key];
+        if (value && value.trim() !== '') {
+          cleanedData[key] = value.trim();
+        }
+      });
+      
+      await clientService.createClient(cleanedData);
       navigate('/clients');
     } catch (err) {
       console.error('Error creating client:', err);
-      setErrors({ submit: 'Failed to create client. Please try again.' });
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          const errorMessages = err.response.data.detail.map(e => e.msg || e.message || e).join(', ');
+          setErrors({ submit: `Validation error: ${errorMessages}` });
+        } else {
+          setErrors({ submit: `Failed to create client: ${err.response.data.detail}` });
+        }
+      } else {
+        setErrors({ submit: 'Failed to create client. Please try again.' });
+      }
     } finally {
       setLoading(false);
     }

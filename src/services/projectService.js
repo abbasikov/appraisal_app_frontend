@@ -4,12 +4,12 @@ export const projectService = {
   async getProjects(skip = 0, limit = 100, clientId = null) {
     const params = new URLSearchParams({ skip, limit });
     if (clientId) params.append('client_id', clientId);
-    const response = await api.get(`/projects?${params}`);
+    const response = await api.get(`/projects/?${params}`);
     return response.data;
   },
 
   async createProject(projectData) {
-    const response = await api.post('/projects', projectData);
+    const response = await api.post('/projects/', projectData);
     return response.data;
   },
 

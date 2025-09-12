@@ -123,6 +123,32 @@ const AddProject = () => {
       newErrors.appraisal_type = 'Please select an appraisal type';
     }
     
+    // Validate dates if provided
+    if (formData.inspection_date && formData.inspection_date.trim()) {
+      const inspectionDate = new Date(formData.inspection_date);
+      if (isNaN(inspectionDate.getTime())) {
+        newErrors.inspection_date = 'Please enter a valid inspection date';
+      }
+    }
+    
+    if (formData.report_date && formData.report_date.trim()) {
+      const reportDate = new Date(formData.report_date);
+      if (isNaN(reportDate.getTime())) {
+        newErrors.report_date = 'Please enter a valid report due date';
+      }
+    }
+    
+    // Check if report date is after inspection date
+    if (formData.inspection_date && formData.report_date && 
+        formData.inspection_date.trim() && formData.report_date.trim()) {
+      const inspectionDate = new Date(formData.inspection_date);
+      const reportDate = new Date(formData.report_date);
+      if (!isNaN(inspectionDate.getTime()) && !isNaN(reportDate.getTime()) && 
+          reportDate < inspectionDate) {
+        newErrors.report_date = 'Report due date should be after inspection date';
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -138,17 +164,57 @@ const AddProject = () => {
     setError('');
 
     try {
-      const projectData = {
-        ...formData,
-        client_id: parseInt(formData.client_id),
-        assigned_user_id: formData.assigned_user_id ? parseInt(formData.assigned_user_id) : null
-      };
+      // Clean the form data - remove empty strings and convert dates properly
+      const cleanedData = {};
+      Object.keys(formData).forEach(key => {
+        const value = formData[key];
+        if (key === 'client_id' && value) {
+          cleanedData[key] = parseInt(value);
+        } else if (key === 'assigned_user_id' && value) {
+          cleanedData[key] = parseInt(value);
+        } else if ((key === 'inspection_date' || key === 'report_date') && value && value.trim() !== '') {
+          cleanedData[key] = value;
+        } else if (value && value.trim && value.trim() !== '') {
+          cleanedData[key] = value.trim();
+        } else if (!value || (value.trim && value.trim() === '')) {
+          // Skip empty values - let backend handle defaults
+        } else {
+          cleanedData[key] = value;
+        }
+      });
       
-      await projectService.createProject(projectData);
+      await projectService.createProject(cleanedData);
       navigate('/projects');
     } catch (err) {
       console.error('Error creating project:', err);
-      setError('Failed to create project. Please try again.');
+      
+      // Handle different types of errors
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          // Pydantic validation errors
+          const fieldErrors = {};
+          err.response.data.detail.forEach(error => {
+            const field = error.loc?.[error.loc.length - 1];
+            const message = error.msg || error.message || 'Invalid value';
+            if (field) {
+              fieldErrors[field] = message;
+            }
+          });
+          
+          if (Object.keys(fieldErrors).length > 0) {
+            setErrors(fieldErrors);
+            setError('Please fix the validation errors below.');
+          } else {
+            setError('Validation failed. Please check your input.');
+          }
+        } else {
+          setError(`Failed to create project: ${err.response.data.detail}`);
+        }
+      } else if (err.response?.status === 422) {
+        setError('Invalid data provided. Please check all required fields and date formats.');
+      } else {
+        setError('Failed to create project. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

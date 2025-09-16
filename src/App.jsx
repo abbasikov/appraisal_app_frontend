@@ -13,9 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Unauthorized from './pages/Unauthorized';
-import ClientList from './pages/clients/ClientList';
-import AddClient from './pages/clients/AddClient';
-import EditClient from './pages/clients/EditClient';
+
 import ProjectList from './pages/projects/ProjectList';
 import AddProject from './pages/projects/AddProject';
 import EditProject from './pages/projects/EditProject';
@@ -86,34 +84,7 @@ function App() {
               } 
             />
             
-            {/* Client and Project routes */}
-            <Route 
-              path="/clients" 
-              element={
-                <ProtectedRoute roles={['admin', 'editor']}>
-                  <ClientList />
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/clients/new" 
-              element={
-                <ProtectedRoute roles={['admin', 'editor']}>
-                  <AddClient />
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/clients/:id/edit" 
-              element={
-                <ProtectedRoute roles={['admin', 'editor']}>
-                  <EditClient />
-                </ProtectedRoute>
-              } 
-            />
-            
+            {/* Project routes */}
             <Route 
               path="/projects" 
               element={

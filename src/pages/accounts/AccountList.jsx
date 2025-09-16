@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import AddSubAccountModal from '../../components/AddSubAccountModal';
+import EditClientModal from '../../components/EditClientModal';
 import { accountService } from '../../services/accountService';
+import { clientService } from '../../services/clientService';
 import { useAuth } from '../../context/AuthContext';
 import { 
   PlusIcon, 
@@ -14,7 +17,9 @@ import {
   PhoneIcon,
   MapPinIcon,
   FunnelIcon,
-  EyeIcon
+  EyeIcon,
+  ChevronDownIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 const AccountList = () => {
@@ -23,6 +28,12 @@ const AccountList = () => {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const [expandedAccounts, setExpandedAccounts] = useState(new Set());
+  const [clients, setClients] = useState({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
   const { isAdmin, isEditor } = useAuth();
 
   useEffect(() => {
@@ -52,6 +63,25 @@ const AccountList = () => {
         console.error('Error deleting account:', err);
       }
     }
+  };
+
+  const toggleAccountExpansion = async (accountId) => {
+    const newExpanded = new Set(expandedAccounts);
+    if (expandedAccounts.has(accountId)) {
+      newExpanded.delete(accountId);
+    } else {
+      newExpanded.add(accountId);
+      // Fetch clients if not already loaded
+      if (!clients[accountId]) {
+        try {
+          const clientsData = await accountService.getAccountClients(accountId);
+          setClients(prev => ({ ...prev, [accountId]: clientsData }));
+        } catch (err) {
+          console.error('Error fetching clients:', err);
+        }
+      }
+    }
+    setExpandedAccounts(newExpanded);
   };
 
   const accountTypes = [
@@ -201,95 +231,195 @@ const AccountList = () => {
                 const IconComponent = getAccountIcon(account.account_type);
                 
                 return (
-                  <div 
-                    key={account.id} 
-                    className="group p-6 hover:bg-gray-50 transition-all duration-200 animate-slide-up"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div className="flex items-center justify-between">
-                      {/* Left Section - Account Info */}
-                      <div className="flex items-center space-x-4 flex-1 min-w-0">
-                        {/* Icon */}
-                        <div className="flex-shrink-0">
-                          <div className={`p-3 rounded-2xl ${getAccountTypeColor(account.account_type).replace('text-', 'bg-').replace('-800', '-500')} bg-opacity-20 border`}>
-                            <IconComponent className="w-6 h-6 text-gray-700" />
+                  <div key={account.id}>
+                    <div 
+                      className="group p-6 hover:bg-gray-50 transition-all duration-200 animate-slide-up"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <div className="flex items-center justify-between">
+                        {/* Left Section - Account Info */}
+                        <div className="flex items-center space-x-4 flex-1 min-w-0">
+                          {/* Expand/Collapse Button */}
+                          <button
+                            onClick={() => toggleAccountExpansion(account.id)}
+                            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {expandedAccounts.has(account.id) ? (
+                              <ChevronDownIcon className="w-5 h-5" />
+                            ) : (
+                              <ChevronRightIcon className="w-5 h-5" />
+                            )}
+                          </button>
+                          
+                          {/* Icon */}
+                          <div className="flex-shrink-0">
+                            <div className={`p-3 rounded-2xl ${getAccountTypeColor(account.account_type).replace('text-', 'bg-').replace('-800', '-500')} bg-opacity-20 border`}>
+                              <IconComponent className="w-6 h-6 text-gray-700" />
+                            </div>
+                          </div>
+                          
+                          {/* Account Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                                {account.name || 'Unnamed Account'}
+                              </h3>
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getAccountTypeColor(account.account_type)}`}>
+                                {getAccountTypeLabel(account.account_type)}
+                              </span>
+                            </div>
+                            
+                            {/* Contact Info */}
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
+                              {account.email && (
+                                <div className="flex items-center">
+                                  <EnvelopeIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                  <span className="truncate">{account.email}</span>
+                                </div>
+                              )}
+                              {account.phone && (
+                                <div className="flex items-center">
+                                  <PhoneIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                  <span>{account.phone}</span>
+                                </div>
+                              )}
+                              {(account.city || account.state) && (
+                                <div className="flex items-center">
+                                  <MapPinIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                  <span>
+                                    {[account.city, account.state].filter(Boolean).join(', ')}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Additional Info */}
+                            {account.created_at && (
+                              <div className="mt-2 text-xs text-gray-500">
+                                Added {new Date(account.created_at).toLocaleDateString()}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        
-                        {/* Account Details */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                              {account.name || 'Unnamed Account'}
-                            </h3>
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getAccountTypeColor(account.account_type)}`}>
-                              {getAccountTypeLabel(account.account_type)}
-                            </span>
-                          </div>
+
+                        {/* Right Section - Actions */}
+                        <div className="flex items-center space-x-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <button 
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                            title="View Details"
+                          >
+                            <EyeIcon className="w-5 h-5" />
+                          </button>
                           
-                          {/* Contact Info */}
-                          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
-                            {account.email && (
-                              <div className="flex items-center">
-                                <EnvelopeIcon className="w-4 h-4 mr-2 text-gray-400" />
-                                <span className="truncate">{account.email}</span>
-                              </div>
-                            )}
-                            {account.phone && (
-                              <div className="flex items-center">
-                                <PhoneIcon className="w-4 h-4 mr-2 text-gray-400" />
-                                <span>{account.phone}</span>
-                              </div>
-                            )}
-                            {(account.city || account.state) && (
-                              <div className="flex items-center">
-                                <MapPinIcon className="w-4 h-4 mr-2 text-gray-400" />
-                                <span>
-                                  {[account.city, account.state].filter(Boolean).join(', ')}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                          {(isAdmin || isEditor) && (
+                            <Link
+                              to={`/accounts/${account.id}/edit`}
+                              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                              title="Edit Account"
+                            >
+                              <PencilIcon className="w-5 h-5" />
+                            </Link>
+                          )}
                           
-                          {/* Additional Info */}
-                          {account.created_at && (
-                            <div className="mt-2 text-xs text-gray-500">
-                              Added {new Date(account.created_at).toLocaleDateString()}
-                            </div>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDelete(account.id, account.name)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                              title="Delete Account"
+                            >
+                              <TrashIcon className="w-5 h-5" />
+                            </button>
                           )}
                         </div>
                       </div>
-
-                      {/* Right Section - Actions */}
-                      <div className="flex items-center space-x-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button 
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
-                          title="View Details"
-                        >
-                          <EyeIcon className="w-5 h-5" />
-                        </button>
-                        
-                        {(isAdmin || isEditor) && (
-                          <Link
-                            to={`/accounts/${account.id}/edit`}
-                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-                            title="Edit Account"
-                          >
-                            <PencilIcon className="w-5 h-5" />
-                          </Link>
-                        )}
-                        
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDelete(account.id, account.name)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                            title="Delete Account"
-                          >
-                            <TrashIcon className="w-5 h-5" />
-                          </button>
-                        )}
-                      </div>
                     </div>
+                    
+                    {/* Expanded Content - Sub-accounts and Clients */}
+                    {expandedAccounts.has(account.id) && (
+                      <div className="bg-gray-50 border-t border-gray-100">
+                        <div className="p-6 pl-16">
+                          <div className="grid grid-cols-1 gap-6">
+                            {/* Sub-accounts (removed since sub-accounts are now just clients) */}
+                            
+                            {/* Clients */}
+                            <div>
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="font-medium text-gray-900">Clients</h4>
+                                {(isAdmin || isEditor) && (
+                                  <button 
+                                    onClick={() => {
+                                      setSelectedAccountId(account.id);
+                                      setModalOpen(true);
+                                    }}
+                                    className="text-sm text-blue-600 hover:text-blue-700"
+                                  >
+                                    Add Client
+                                  </button>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                {clients[account.id]?.length > 0 ? (
+                                  clients[account.id].map(client => (
+                                    <div key={client.id} className="group flex items-center space-x-3 p-3 bg-white rounded-lg border hover:bg-gray-50 transition-colors">
+                                      <UserIcon className="w-4 h-4 text-gray-400" />
+                                      <div className="flex-1">
+                                        <span className="text-sm font-medium">{client.name}</span>
+                                        {client.case_number && (
+                                          <span className="text-xs text-gray-500 ml-2">Case: {client.case_number}</span>
+                                        )}
+                                      </div>
+                                      {(isAdmin || isEditor) && (
+                                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <button
+                                            onClick={() => {
+                                              setSelectedClient(client);
+                                              setEditModalOpen(true);
+                                            }}
+                                            className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors"
+                                            title="Edit Client"
+                                          >
+                                            <PencilIcon className="w-4 h-4" />
+                                          </button>
+                                          {isAdmin && (
+                                            <button
+                                              onClick={() => {
+                                                if (window.confirm(`Are you sure you want to delete "${client.name}"?`)) {
+                                                  clientService.deleteClient(client.id)
+                                                    .then(() => {
+                                                      // Refresh clients list
+                                                      if (client.parent_account_id && expandedAccounts.has(client.parent_account_id)) {
+                                                        accountService.getAccountClients(client.parent_account_id)
+                                                          .then(clientsData => {
+                                                            setClients(prev => ({ ...prev, [client.parent_account_id]: clientsData }));
+                                                          })
+                                                          .catch(err => console.error('Error refreshing clients:', err));
+                                                      }
+                                                    })
+                                                    .catch(err => {
+                                                      console.error('Error deleting client:', err);
+                                                      setError('Failed to delete client');
+                                                    });
+                                                }
+                                              }}
+                                              className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
+                                              title="Delete Client"
+                                            >
+                                              <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-gray-500">No clients</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -315,6 +445,44 @@ const AccountList = () => {
           )}
         </div>
       </div>
+
+      {/* Add Sub-account/Client Modal */}
+      <AddSubAccountModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        parentAccountId={selectedAccountId}
+        onSuccess={() => {
+          // Refresh the clients data
+          if (selectedAccountId && expandedAccounts.has(selectedAccountId)) {
+            accountService.getAccountClients(selectedAccountId)
+              .then(clientsData => {
+                setClients(prev => ({ ...prev, [selectedAccountId]: clientsData }));
+              })
+              .catch(err => {
+                console.error('Error refreshing clients:', err);
+              });
+          }
+        }}
+      />
+
+      {/* Edit Client Modal */}
+      <EditClientModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        client={selectedClient}
+        onSuccess={() => {
+          // Refresh the clients data for the parent account
+          if (selectedClient?.parent_account_id && expandedAccounts.has(selectedClient.parent_account_id)) {
+            accountService.getAccountClients(selectedClient.parent_account_id)
+              .then(clientsData => {
+                setClients(prev => ({ ...prev, [selectedClient.parent_account_id]: clientsData }));
+              })
+              .catch(err => {
+                console.error('Error refreshing clients:', err);
+              });
+          }
+        }}
+      />
 
       <style>{`
         @keyframes slide-up {

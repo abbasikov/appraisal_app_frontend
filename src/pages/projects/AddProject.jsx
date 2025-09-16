@@ -80,9 +80,8 @@ const AddProject = () => {
         const year = new Date().getFullYear();
         const preview = `${client.name}_${formData.appraisal_type}_${year}`;
         setProjectNamePreview(preview);
-        if (!formData.project_name) {
-          setFormData(prev => ({ ...prev, project_name: preview }));
-        }
+        // Always update project name when client or type changes
+        setFormData(prev => ({ ...prev, project_name: preview }));
       }
     }
   };
@@ -90,6 +89,19 @@ const AddProject = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Auto-populate client details when client is selected
+    if (name === 'client_id' && value) {
+      const selectedClient = clients.find(c => c.id === parseInt(value));
+      if (selectedClient) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value,
+          case_number: selectedClient.case_number || prev.case_number,
+          // You can add more fields here if needed
+        }));
+      }
+    }
     
     // Track completed fields for visual feedback
     if (value.trim()) {
@@ -389,22 +401,7 @@ const AddProject = () => {
           </div>
         </div>
 
-        {/* Auto-generated Name Preview */}
-        {projectNamePreview && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
-            <div className="flex items-center space-x-3">
-              <LightBulbIcon className="w-5 h-5 text-blue-500" />
-              <div>
-                <p className="text-sm font-medium text-blue-900">
-                  Suggested Project Name
-                </p>
-                <p className="text-sm text-blue-700 font-mono">
-                  {projectNamePreview}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Error Message */}
         {error && (

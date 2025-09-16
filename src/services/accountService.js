@@ -39,5 +39,23 @@ export const accountService = {
   getSubAccounts: async (parentId) => {
     const response = await api.get(`/accounts/${parentId}/sub-accounts`);
     return response.data;
+  },
+
+  // Get clients for an account
+  getAccountClients: async (accountId) => {
+    const response = await api.get(`/accounts/${accountId}/clients`);
+    return response.data;
+  },
+
+  // Create sub-account
+  createSubAccount: async (parentId, subAccountData) => {
+    const response = await api.post(`/accounts/${parentId}/sub-accounts`, subAccountData);
+    return response.data;
+  },
+
+  // Create client for an account
+  createAccountClient: async (accountId, clientData) => {
+    const response = await api.post(`/accounts/${accountId}/clients`, clientData);
+    return response.data;
   }
 };

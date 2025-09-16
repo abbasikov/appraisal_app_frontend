@@ -23,7 +23,7 @@ const AddAccount = () => {
   const [focusedField, setFocusedField] = useState('');
   const [formData, setFormData] = useState({
     name: '',
-    account_type: 'client',
+    account_type: 'attorney',
     address: '',
     city: '',
     state: '',
@@ -41,8 +41,7 @@ const AddAccount = () => {
     { value: 'house_manager', label: 'House Manager', icon: UserIcon, color: 'purple' },
     { value: 'financial_manager', label: 'Financial Manager', icon: UserIcon, color: 'orange' },
     { value: 'assistant', label: 'Assistant', icon: UserIcon, color: 'pink' },
-    { value: 'appraiser', label: 'Appraiser', icon: UserIcon, color: 'cyan' },
-    { value: 'client', label: 'Client', icon: UserIcon, color: 'emerald' }
+    { value: 'appraiser', label: 'Appraiser', icon: UserIcon, color: 'cyan' }
   ];
 
   const handleChange = (e) => {

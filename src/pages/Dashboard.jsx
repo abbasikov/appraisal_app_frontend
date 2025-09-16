@@ -114,14 +114,7 @@ const Dashboard = () => {
       action: () => navigate('/projects/new'),
       show: isAdmin || isEditor
     },
-    {
-      name: 'Add Client',
-      description: 'Register a new client',
-      icon: UserGroupIcon,
-      gradient: 'from-green-500 to-emerald-600',
-      action: () => navigate('/clients/new'),
-      show: isAdmin || isEditor
-    },
+
     {
       name: 'Browse Templates',
       description: 'Manage appraisal templates',

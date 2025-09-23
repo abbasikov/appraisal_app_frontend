@@ -42,11 +42,7 @@ export const templateService = {
 
   // Generate report
   generateReport: async (templateId, projectId, reportType = 'draft', includePhotos = true) => {
-    const response = await api.post(`/templates/${templateId}/generate`, {
-      project_id: projectId,
-      report_type: reportType,
-      include_photos: includePhotos
-    });
+    const response = await api.post(`/projects/${projectId}/generate-report/${templateId}?report_type=${reportType}`);
     return response.data;
   },
 
@@ -59,6 +55,14 @@ export const templateService = {
   // Download template
   downloadTemplate: async (id, fileType = 'original') => {
     const response = await api.get(`/templates/${id}/download?file_type=${fileType}`, {
+      responseType: 'blob'
+    });
+    return response;
+  },
+
+  // Download generated report
+  downloadReport: async (projectId, templateId, reportType = 'draft') => {
+    const response = await api.get(`/projects/${projectId}/download-report/${templateId}?report_type=${reportType}`, {
       responseType: 'blob'
     });
     return response;

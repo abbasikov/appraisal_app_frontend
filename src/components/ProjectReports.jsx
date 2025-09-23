@@ -31,28 +31,20 @@ const ProjectReports = ({ project }) => {
       showToast('Report generated successfully', 'success');
       
       // Download the generated report
-      if (result.download_url) {
-        const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${result.download_url}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        if (downloadResponse.ok) {
-          const blob = await downloadResponse.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          const template = templates.find(t => t.id === templateId);
-          link.download = `${project.project_name}_${template?.name}_${reportType}.docx`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          
-          showToast('Report downloaded successfully', 'success');
-        }
-      }
+      const downloadResponse = await templateService.downloadReport(project.id, templateId, reportType);
+      
+      const blob = downloadResponse.data;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const template = templates.find(t => t.id === templateId);
+      link.download = `${project.project_name}_${template?.name}_${reportType}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showToast('Report downloaded successfully', 'success');
     } catch (err) {
       showToast('Failed to generate report', 'error');
       console.error('Report generation error:', err);

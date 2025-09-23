@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { clientService } from '../../services/clientService';
+import { templateService } from '../../services/templateService';
 import Layout from '../../components/Layout';
 import { 
   ArrowLeftIcon,
@@ -34,10 +35,13 @@ const AddProject = () => {
     inspection_date: '',
     report_date: '',
     assigned_user_id: '',
+    template_id: '',
     notes: ''
   });
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [errors, setErrors] = useState({});
 
   const appraisalTypes = [
@@ -59,16 +63,23 @@ const AddProject = () => {
 
   const fetchData = async () => {
     try {
-      const [clientsData, usersData] = await Promise.all([
+      const [clientsData, usersData, templatesData] = await Promise.all([
         clientService.getClients(0, 1000),
         // Users endpoint would be needed here - for now skip
-        Promise.resolve([])
+        Promise.resolve([]),
+        templateService.getTemplates()
       ]);
+      
+      console.log('Clients data:', clientsData);
+      console.log('Templates data:', templatesData);
+      
       setClients(Array.isArray(clientsData) ? clientsData : []);
       setUsers(Array.isArray(usersData) ? usersData : []);
+      setTemplates(Array.isArray(templatesData?.templates) ? templatesData.templates : Array.isArray(templatesData) ? templatesData : []);
     } catch (err) {
       setClients([]);
       setUsers([]);
+      setTemplates([]);
       console.error('Error fetching data:', err);
     }
   };
@@ -92,14 +103,17 @@ const AddProject = () => {
     
     // Auto-populate client details when client is selected
     if (name === 'client_id' && value) {
-      const selectedClient = clients.find(c => c.id === parseInt(value));
-      if (selectedClient) {
+      const client = clients.find(c => c.id === parseInt(value));
+      if (client) {
+        setSelectedClient(client);
         setFormData(prev => ({
           ...prev,
           [name]: value,
-          case_number: selectedClient.case_number || prev.case_number,
+          case_number: client.case_number || prev.case_number,
           // You can add more fields here if needed
         }));
+      } else {
+        setSelectedClient(null);
       }
     }
     
@@ -184,6 +198,8 @@ const AddProject = () => {
           cleanedData[key] = parseInt(value);
         } else if (key === 'assigned_user_id' && value) {
           cleanedData[key] = parseInt(value);
+        } else if (key === 'template_id' && value) {
+          cleanedData[key] = parseInt(value);
         } else if ((key === 'inspection_date' || key === 'report_date') && value && value.trim() !== '') {
           cleanedData[key] = value;
         } else if (value && value.trim && value.trim() !== '') {
@@ -195,8 +211,9 @@ const AddProject = () => {
         }
       });
       
-      await projectService.createProject(cleanedData);
-      navigate('/projects');
+      const createdProject = await projectService.createProject(cleanedData);
+      // Redirect to Dropbox integration after project creation
+      navigate(`/projects/${createdProject.id}/dropbox`);
     } catch (err) {
       console.error('Error creating project:', err);
       
@@ -467,6 +484,31 @@ const AddProject = () => {
                   })}
                 </div>
 
+                {/* Client Account Information */}
+                {selectedClient && selectedClient.parent_account_name && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <BuildingOfficeIcon className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-blue-900">Account Information</span>
+                    </div>
+                    <p className="text-sm text-blue-700">
+                      This client belongs to: <span className="font-semibold">{selectedClient.parent_account_name}</span>
+                    </p>
+                  </div>
+                )}
+                
+                {selectedClient && !selectedClient.parent_account_name && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <BuildingOfficeIcon className="w-5 h-5 text-yellow-600" />
+                      <span className="font-medium text-yellow-900">Account Information</span>
+                    </div>
+                    <p className="text-sm text-yellow-700">
+                      This client is not linked to any account.
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {renderField({
                     name: 'project_name',
@@ -507,6 +549,30 @@ const AddProject = () => {
                     description: 'Expected completion date for the appraisal report'
                   })}
                 </div>
+              </div>
+
+              {/* Template Selection */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                  <DocumentTextIcon className="w-5 h-5 text-purple-500" />
+                  <span>Template Selection</span>
+                </h3>
+                
+                {renderField({
+                  name: 'template_id',
+                  label: 'Report Template',
+                  type: 'select',
+                  description: `Choose a template for generating reports (optional) - ${templates.length} templates available`,
+                  options: [
+                    { value: '', label: 'No template selected' },
+                    ...templates
+                      .filter(template => !formData.appraisal_type || template.appraisal_type === formData.appraisal_type)
+                      .map(template => ({
+                        value: template.id,
+                        label: `${template.name} (${template.appraisal_type})`
+                      }))
+                  ]
+                })}
               </div>
 
               {/* Additional Information */}

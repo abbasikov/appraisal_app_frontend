@@ -22,7 +22,10 @@ import {
   ExclamationTriangleIcon,
   SparklesIcon,
   ArrowRightIcon,
-  StarIcon
+  StarIcon,
+  EllipsisVerticalIcon,
+  LinkIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 
 const ProjectList = () => {
@@ -34,12 +37,25 @@ const ProjectList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'table' or 'grid'
+  const [openDropdown, setOpenDropdown] = useState(null);
   const { user, isAdmin, isEditor } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
   }, [selectedClient]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openDropdown && !event.target.closest('.relative')) {
+        setOpenDropdown(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdown]);
 
   const fetchData = async () => {
     try {
@@ -192,23 +208,55 @@ const ProjectList = () => {
               <span>View</span>
             </button>
             
-            {(isAdmin || isEditor) && (
+            {/* 3-Dot Menu */}
+            <div className="relative">
               <button
-                onClick={() => navigate(`/projects/${project.id}/edit`)}
-                className="flex items-center justify-center p-2.5 border-2 border-gray-200 text-gray-600 rounded-xl hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
-                title="Edit Project"
+                onClick={() => setOpenDropdown(openDropdown === project.id ? null : project.id)}
+                className="flex items-center justify-center p-2.5 border-2 border-gray-200 text-gray-600 rounded-xl hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200"
+                title="More Options"
               >
-                <PencilIcon className="w-4 h-4" />
+                <EllipsisVerticalIcon className="w-4 h-4" />
               </button>
-            )}
-            
-            <button
-              onClick={() => navigate(`/projects/${project.id}#reports`)}
-              className="flex items-center justify-center p-2.5 border-2 border-gray-200 text-gray-600 rounded-xl hover:border-green-300 hover:text-green-600 hover:bg-green-50 transition-all duration-200"
-              title="Reports"
-            >
-              <DocumentArrowDownIcon className="w-4 h-4" />
-            </button>
+              
+              {openDropdown === project.id && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                  <button
+                    onClick={() => {
+                      navigate(`/projects/${project.id}/table`);
+                      setOpenDropdown(null);
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <TableCellsIcon className="w-4 h-4 text-blue-500" />
+                    <span>Table View</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      navigate(`/projects/${project.id}/dropbox`);
+                      setOpenDropdown(null);
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <LinkIcon className="w-4 h-4 text-green-500" />
+                    <span>Edit Dropbox Link</span>
+                  </button>
+                  
+                  {(isAdmin || isEditor) && (
+                    <button
+                      onClick={() => {
+                        navigate(`/projects/${project.id}/edit`);
+                        setOpenDropdown(null);
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <PencilIcon className="w-4 h-4 text-indigo-500" />
+                      <span>Edit Project</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -445,9 +493,7 @@ const ProjectList = () => {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Inspection Date</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned To</th>
-                    {(isAdmin || isEditor) && (
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                    )}
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -486,42 +532,80 @@ const ProjectList = () => {
                         }
                       </td>
                       <td className="px-6 py-4 text-gray-900">{project.assigned_user_name || 'Unassigned'}</td>
-                      {(isAdmin || isEditor) && (
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end space-x-2">
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => navigate(`/projects/${project.id}`)}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                            title="View Project"
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                          </button>
+                          
+                          {/* 3-Dot Menu for Table View */}
+                          <div className="relative">
                             <button
-                              onClick={() => navigate(`/projects/${project.id}`)}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
-                              title="View Project"
+                              onClick={() => setOpenDropdown(openDropdown === `table-${project.id}` ? null : `table-${project.id}`)}
+                              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-all duration-200"
+                              title="More Options"
                             >
-                              <EyeIcon className="w-4 h-4" />
+                              <EllipsisVerticalIcon className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => navigate(`/projects/${project.id}/edit`)}
-                              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200"
-                              title="Edit Project"
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => navigate(`/projects/${project.id}#reports`)}
-                              className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all duration-200"
-                              title="Reports"
-                            >
-                              <DocumentArrowDownIcon className="w-4 h-4" />
-                            </button>
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleDelete(project.id, project.project_name)}
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
-                                title="Delete Project"
-                              >
-                                <TrashIcon className="w-4 h-4" />
-                              </button>
+                            
+                            {openDropdown === `table-${project.id}` && (
+                              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                                <button
+                                  onClick={() => {
+                                    navigate(`/projects/${project.id}/table`);
+                                    setOpenDropdown(null);
+                                  }}
+                                  className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                  <TableCellsIcon className="w-4 h-4 text-blue-500" />
+                                  <span>Table View</span>
+                                </button>
+                                
+                                <button
+                                  onClick={() => {
+                                    navigate(`/projects/${project.id}/dropbox`);
+                                    setOpenDropdown(null);
+                                  }}
+                                  className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                  <LinkIcon className="w-4 h-4 text-green-500" />
+                                  <span>Edit Dropbox Link</span>
+                                </button>
+                                
+                                {(isAdmin || isEditor) && (
+                                  <button
+                                    onClick={() => {
+                                      navigate(`/projects/${project.id}/edit`);
+                                      setOpenDropdown(null);
+                                    }}
+                                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                  >
+                                    <PencilIcon className="w-4 h-4 text-indigo-500" />
+                                    <span>Edit Project</span>
+                                  </button>
+                                )}
+                                
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => {
+                                      handleDelete(project.id, project.project_name);
+                                      setOpenDropdown(null);
+                                    }}
+                                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                  >
+                                    <TrashIcon className="w-4 h-4 text-red-500" />
+                                    <span>Delete Project</span>
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
-                        </td>
-                      )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -18,6 +18,7 @@ import ProjectList from './pages/projects/ProjectList';
 import AddProject from './pages/projects/AddProject';
 import EditProject from './pages/projects/EditProject';
 import ProjectDetails from './pages/projects/ProjectDetails';
+import ProjectDropbox from './pages/projects/ProjectDropbox';
 import TemplateList from './pages/templates/TemplateList';
 import TemplateUpload from './pages/templates/TemplateUpload';
 import TemplateDetails from './pages/templates/TemplateDetails';
@@ -181,6 +182,24 @@ function App() {
               element={
                 <ProtectedRoute roles={['admin', 'editor']}>
                   <WorkOnAppraisal />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects/:id/table" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <WorkOnAppraisal />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects/:id/dropbox" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <ProjectDropbox />
                 </ProtectedRoute>
               } 
             />

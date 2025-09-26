@@ -37,7 +37,7 @@ const ProjectList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'table' or 'grid'
-  const [openDropdown, setOpenDropdown] = useState(null);
+
   const { user, isAdmin, isEditor } = useAuth();
   const navigate = useNavigate();
 
@@ -45,17 +45,7 @@ const ProjectList = () => {
     fetchData();
   }, [selectedClient]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (openDropdown && !event.target.closest('.relative')) {
-        setOpenDropdown(null);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openDropdown]);
+
 
   const fetchData = async () => {
     try {
@@ -80,10 +70,16 @@ const ProjectList = () => {
     if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
       try {
         await projectService.deleteProject(id);
-        setProjects(projects.filter(project => project.id !== id));
+        // Refresh the entire list to ensure consistency
+        await fetchData();
       } catch (err) {
-        setError('Failed to delete project');
-        console.error('Error deleting project:', err);
+        if (err.response?.status === 404) {
+          // Project already deleted, just refresh the list
+          await fetchData();
+        } else {
+          setError('Failed to delete project');
+          console.error('Error deleting project:', err);
+        }
       }
     }
   };
@@ -208,55 +204,16 @@ const ProjectList = () => {
               <span>View</span>
             </button>
             
-            {/* 3-Dot Menu */}
-            <div className="relative">
+            {/* Delete Button */}
+            {isAdmin && (
               <button
-                onClick={() => setOpenDropdown(openDropdown === project.id ? null : project.id)}
-                className="flex items-center justify-center p-2.5 border-2 border-gray-200 text-gray-600 rounded-xl hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200"
-                title="More Options"
+                onClick={() => handleDelete(project.id, project.project_name)}
+                className="flex items-center justify-center p-2.5 border-2 border-red-200 text-red-600 rounded-xl hover:border-red-300 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+                title="Delete Project"
               >
-                <EllipsisVerticalIcon className="w-4 h-4" />
+                <TrashIcon className="w-4 h-4" />
               </button>
-              
-              {openDropdown === project.id && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                  <button
-                    onClick={() => {
-                      navigate(`/projects/${project.id}/table`);
-                      setOpenDropdown(null);
-                    }}
-                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <TableCellsIcon className="w-4 h-4 text-blue-500" />
-                    <span>Table View</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      navigate(`/projects/${project.id}/dropbox`);
-                      setOpenDropdown(null);
-                    }}
-                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <LinkIcon className="w-4 h-4 text-green-500" />
-                    <span>Edit Dropbox Link</span>
-                  </button>
-                  
-                  {(isAdmin || isEditor) && (
-                    <button
-                      onClick={() => {
-                        navigate(`/projects/${project.id}/edit`);
-                        setOpenDropdown(null);
-                      }}
-                      className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      <PencilIcon className="w-4 h-4 text-indigo-500" />
-                      <span>Edit Project</span>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -542,68 +499,16 @@ const ProjectList = () => {
                             <EyeIcon className="w-4 h-4" />
                           </button>
                           
-                          {/* 3-Dot Menu for Table View */}
-                          <div className="relative">
+                          {/* Delete Button for Table View */}
+                          {isAdmin && (
                             <button
-                              onClick={() => setOpenDropdown(openDropdown === `table-${project.id}` ? null : `table-${project.id}`)}
-                              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-all duration-200"
-                              title="More Options"
+                              onClick={() => handleDelete(project.id, project.project_name)}
+                              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
+                              title="Delete Project"
                             >
-                              <EllipsisVerticalIcon className="w-4 h-4" />
+                              <TrashIcon className="w-4 h-4" />
                             </button>
-                            
-                            {openDropdown === `table-${project.id}` && (
-                              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                                <button
-                                  onClick={() => {
-                                    navigate(`/projects/${project.id}/table`);
-                                    setOpenDropdown(null);
-                                  }}
-                                  className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                >
-                                  <TableCellsIcon className="w-4 h-4 text-blue-500" />
-                                  <span>Table View</span>
-                                </button>
-                                
-                                <button
-                                  onClick={() => {
-                                    navigate(`/projects/${project.id}/dropbox`);
-                                    setOpenDropdown(null);
-                                  }}
-                                  className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                >
-                                  <LinkIcon className="w-4 h-4 text-green-500" />
-                                  <span>Edit Dropbox Link</span>
-                                </button>
-                                
-                                {(isAdmin || isEditor) && (
-                                  <button
-                                    onClick={() => {
-                                      navigate(`/projects/${project.id}/edit`);
-                                      setOpenDropdown(null);
-                                    }}
-                                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                  >
-                                    <PencilIcon className="w-4 h-4 text-indigo-500" />
-                                    <span>Edit Project</span>
-                                  </button>
-                                )}
-                                
-                                {isAdmin && (
-                                  <button
-                                    onClick={() => {
-                                      handleDelete(project.id, project.project_name);
-                                      setOpenDropdown(null);
-                                    }}
-                                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
-                                  >
-                                    <TrashIcon className="w-4 h-4 text-red-500" />
-                                    <span>Delete Project</span>
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </td>
                     </tr>

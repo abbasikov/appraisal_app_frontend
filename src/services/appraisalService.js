@@ -1,6 +1,11 @@
 import api from './api';
 
 export const appraisalService = {
+  async getAppraisalSchema() {
+    const response = await api.get('/appraisal-workflow/schema');
+    return response.data;
+  },
+
   async initializeAppraisalItems(projectId) {
     const response = await api.post(`/appraisal-workflow/projects/${projectId}/appraisal-items/initialize`);
     return response.data;

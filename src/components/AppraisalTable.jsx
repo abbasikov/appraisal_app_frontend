@@ -5,7 +5,8 @@ import {
   PhotoIcon,
   TrashIcon,
   Bars3Icon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import Card from './ui/Card';
 import Button from './ui/Button';
@@ -13,10 +14,25 @@ import Badge from './ui/Badge';
 import LoadingSpinner from './ui/LoadingSpinner';
 import Modal from './ui/Modal';
 import api from '../services/api';
+import { appraisalService } from '../services/appraisalService';
 
 const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
   const [draggedItem, setDraggedItem] = useState(null);
   const [editingCell, setEditingCell] = useState(null);
+  const [schema, setSchema] = useState(null);
+  const [expandedAttributes, setExpandedAttributes] = useState({});
+
+  useEffect(() => {
+    const fetchSchema = async () => {
+      try {
+        const schemaData = await appraisalService.getAppraisalSchema();
+        setSchema(schemaData);
+      } catch (error) {
+        console.error('Failed to load appraisal schema:', error);
+      }
+    };
+    fetchSchema();
+  }, []);
 
   const handleDragStart = (e, item, index) => {
     setDraggedItem({ item, index });
@@ -82,8 +98,73 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
   };
 
   const handleCellEdit = (itemId, field, value) => {
-    onItemUpdate(itemId, { [field]: value });
+    if (field.startsWith('attr_')) {
+      const attrName = field.replace('attr_', '');
+      const item = items.find(i => i.id === itemId);
+      const newAttributes = { ...item.attributes, [attrName]: value };
+      onItemUpdate(itemId, { attributes: newAttributes });
+    } else {
+      onItemUpdate(itemId, { [field]: value });
+    }
     setEditingCell(null);
+  };
+
+  const toggleAttributeExpansion = (itemId) => {
+    setExpandedAttributes(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
+
+  const renderAttributeColumns = (item) => {
+    if (!schema || !item.item_type || !schema.type_attributes[item.item_type]) {
+      return null;
+    }
+
+    const attributes = schema.type_attributes[item.item_type];
+    const isExpanded = expandedAttributes[item.id];
+    
+    if (!isExpanded) {
+      return (
+        <td className="table-cell">
+          <Button
+            onClick={() => toggleAttributeExpansion(item.id)}
+            variant="ghost"
+            size="sm"
+            icon={PlusIcon}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            {attributes.length} attributes
+          </Button>
+        </td>
+      );
+    }
+
+    return attributes.map(attr => (
+      <td key={attr} className="table-cell">
+        {editingCell === `${item.id}-attr_${attr}` ? (
+          <input
+            type="text"
+            defaultValue={item.attributes?.[attr] || ''}
+            className="form-input text-sm"
+            onBlur={(e) => handleCellEdit(item.id, `attr_${attr}`, e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleCellEdit(item.id, `attr_${attr}`, e.target.value);
+              }
+            }}
+            autoFocus
+          />
+        ) : (
+          <div
+            className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+            onClick={() => handleCellClick(item.id, `attr_${attr}`)}
+          >
+            {item.attributes?.[attr] || <span className="text-gray-400 italic">Click to edit</span>}
+          </div>
+        )}
+      </td>
+    ));
   };
 
   const handleCellClick = (itemId, field) => {
@@ -204,9 +285,19 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                 <th className="table-header-cell w-16">#</th>
                 <th className="table-header-cell w-20">Photo</th>
                 <th className="table-header-cell">Room/Area</th>
+                <th className="table-header-cell">Floor/Bldg</th>
                 <th className="table-header-cell">Type</th>
                 <th className="table-header-cell">Description</th>
                 <th className="table-header-cell w-32">Value ($)</th>
+                {/* Dynamic attribute headers */}
+                {items.some(item => expandedAttributes[item.id] && item.item_type && schema?.type_attributes[item.item_type]) && 
+                  schema?.type_attributes[items.find(item => expandedAttributes[item.id])?.item_type]?.map(attr => (
+                    <th key={attr} className="table-header-cell text-xs">{attr.replace('_', ' ')}</th>
+                  ))
+                }
+                {!items.some(item => expandedAttributes[item.id]) && (
+                  <th className="table-header-cell">Attributes</th>
+                )}
                 <th className="table-header-cell w-24">Actions</th>
               </tr>
             </thead>
@@ -254,24 +345,49 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                   {/* Room/Area */}
                   <td className="table-cell">
                     {editingCell === `${item.id}-room_area` ? (
-                      <input
-                        type="text"
+                      <select
                         defaultValue={item.room_area || ''}
                         className="form-input text-sm"
                         onBlur={(e) => handleCellEdit(item.id, 'room_area', e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleCellEdit(item.id, 'room_area', e.target.value);
-                          }
-                        }}
+                        onChange={(e) => handleCellEdit(item.id, 'room_area', e.target.value)}
                         autoFocus
-                      />
+                      >
+                        <option value="">Select Room/Area</option>
+                        {schema?.room_area_options?.map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
                     ) : (
                       <div
                         className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
                         onClick={() => handleCellClick(item.id, 'room_area')}
                       >
-                        {item.room_area || <span className="text-gray-400 italic">Click to edit</span>}
+                        {item.room_area || <span className="text-gray-400 italic">Click to select</span>}
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Floor/Building */}
+                  <td className="table-cell">
+                    {editingCell === `${item.id}-floor_building` ? (
+                      <select
+                        defaultValue={item.floor_building || ''}
+                        className="form-input text-sm"
+                        onBlur={(e) => handleCellEdit(item.id, 'floor_building', e.target.value)}
+                        onChange={(e) => handleCellEdit(item.id, 'floor_building', e.target.value)}
+                        autoFocus
+                      >
+                        <option value="">Select Floor/Bldg</option>
+                        {schema?.floor_building_options?.map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div
+                        className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                        onClick={() => handleCellClick(item.id, 'floor_building')}
+                      >
+                        {item.floor_building || <span className="text-gray-400 italic">Click to select</span>}
                       </div>
                     )}
                   </td>
@@ -287,12 +403,9 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                         autoFocus
                       >
                         <option value="">Select Type</option>
-                        <option value="art">Art</option>
-                        <option value="jewelry">Jewelry</option>
-                        <option value="furniture">Furniture</option>
-                        <option value="collectibles">Collectibles</option>
-                        <option value="electronics">Electronics</option>
-                        <option value="other">Other</option>
+                        {schema?.item_type_options?.map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
                       </select>
                     ) : (
                       <div
@@ -363,6 +476,9 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                       </div>
                     )}
                   </td>
+
+                  {/* Dynamic Attributes */}
+                  {renderAttributeColumns(item)}
 
                   {/* Actions */}
                   <td className="table-cell">

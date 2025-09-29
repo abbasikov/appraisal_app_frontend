@@ -72,14 +72,6 @@ const Layout = ({ children }) => {
       gradient: 'from-cyan-500 to-blue-600' 
     },
     { 
-      name: 'Appraisals', 
-      href: '/appraisals', 
-      icon: DocumentTextIcon, 
-      iconSolid: DocumentTextIconSolid,
-      roles: ['admin', 'editor', 'reader'],
-      gradient: 'from-pink-500 to-purple-600' 
-    },
-    { 
       name: 'Reports', 
       href: '/reports', 
       icon: DocumentTextIcon, 
@@ -134,7 +126,7 @@ const Layout = ({ children }) => {
         className={`group relative flex items-center px-4 py-3 text-sm font-medium rounded-2xl transition-all duration-300 ${
           isActive 
             ? 'bg-gradient-to-r ' + item.gradient + ' text-white shadow-lg transform scale-105' 
-            : 'text-gray-700 hover:bg-gradient-to-r hover:' + item.gradient + ' hover:text-white hover:shadow-md hover:scale-102'
+            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 hover:shadow-md hover:scale-102'
         }`}
         title={collapsed ? item.name : ''}
       >

@@ -30,6 +30,7 @@ import AddAccount from './pages/accounts/AddAccount';
 import EditAccount from './pages/accounts/EditAccount';
 import SetupPassword from './pages/SetupPassword';
 import WorkOnAppraisal from './pages/appraisal/WorkOnAppraisal';
+import Reports from './pages/Reports';
 
 function App() {
   return (
@@ -208,7 +209,7 @@ function App() {
               path="/reports" 
               element={
                 <ProtectedRoute roles={['admin', 'editor']}>
-                  <div>Reports Page (Coming Soon)</div>
+                  <Reports />
                 </ProtectedRoute>
               } 
             />

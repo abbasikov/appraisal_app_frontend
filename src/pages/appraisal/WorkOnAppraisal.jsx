@@ -306,16 +306,14 @@ const WorkOnAppraisal = () => {
                       </p>
                     </div>
                     
-                    {appraisalItems.length === 0 && (
-                      <Button
-                        onClick={handleInitializeItems}
-                        loading={initializing}
-                        disabled={initializing}
-                        icon={PhotoIcon}
-                      >
-                        Initialize from Photos
-                      </Button>
-                    )}
+                    <Button
+                      onClick={handleInitializeItems}
+                      loading={initializing}
+                      disabled={initializing}
+                      icon={PhotoIcon}
+                    >
+                      Initialize from Photos
+                    </Button>
                   </div>
                 </Card.Header>
               </Card>

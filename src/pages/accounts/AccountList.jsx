@@ -40,6 +40,15 @@ const AccountList = () => {
     fetchAccounts();
   }, []);
 
+  useEffect(() => {
+    const handleGlobalSearch = (event) => {
+      setFilter(event.detail);
+    };
+
+    window.addEventListener('globalSearch', handleGlobalSearch);
+    return () => window.removeEventListener('globalSearch', handleGlobalSearch);
+  }, []);
+
   const fetchAccounts = async () => {
     try {
       const response = await accountService.getAccounts();

@@ -45,6 +45,15 @@ const ProjectList = () => {
     fetchData();
   }, [selectedClient]);
 
+  useEffect(() => {
+    const handleGlobalSearch = (event) => {
+      setSearchTerm(event.detail);
+    };
+
+    window.addEventListener('globalSearch', handleGlobalSearch);
+    return () => window.removeEventListener('globalSearch', handleGlobalSearch);
+  }, []);
+
 
 
   const fetchData = async () => {

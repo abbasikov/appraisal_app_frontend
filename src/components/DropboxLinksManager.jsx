@@ -9,6 +9,7 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
   const [importingPhotos, setImportingPhotos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, status: '' });
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -112,19 +113,57 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
 
   const importPhotos = async () => {
     setImportingPhotos(true);
+    setImportProgress({ current: 0, total: 0, status: 'Scanning folders...' });
+    let totalImported = 0;
+    
     try {
-      console.log('Starting photo import for project:', projectId);
-      const response = await projectService.importPhotos(projectId);
-      console.log('Import response:', response);
-      showSuccess(response.message || 'Photos imported successfully');
+      console.log('Starting batch photo import for project:', projectId);
+      
+      // Import in batches until no more photos
+      let hasMore = true;
+      let batchCount = 0;
+      let totalFound = 0;
+      
+      while (hasMore) {
+        batchCount++;
+        setImportProgress(prev => ({ ...prev, status: `Processing batch ${batchCount}...` }));
+        
+        const response = await projectService.importPhotos(projectId, 10); // 10 photos per batch
+        console.log(`Batch ${batchCount} response:`, response);
+        
+        totalImported += response.imported_count || 0;
+        totalFound = response.total_found || totalFound;
+        hasMore = response.has_more || false;
+        
+        // Update progress
+        setImportProgress({
+          current: totalImported,
+          total: totalFound,
+          status: hasMore ? `Importing... (${totalImported}/${totalFound})` : 'Completing...'
+        });
+        
+        // Small delay between batches
+        if (hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      setImportProgress({ current: totalImported, total: totalImported, status: 'Complete!' });
+      showSuccess(`Import complete! Total photos imported: ${totalImported}`);
+      
       if (onLinksUpdate) {
         onLinksUpdate();
       }
+      
     } catch (error) {
       console.error('Error importing photos:', error);
+      setImportProgress({ current: 0, total: 0, status: 'Failed' });
       showError(error.response?.data?.detail || 'Failed to import photos');
     } finally {
-      setImportingPhotos(false);
+      setTimeout(() => {
+        setImportingPhotos(false);
+        setImportProgress({ current: 0, total: 0, status: '' });
+      }, 2000);
     }
   };
 
@@ -197,13 +236,45 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
 
       {/* Import photos button */}
       {links.length > 0 ? (
-        <button
-          onClick={importPhotos}
-          disabled={importingPhotos}
-          className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {importingPhotos ? 'Importing Photos...' : `Import Photos from ${links.length} Folder(s)`}
-        </button>
+        <div className="space-y-3">
+          <button
+            onClick={importPhotos}
+            disabled={importingPhotos}
+            className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {importingPhotos ? 'Importing Photos...' : `Import Photos from ${links.length} Folder(s)`}
+          </button>
+          
+          {/* Progress indicator */}
+          {importingPhotos && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-blue-900">{importProgress.status}</span>
+                <span className="text-sm text-blue-700">
+                  {importProgress.total > 0 ? `${importProgress.current}/${importProgress.total}` : 'Scanning...'}
+                </span>
+              </div>
+              
+              {/* Progress bar */}
+              <div className="w-full bg-blue-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: importProgress.total > 0 
+                      ? `${(importProgress.current / importProgress.total) * 100}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
+              
+              {importProgress.total > 0 && (
+                <div className="text-xs text-blue-600 mt-1">
+                  {Math.round((importProgress.current / importProgress.total) * 100)}% complete
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="text-sm text-gray-500 p-2 bg-gray-50 rounded">
           Add Dropbox links above to enable photo import

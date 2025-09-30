@@ -21,6 +21,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
   const [editingCell, setEditingCell] = useState(null);
   const [schema, setSchema] = useState(null);
   const [expandedAttributes, setExpandedAttributes] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     const fetchSchema = async () => {
@@ -302,13 +304,15 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
               </tr>
             </thead>
             <tbody className="table-body">
-              {items.map((item, index) => (
+              {items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => {
+                const actualIndex = (currentPage - 1) * itemsPerPage + index;
+                return (
                 <tr
                   key={item.id}
                   draggable
-                  onDragStart={(e) => handleDragStart(e, item, index)}
+                  onDragStart={(e) => handleDragStart(e, item, actualIndex)}
                   onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, index)}
+                  onDrop={(e) => handleDrop(e, actualIndex)}
                   className="table-row cursor-move group"
                 >
                   {/* Line Number */}
@@ -484,16 +488,16 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                   <td className="table-cell">
                     <div className="flex items-center space-x-1">
                       <Button
-                        onClick={() => handleMoveUp(index)}
-                        disabled={index === 0}
+                        onClick={() => handleMoveUp(actualIndex)}
+                        disabled={actualIndex === 0}
                         variant="ghost"
                         size="sm"
                         icon={ChevronUpIcon}
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                       />
                       <Button
-                        onClick={() => handleMoveDown(index)}
-                        disabled={index === items.length - 1}
+                        onClick={() => handleMoveDown(actualIndex)}
+                        disabled={actualIndex === items.length - 1}
                         variant="ghost"
                         size="sm"
                         icon={ChevronDownIcon}
@@ -502,7 +506,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -526,6 +531,80 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
             </div>
           </div>
         </div>
+        
+        {/* Pagination */}
+        {items.length > itemsPerPage && (
+          <div className="bg-white px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-700">Show</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="form-input text-sm w-20"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm text-gray-700">items per page</span>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-700">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, items.length)} of {items.length} items
+                </span>
+                
+                <div className="flex space-x-1">
+                  <Button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    Previous
+                  </Button>
+                  
+                  {Array.from({ length: Math.ceil(items.length / itemsPerPage) }, (_, i) => i + 1)
+                    .filter(page => {
+                      const totalPages = Math.ceil(items.length / itemsPerPage);
+                      return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2;
+                    })
+                    .map((page, index, array) => {
+                      const showEllipsis = index > 0 && array[index - 1] !== page - 1;
+                      return (
+                        <React.Fragment key={page}>
+                          {showEllipsis && <span className="px-2 text-gray-400">...</span>}
+                          <Button
+                            onClick={() => setCurrentPage(page)}
+                            variant={currentPage === page ? "primary" : "ghost"}
+                            size="sm"
+                            className="w-8"
+                          >
+                            {page}
+                          </Button>
+                        </React.Fragment>
+                      );
+                    })
+                  }
+                  
+                  <Button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(items.length / itemsPerPage)))}
+                    disabled={currentPage === Math.ceil(items.length / itemsPerPage)}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Photo Modal */}

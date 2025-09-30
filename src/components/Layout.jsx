@@ -10,7 +10,7 @@ import {
   ArrowRightOnRectangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  BellIcon,
+
   MagnifyingGlassIcon,
   Bars3Icon,
   XMarkIcon,
@@ -31,6 +31,7 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleLogout = () => {
     logout();
@@ -314,23 +315,23 @@ const Layout = ({ children }) => {
                   <input
                     type="text"
                     placeholder="Search projects, clients..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && searchQuery.trim()) {
+                        window.dispatchEvent(new CustomEvent('globalSearch', { detail: searchQuery.trim() }));
+                      }
+                    }}
                     className="pl-10 pr-4 py-2.5 w-80 bg-gray-50/80 border border-gray-200/50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300 focus:bg-white transition-all duration-200 placeholder-gray-400"
                   />
                 </div>
                 
-                {/* Notifications with modern styling */}
-                <div className="relative">
-                  <button className="relative p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 rounded-2xl transition-all duration-200 group">
-                    <BellIcon className="h-6 w-6 group-hover:scale-110 transition-transform" />
-                    <span className="absolute top-2 right-2 w-3 h-3 bg-gradient-to-r from-red-500 to-pink-500 rounded-full animate-pulse shadow-lg">
-                      <span className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75"></span>
-                    </span>
-                  </button>
-                </div>
-
                 {/* Quick actions - visible on larger screens */}
                 <div className="hidden xl:flex items-center space-x-2">
-                  <button className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+                  <button 
+                    onClick={() => navigate('/projects/new')}
+                    className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
                     Quick Add
                   </button>
                 </div>

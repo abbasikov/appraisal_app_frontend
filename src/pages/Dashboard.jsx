@@ -18,7 +18,8 @@ import {
   SparklesIcon,
   BoltIcon,
   ArrowRightIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import {
   DocumentTextIcon as DocumentTextIconSolid,
@@ -35,6 +36,9 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [allProjects, setAllProjects] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -56,6 +60,29 @@ const Dashboard = () => {
     };
 
     fetchDashboardData();
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalSearch = async (event) => {
+      const query = event.detail;
+      setSearchTerm(query);
+      
+      if (query.trim()) {
+        try {
+          const { projectService } = await import('../services/projectService');
+          const projects = await projectService.getProjects(0, 1000);
+          setAllProjects(projects);
+          setShowSearchResults(true);
+        } catch (error) {
+          console.error('Error fetching projects:', error);
+        }
+      } else {
+        setShowSearchResults(false);
+      }
+    };
+
+    window.addEventListener('globalSearch', handleGlobalSearch);
+    return () => window.removeEventListener('globalSearch', handleGlobalSearch);
   }, []);
 
   const dashboardStats = stats ? [
@@ -132,6 +159,14 @@ const Dashboard = () => {
       show: isAdmin || isEditor
     }
   ].filter(action => action.show);
+
+  const filteredProjects = allProjects.filter(project => {
+    if (!searchTerm) return [];
+    const search = searchTerm.toLowerCase();
+    return project.project_name?.toLowerCase().includes(search) ||
+           project.client_name?.toLowerCase().includes(search) ||
+           project.case_number?.toLowerCase().includes(search);
+  });
 
   const StatCard = ({ stat, index }) => {
     const isHovered = hoveredCard === stat.id;
@@ -211,8 +246,11 @@ const Dashboard = () => {
     </div>
   );
 
-  const ProjectCard = ({ project, status = 'active' }) => (
-    <div className="group cursor-pointer bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300">
+  const ProjectCard = ({ project, status = 'active', onClick }) => (
+    <div 
+      className="group cursor-pointer bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300"
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           <div className={`p-2 rounded-lg ${
@@ -326,7 +364,53 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Search Results */}
+        {showSearchResults && (
+          <div className="animate-slide-up">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <MagnifyingGlassIcon className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">Search Results</h3>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setShowSearchResults(false);
+                      setSearchTerm('');
+                    }}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {filteredProjects.length > 0 ? (
+                    filteredProjects.map((project, index) => (
+                      <div key={project.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                        <ProjectCard 
+                          project={project} 
+                          status={project.status === 'COMPLETED' || project.status === 'DELIVERED' ? 'completed' : 'active'}
+                          onClick={() => navigate(`/projects/${project.id}`)}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <MagnifyingGlassIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">No projects found matching "{searchTerm}"</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Projects Overview */}
+        {!showSearchResults && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Active Projects */}
           <div className="animate-slide-up" style={{ animationDelay: '700ms' }}>
@@ -353,7 +437,11 @@ const Dashboard = () => {
                   {openProjects.length > 0 ? (
                     openProjects.slice(0, 4).map((project, index) => (
                       <div key={project.id || index} className="animate-fade-in" style={{ animationDelay: `${800 + index * 100}ms` }}>
-                        <ProjectCard project={project} status="active" />
+                        <ProjectCard 
+                          project={project} 
+                          status="active" 
+                          onClick={() => navigate(`/projects/${project.id}`)}
+                        />
                       </div>
                     ))
                   ) : (
@@ -400,7 +488,11 @@ const Dashboard = () => {
                   {completedProjects.length > 0 ? (
                     completedProjects.slice(0, 4).map((project, index) => (
                       <div key={project.id || index} className="animate-fade-in" style={{ animationDelay: `${900 + index * 100}ms` }}>
-                        <ProjectCard project={project} status="completed" />
+                        <ProjectCard 
+                          project={project} 
+                          status="completed" 
+                          onClick={() => navigate(`/projects/${project.id}`)}
+                        />
                       </div>
                     ))
                   ) : (
@@ -414,6 +506,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        )}
 
         {/* Admin Tools */}
         {isAdmin && (

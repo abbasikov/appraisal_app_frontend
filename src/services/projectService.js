@@ -44,8 +44,8 @@ export const projectService = {
     return response.data;
   },
 
-  async importPhotos(projectId) {
-    const response = await api.post(`/projects/${projectId}/import-photos`);
+  async importPhotos(projectId, batchSize = 10) {
+    const response = await api.post(`/projects/${projectId}/import-photos?batch_size=${batchSize}`);
     return response.data;
   },
 

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import Layout from '../../components/Layout';
 import DropboxLinksManager from '../../components/DropboxLinksManager';
-import PhotoTable from '../../components/PhotoTable';
+import { PhotoTableWithPagination } from '../../components/PhotoTable';
 import ProjectReports from '../../components/ProjectReports';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -31,11 +31,16 @@ const ProjectDetails = () => {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Pagination state for photos
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 20;
   const { isAdmin, isEditor } = useAuth();
 
   useEffect(() => {
     fetchProjectDetails();
-    fetchPhotos();
     
     if (window.location.hash === '#reports') {
       setTimeout(() => {
@@ -46,6 +51,10 @@ const ProjectDetails = () => {
       }, 500);
     }
   }, [id]);
+
+  useEffect(() => {
+    fetchPhotos();
+  }, [id, currentPage]);
 
   const fetchProjectDetails = async () => {
     try {
@@ -61,24 +70,58 @@ const ProjectDetails = () => {
 
   const fetchPhotos = async () => {
     try {
-      const response = await projectService.getProjectPhotos(id);
-      setPhotos(Array.isArray(response) ? response : []);
+      const skip = (currentPage - 1) * itemsPerPage;
+      const response = await projectService.getProjectPhotos(id, skip, itemsPerPage);
+      
+      // Handle backend response format:
+      // {
+      //   photos: [...],
+      //   total_count: number,
+      //   skip: number,
+      //   limit: number,
+      //   has_more: boolean
+      // }
+      if (response && response.photos && Array.isArray(response.photos)) {
+        setPhotos(response.photos);
+        setTotalItems(response.total_count || 0);
+        const totalPagesFromBackend = Math.ceil((response.total_count || 0) / itemsPerPage);
+        setTotalPages(totalPagesFromBackend);
+      } else {
+        // Fallback for unexpected response format
+        console.warn('Unexpected response format:', response);
+        setPhotos([]);
+        setTotalItems(0);
+        setTotalPages(1);
+      }
     } catch (err) {
       console.error('Failed to load photos:', err);
       setPhotos([]);
+      setTotalItems(0);
+      setTotalPages(1);
     }
   };
 
   const handleLinksUpdate = () => {
     fetchProjectDetails();
+    // Reset to first page when links are updated
+    setCurrentPage(1);
     fetchPhotos();
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    // Scroll to top of photos section when page changes
+    const photosSection = document.getElementById('photos-section');
+    if (photosSection) {
+      photosSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handlePhotoDelete = async (photoId) => {
     if (window.confirm('Are you sure you want to delete this photo?')) {
       try {
         await projectService.deletePhoto(photoId);
-        fetchPhotos();
+        fetchPhotos(); // Refresh current page
       } catch (err) {
         setError('Failed to delete photo');
         console.error('Error deleting photo:', err);
@@ -298,7 +341,7 @@ const ProjectDetails = () => {
             </div>
 
             {/* Photos Section */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div id="photos-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-purple-50/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -306,13 +349,21 @@ const ProjectDetails = () => {
                       <PhotoIcon className="w-6 h-6 text-purple-600" />
                     </div>
                     <h2 className="text-xl font-semibold text-gray-900">
-                      Photos ({photos.length})
+                      Photos ({totalItems})
                     </h2>
                   </div>
                 </div>
               </div>
               <div className="p-6">
-                <PhotoTable photos={photos} onPhotoDelete={handlePhotoDelete} />
+                <PhotoTableWithPagination 
+                  photos={photos} 
+                  onPhotoDelete={handlePhotoDelete}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={totalItems}
+                  onPageChange={handlePageChange}
+                />
               </div>
             </div>
 
@@ -369,7 +420,7 @@ const ProjectDetails = () => {
                     <PhotoIcon className="w-5 h-5 text-gray-500" />
                     <span className="text-sm text-gray-600">Photos</span>
                   </div>
-                  <span className="font-semibold text-gray-900">{photos.length}</span>
+                  <span className="font-semibold text-gray-900">{totalItems}</span>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">

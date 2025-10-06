@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatFileSize, formatDate } from '../utils/formatters';
 import { TrashIcon } from '@heroicons/react/24/outline';
+import { Pagination } from './ui';
 import api from '../services/api';
 
 const ThumbnailImage = ({ projectId, photoId, alt, className }) => {
@@ -63,7 +64,15 @@ const ThumbnailImage = ({ projectId, photoId, alt, className }) => {
   );
 };
 
-const PhotoTable = ({ photos, onPhotoDelete }) => {
+const PhotoTable = ({ 
+  photos, 
+  onPhotoDelete, 
+  currentPage = 1,
+  totalPages = 1,
+  itemsPerPage = 20,
+  totalItems = 0,
+  onPageChange 
+}) => {
   if (photos.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -142,4 +151,22 @@ const PhotoTable = ({ photos, onPhotoDelete }) => {
   );
 };
 
+const PhotoTableWithPagination = ({ photos, onPhotoDelete, ...paginationProps }) => {
+  return (
+    <div>
+      <PhotoTable 
+        photos={photos} 
+        onPhotoDelete={onPhotoDelete}
+      />
+      {paginationProps.totalPages > 1 && (
+        <Pagination
+          {...paginationProps}
+          showInfo={true}
+        />
+      )}
+    </div>
+  );
+};
+
+export { PhotoTable, PhotoTableWithPagination };
 export default PhotoTable;

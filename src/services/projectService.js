@@ -39,8 +39,18 @@ export const projectService = {
     return response.data;
   },
 
-  async getProjectPhotos(projectId) {
-    const response = await api.get(`/projects/${projectId}/photos`);
+  async getProjectPhotos(projectId, skip = 0, limit = 20) {
+    const params = new URLSearchParams({ skip, limit });
+    const response = await api.get(`/projects/${projectId}/photos?${params}`);
+    
+    // Backend returns structured response:
+    // {
+    //   photos: [...],
+    //   total_count: number,
+    //   skip: number,
+    //   limit: number,
+    //   has_more: boolean
+    // }
     return response.data;
   },
 
@@ -51,6 +61,19 @@ export const projectService = {
 
   async deletePhoto(photoId) {
     const response = await api.delete(`/photos/${photoId}`);
+    return response.data;
+  },
+
+  // New background photo import methods
+  async importPhotosBackground(projectId, recurring = true) {
+    const response = await api.post(`/projects/${projectId}/import-photos-background`, {
+      recurring
+    });
+    return response.data;
+  },
+
+  async getTaskStatus(projectId, taskId) {
+    const response = await api.get(`/projects/${projectId}/task-status/${taskId}`);
     return response.data;
   }
 };

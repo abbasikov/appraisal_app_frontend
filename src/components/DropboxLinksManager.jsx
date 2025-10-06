@@ -9,12 +9,12 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
   const [importingPhotos, setImportingPhotos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, status: '' });
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     loadProjectLinks();
   }, [projectId]);
+
 
   const loadProjectLinks = async () => {
     try {
@@ -113,57 +113,26 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
 
   const importPhotos = async () => {
     setImportingPhotos(true);
-    setImportProgress({ current: 0, total: 0, status: 'Scanning folders...' });
-    let totalImported = 0;
     
     try {
-      console.log('Starting batch photo import for project:', projectId);
+      console.log('Starting background photo import for project:', projectId);
       
-      // Import in batches until no more photos
-      let hasMore = true;
-      let batchCount = 0;
-      let totalFound = 0;
+      await projectService.importPhotosBackground(projectId, true); // recurring = true
       
-      while (hasMore) {
-        batchCount++;
-        setImportProgress(prev => ({ ...prev, status: `Processing batch ${batchCount}...` }));
-        
-        const response = await projectService.importPhotos(projectId, 10); // 10 photos per batch
-        console.log(`Batch ${batchCount} response:`, response);
-        
-        totalImported += response.imported_count || 0;
-        totalFound = response.total_found || totalFound;
-        hasMore = response.has_more || false;
-        
-        // Update progress
-        setImportProgress({
-          current: totalImported,
-          total: totalFound,
-          status: hasMore ? `Importing... (${totalImported}/${totalFound})` : 'Completing...'
-        });
-        
-        // Small delay between batches
-        if (hasMore) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
+      showSuccess('Your photos are being imported in the background. You can continue working while the import processes automatically. Photos will appear on the project page once they are ready.');
       
-      setImportProgress({ current: totalImported, total: totalImported, status: 'Complete!' });
-      showSuccess(`Import complete! Total photos imported: ${totalImported}`);
-      
-      if (onLinksUpdate) {
-        onLinksUpdate();
-      }
-      
-    } catch (error) {
-      console.error('Error importing photos:', error);
-      setImportProgress({ current: 0, total: 0, status: 'Failed' });
-      showError(error.response?.data?.detail || 'Failed to import photos');
-    } finally {
+      // Reset importing state after a short delay to show the success message
       setTimeout(() => {
         setImportingPhotos(false);
-        setImportProgress({ current: 0, total: 0, status: '' });
+        if (onLinksUpdate) {
+          onLinksUpdate();
+        }
       }, 2000);
+      
+    } catch (error) {
+      console.error('Error starting background import:', error);
+      setImportingPhotos(false);
+      showError(error.response?.data?.detail || 'Failed to start photo import');
     }
   };
 
@@ -245,33 +214,27 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
             {importingPhotos ? 'Importing Photos...' : `Import Photos from ${links.length} Folder(s)`}
           </button>
           
-          {/* Progress indicator */}
+          {/* Background import status */}
           {importingPhotos && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-blue-900">{importProgress.status}</span>
-                <span className="text-sm text-blue-700">
-                  {importProgress.total > 0 ? `${importProgress.current}/${importProgress.total}` : 'Scanning...'}
-                </span>
-              </div>
-              
-              {/* Progress bar */}
-              <div className="w-full bg-blue-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: importProgress.total > 0 
-                      ? `${(importProgress.current / importProgress.total) * 100}%` 
-                      : '0%' 
-                  }}
-                ></div>
-              </div>
-              
-              {importProgress.total > 0 && (
-                <div className="text-xs text-blue-600 mt-1">
-                  {Math.round((importProgress.current / importProgress.total) * 100)}% complete
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  </div>
                 </div>
-              )}
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-green-800">
+                    Photo import started successfully!
+                  </h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    Your images are being fetched and processed in the background. This may take several minutes depending on the number and size of photos. You can continue using the application while the import runs automatically.
+                  </p>
+                  <p className="text-xs text-green-600 mt-2 font-medium">
+                    📱 Photos will appear on the project page once they're ready
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

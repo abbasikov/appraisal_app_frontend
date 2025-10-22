@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { accountService } from '../../services/accountService';
@@ -21,7 +21,10 @@ const AddAccount = () => {
   const [error, setError] = useState('');
   const [completedFields, setCompletedFields] = useState(new Set());
   const [focusedField, setFocusedField] = useState('');
+  const [attorneyAccounts, setAttorneyAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [formData, setFormData] = useState({
+    parent_account_id: '',
     name: '',
     account_type: 'attorney',
     address: '',
@@ -35,13 +38,34 @@ const AddAccount = () => {
     notes: ''
   });
 
+  useEffect(() => {
+    if (formData.account_type === 'client') {
+      fetchAttorneyAccounts();
+    }
+  }, [formData.account_type]);
+
+  const fetchAttorneyAccounts = async () => {
+    try {
+      setLoadingAccounts(true);
+      const response = await accountService.getAccounts(null, true);
+      // Filter out client accounts - only show non-client accounts
+      const nonClientAccounts = (response.accounts || []).filter(account => account.account_type !== 'client');
+      setAttorneyAccounts(nonClientAccounts);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
   const accountTypes = [
     { value: 'attorney', label: 'Attorney', icon: BuildingOfficeIcon, color: 'blue' },
     { value: 'estate_planner', label: 'Estate Planner', icon: DocumentTextIcon, color: 'green' },
     { value: 'house_manager', label: 'House Manager', icon: UserIcon, color: 'purple' },
     { value: 'financial_manager', label: 'Financial Manager', icon: UserIcon, color: 'orange' },
     { value: 'assistant', label: 'Assistant', icon: UserIcon, color: 'pink' },
-    { value: 'appraiser', label: 'Appraiser', icon: UserIcon, color: 'cyan' }
+    { value: 'appraiser', label: 'Appraiser', icon: UserIcon, color: 'cyan' },
+    { value: 'client', label: 'Client', icon: UserIcon, color: 'indigo' }
   ];
 
   const handleChange = (e) => {
@@ -66,7 +90,32 @@ const AddAccount = () => {
     setError('');
 
     try {
-      await accountService.createAccount(formData);
+      // Clean the form data - remove empty strings and handle parent_account_id
+      const cleanedData = { ...formData };
+      
+      // Remove empty strings
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === '') {
+          delete cleanedData[key];
+        }
+      });
+      
+      // Handle parent_account_id specifically
+      if (cleanedData.parent_account_id && cleanedData.parent_account_id !== '') {
+        cleanedData.parent_account_id = parseInt(cleanedData.parent_account_id);
+      } else {
+        delete cleanedData.parent_account_id;
+      }
+      
+      const result = await accountService.createAccount(cleanedData);
+      
+      // If we created a client (account_type was 'client'), dispatch clientCreated event
+      if (formData.account_type === 'client') {
+        window.dispatchEvent(new CustomEvent('clientCreated', {
+          detail: { client: result }
+        }));
+      }
+      
       navigate('/accounts');
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to create account');
@@ -243,6 +292,31 @@ const AddAccount = () => {
                   </select>
                 </div>
               </div>
+              
+              {/* Attorney Assignment for Client accounts */}
+              {formData.account_type === 'client' && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700 flex items-center space-x-2">
+                    <BuildingOfficeIcon className="w-4 h-4 text-gray-400" />
+                    <span>Assign to Account (Optional)</span>
+                  </label>
+                  <select
+                    name="parent_account_id"
+                    value={formData.parent_account_id}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-0 focus:border-blue-500 transition-all duration-200"
+                    disabled={loadingAccounts}
+                  >
+                    <option value="">No account assigned</option>
+                    {attorneyAccounts.map(account => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.account_type.replace('_', ' ')}) - {account.email || 'No email'}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingAccounts && <p className="text-gray-500 text-sm mt-1">Loading accounts...</p>}
+                </div>
+              )}
             </div>
 
             {/* Contact Information */}

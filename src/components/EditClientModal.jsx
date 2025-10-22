@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, CheckIcon, UserIcon } from '@heroicons/react/24/outline';
 import { clientService } from '../services/clientService';
+import { accountService } from '../services/accountService';
 
 const EditClientModal = ({ isOpen, onClose, client, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [attorneyAccounts, setAttorneyAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [formData, setFormData] = useState({
+    parent_account_id: '',
     name: '',
     email: '',
     phone: '',
@@ -23,8 +27,15 @@ const EditClientModal = ({ isOpen, onClose, client, onSuccess }) => {
   });
 
   useEffect(() => {
+    if (isOpen) {
+      fetchAttorneyAccounts();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (client && isOpen) {
       setFormData({
+        parent_account_id: client.parent_account_id || '',
         name: client.name || '',
         email: client.email || '',
         phone: client.phone || '',
@@ -42,6 +53,20 @@ const EditClientModal = ({ isOpen, onClose, client, onSuccess }) => {
       });
     }
   }, [client, isOpen]);
+
+  const fetchAttorneyAccounts = async () => {
+    try {
+      setLoadingAccounts(true);
+      const response = await accountService.getAccounts(null, true);
+      // Filter out client accounts - only show non-client accounts
+      const nonClientAccounts = (response.accounts || []).filter(account => account.account_type !== 'client');
+      setAttorneyAccounts(nonClientAccounts);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -70,7 +95,17 @@ const EditClientModal = ({ isOpen, onClose, client, onSuccess }) => {
         }
       });
 
-      await clientService.updateClient(client.id, submitData);
+      const updatedClient = await clientService.updateClient(client.id, submitData);
+      
+      // Dispatch event to notify other components about the client update
+      window.dispatchEvent(new CustomEvent('clientUpdated', {
+        detail: { 
+          client: updatedClient,
+          oldParentAccountId: client.parent_account_id,
+          newParentAccountId: submitData.parent_account_id
+        }
+      }));
+      
       onSuccess();
       onClose();
     } catch (err) {
@@ -123,6 +158,31 @@ const EditClientModal = ({ isOpen, onClose, client, onSuccess }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Attorney Assignment */}
+          <div className="space-y-4 border-b border-gray-200 pb-6">
+            <h3 className="text-lg font-medium text-gray-900">Attorney Assignment</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign to Account (Optional)
+              </label>
+              <select
+                name="parent_account_id"
+                value={formData.parent_account_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loadingAccounts}
+              >
+                <option value="">No account assigned</option>
+                {attorneyAccounts.map(account => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({account.account_type.replace('_', ' ')}) - {account.email || 'No email'}
+                  </option>
+                ))}
+              </select>
+              {loadingAccounts && <p className="text-gray-500 text-sm mt-1">Loading accounts...</p>}
+            </div>
+          </div>
+
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

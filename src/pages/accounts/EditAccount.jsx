@@ -25,9 +25,12 @@ const EditAccount = () => {
   const [completedFields, setCompletedFields] = useState(new Set());
   const [focusedField, setFocusedField] = useState('');
   const [originalData, setOriginalData] = useState({});
+  const [attorneyAccounts, setAttorneyAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     account_type: 'client',
+    parent_account_id: '',
     address: '',
     city: '',
     state: '',
@@ -53,12 +56,33 @@ const EditAccount = () => {
     fetchAccount();
   }, [id]);
 
+  useEffect(() => {
+    if (formData.account_type === 'client') {
+      fetchAttorneyAccounts();
+    }
+  }, [formData.account_type]);
+
+  const fetchAttorneyAccounts = async () => {
+    try {
+      setLoadingAccounts(true);
+      const response = await accountService.getAccounts(null, true);
+      // Filter out client accounts - only show non-client accounts
+      const nonClientAccounts = (response.accounts || []).filter(account => account.account_type !== 'client');
+      setAttorneyAccounts(nonClientAccounts);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
   const fetchAccount = async () => {
     try {
       const account = await accountService.getAccount(id);
       const accountData = {
         name: account.name || '',
         account_type: account.account_type || 'client',
+        parent_account_id: account.parent_account_id || '',
         address: account.address || '',
         city: account.city || '',
         state: account.state || '',
@@ -112,7 +136,24 @@ const EditAccount = () => {
     setError('');
 
     try {
-      await accountService.updateAccount(id, formData);
+      // Clean the form data - remove empty strings and handle parent_account_id
+      const cleanedData = { ...formData };
+      
+      // Remove empty strings
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === '') {
+          delete cleanedData[key];
+        }
+      });
+      
+      // Handle parent_account_id specifically
+      if (cleanedData.parent_account_id && cleanedData.parent_account_id !== '') {
+        cleanedData.parent_account_id = parseInt(cleanedData.parent_account_id);
+      } else {
+        delete cleanedData.parent_account_id;
+      }
+      
+      await accountService.updateAccount(id, cleanedData);
       navigate('/accounts');
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update account');
@@ -329,6 +370,38 @@ const EditAccount = () => {
                   </select>
                 </div>
               </div>
+              
+              {/* Account Assignment for Client accounts */}
+              {formData.account_type === 'client' && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700 flex items-center space-x-2">
+                    <BuildingOfficeIcon className="w-4 h-4 text-gray-400" />
+                    <span>Assign to Account (Optional)</span>
+                    {formData.parent_account_id && formData.parent_account_id !== originalData.parent_account_id && (
+                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" title="Modified" />
+                    )}
+                  </label>
+                  <select
+                    name="parent_account_id"
+                    value={formData.parent_account_id}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all duration-200 ${
+                      formData.parent_account_id !== originalData.parent_account_id
+                        ? 'border-orange-300 bg-orange-50/30'
+                        : 'border-gray-200 hover:border-gray-300 focus:border-blue-500'
+                    }`}
+                    disabled={loadingAccounts}
+                  >
+                    <option value="">No account assigned</option>
+                    {attorneyAccounts.map(account => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.account_type.replace('_', ' ')}) - {account.email || 'No email'}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingAccounts && <p className="text-gray-500 text-sm mt-1">Loading accounts...</p>}
+                </div>
+              )}
             </div>
 
             {/* Contact Information */}

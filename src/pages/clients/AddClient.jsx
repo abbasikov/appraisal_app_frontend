@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clientService } from '../../services/clientService';
+import { accountService } from '../../services/accountService';
 import Layout from '../../components/Layout';
 
 const AddClient = () => {
@@ -13,6 +14,7 @@ const AddClient = () => {
     city: '',
     state: '',
     zip_code: '',
+    parent_account_id: '',
     attorney_name: '',
     attorney_email: '',
     attorney_phone: '',
@@ -22,7 +24,25 @@ const AddClient = () => {
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [attorneyAccounts, setAttorneyAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchAttorneyAccounts();
+  }, []);
+
+  const fetchAttorneyAccounts = async () => {
+    try {
+      setLoadingAccounts(true);
+      const response = await accountService.getAccounts('attorney', true);
+      setAttorneyAccounts(response.accounts || []);
+    } catch (error) {
+      console.error('Error fetching attorney accounts:', error);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -76,7 +96,13 @@ const AddClient = () => {
         }
       });
       
-      await clientService.createClient(cleanedData);
+      const newClient = await clientService.createClient(cleanedData);
+      
+      // Dispatch event to notify other components (like AccountList) about the new client
+      window.dispatchEvent(new CustomEvent('clientCreated', {
+        detail: { client: newClient }
+      }));
+      
       navigate('/clients');
     } catch (err) {
       console.error('Error creating client:', err);
@@ -236,6 +262,27 @@ const AddClient = () => {
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-4">Attorney Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Attorney Account (Optional)
+                  </label>
+                  <select
+                    name="parent_account_id"
+                    value={formData.parent_account_id}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    disabled={loadingAccounts}
+                  >
+                    <option value="">Select an attorney account or enter manually below</option>
+                    {attorneyAccounts.map(account => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} - {account.email || 'No email'}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingAccounts && <p className="text-gray-500 text-sm mt-1">Loading attorney accounts...</p>}
+                </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Attorney Name
@@ -246,6 +293,7 @@ const AddClient = () => {
                     value={formData.attorney_name}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter manually if not selected above"
                   />
                 </div>
                 
@@ -261,6 +309,7 @@ const AddClient = () => {
                     className={`w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
                       errors.attorney_email ? 'border-red-500' : 'border-gray-300'
                     }`}
+                    placeholder="Enter manually if not selected above"
                   />
                   {errors.attorney_email && <p className="text-red-500 text-sm mt-1">{errors.attorney_email}</p>}
                 </div>
@@ -275,6 +324,7 @@ const AddClient = () => {
                     value={formData.attorney_phone}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter manually if not selected above"
                   />
                 </div>
               </div>

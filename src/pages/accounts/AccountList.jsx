@@ -30,6 +30,7 @@ const AccountList = () => {
   const [selectedType, setSelectedType] = useState('');
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
   const [clients, setClients] = useState({});
+  const [unassignedClients, setUnassignedClients] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
@@ -45,14 +46,74 @@ const AccountList = () => {
       setFilter(event.detail);
     };
 
+    const handleClientCreated = (event) => {
+      const { client } = event.detail;
+      if (client.parent_account_id && expandedAccounts.has(client.parent_account_id)) {
+        // Refresh clients for the parent account
+        accountService.getAccountClients(client.parent_account_id)
+          .then(clientsData => {
+            setClients(prev => ({ ...prev, [client.parent_account_id]: clientsData }));
+          })
+          .catch(err => console.error('Error refreshing clients:', err));
+      } else if (!client.parent_account_id) {
+        // Add to unassigned clients
+        setUnassignedClients(prev => [client, ...prev]);
+      }
+    };
+
+    const handleClientUpdated = (event) => {
+      const { client, oldParentAccountId, newParentAccountId } = event.detail;
+      
+      // Handle unassigned clients list updates
+      if (!oldParentAccountId && newParentAccountId) {
+        // Client was assigned from unassigned
+        setUnassignedClients(prev => prev.filter(c => c.id !== client.id));
+      } else if (oldParentAccountId && !newParentAccountId) {
+        // Client was unassigned
+        setUnassignedClients(prev => [client, ...prev]);
+      } else if (!oldParentAccountId && !newParentAccountId) {
+        // Client updated but still unassigned
+        setUnassignedClients(prev => prev.map(c => c.id === client.id ? client : c));
+      }
+      
+      // Refresh clients for old parent account if it was expanded
+      if (oldParentAccountId && expandedAccounts.has(oldParentAccountId)) {
+        accountService.getAccountClients(oldParentAccountId)
+          .then(clientsData => {
+            setClients(prev => ({ ...prev, [oldParentAccountId]: clientsData }));
+          })
+          .catch(err => console.error('Error refreshing old parent clients:', err));
+      }
+      
+      // Refresh clients for new parent account if it's expanded
+      if (newParentAccountId && expandedAccounts.has(newParentAccountId)) {
+        accountService.getAccountClients(newParentAccountId)
+          .then(clientsData => {
+            setClients(prev => ({ ...prev, [newParentAccountId]: clientsData }));
+          })
+          .catch(err => console.error('Error refreshing new parent clients:', err));
+      }
+    };
+
     window.addEventListener('globalSearch', handleGlobalSearch);
-    return () => window.removeEventListener('globalSearch', handleGlobalSearch);
-  }, []);
+    window.addEventListener('clientCreated', handleClientCreated);
+    window.addEventListener('clientUpdated', handleClientUpdated);
+    return () => {
+      window.removeEventListener('globalSearch', handleGlobalSearch);
+      window.removeEventListener('clientCreated', handleClientCreated);
+      window.removeEventListener('clientUpdated', handleClientUpdated);
+    };
+  }, [expandedAccounts]);
 
   const fetchAccounts = async () => {
     try {
       const response = await accountService.getAccounts();
       setAccounts(Array.isArray(response.accounts) ? response.accounts : []);
+      
+      // Fetch unassigned clients
+      const clientsResponse = await clientService.getClients();
+      const unassigned = clientsResponse.filter(client => !client.parent_account_id);
+      setUnassignedClients(unassigned);
     } catch (err) {
       setError('Failed to load accounts');
       console.error('Error fetching accounts:', err);
@@ -80,14 +141,12 @@ const AccountList = () => {
       newExpanded.delete(accountId);
     } else {
       newExpanded.add(accountId);
-      // Fetch clients if not already loaded
-      if (!clients[accountId]) {
-        try {
-          const clientsData = await accountService.getAccountClients(accountId);
-          setClients(prev => ({ ...prev, [accountId]: clientsData }));
-        } catch (err) {
-          console.error('Error fetching clients:', err);
-        }
+      // Always fetch fresh clients data when expanding
+      try {
+        const clientsData = await accountService.getAccountClients(accountId);
+        setClients(prev => ({ ...prev, [accountId]: clientsData }));
+      } catch (err) {
+        console.error('Error fetching clients:', err);
       }
     }
     setExpandedAccounts(newExpanded);
@@ -248,17 +307,21 @@ const AccountList = () => {
                       <div className="flex items-center justify-between">
                         {/* Left Section - Account Info */}
                         <div className="flex items-center space-x-4 flex-1 min-w-0">
-                          {/* Expand/Collapse Button */}
-                          <button
-                            onClick={() => toggleAccountExpansion(account.id)}
-                            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            {expandedAccounts.has(account.id) ? (
-                              <ChevronDownIcon className="w-5 h-5" />
-                            ) : (
-                              <ChevronRightIcon className="w-5 h-5" />
-                            )}
-                          </button>
+                          {/* Expand/Collapse Button - Only show for non-client accounts */}
+                          {account.account_type !== 'client' ? (
+                            <button
+                              onClick={() => toggleAccountExpansion(account.id)}
+                              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              {expandedAccounts.has(account.id) ? (
+                                <ChevronDownIcon className="w-5 h-5" />
+                              ) : (
+                                <ChevronRightIcon className="w-5 h-5" />
+                              )}
+                            </button>
+                          ) : (
+                            <div className="w-6 h-6"></div>
+                          )}
                           
                           {/* Icon */}
                           <div className="flex-shrink-0">
@@ -343,8 +406,8 @@ const AccountList = () => {
                       </div>
                     </div>
                     
-                    {/* Expanded Content - Sub-accounts and Clients */}
-                    {expandedAccounts.has(account.id) && (
+                    {/* Expanded Content - Sub-accounts and Clients - Only show for non-client accounts */}
+                    {account.account_type !== 'client' && expandedAccounts.has(account.id) && (
                       <div className="bg-gray-50 border-t border-gray-100">
                         <div className="p-6 pl-16">
                           <div className="grid grid-cols-1 gap-6">
@@ -354,17 +417,6 @@ const AccountList = () => {
                             <div>
                               <div className="flex items-center justify-between mb-4">
                                 <h4 className="font-medium text-gray-900">Clients</h4>
-                                {(isAdmin || isEditor) && (
-                                  <button 
-                                    onClick={() => {
-                                      setSelectedAccountId(account.id);
-                                      setModalOpen(true);
-                                    }}
-                                    className="text-sm text-blue-600 hover:text-blue-700"
-                                  >
-                                    Add Client
-                                  </button>
-                                )}
                               </div>
                               <div className="space-y-2">
                                 {clients[account.id]?.length > 0 ? (
@@ -453,6 +505,127 @@ const AccountList = () => {
             </div>
           )}
         </div>
+
+        {/* Unassigned Clients Section */}
+        {unassignedClients.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-yellow-50">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                <UserIcon className="w-5 h-5 text-orange-500" />
+                <span>Unassigned Clients</span>
+                <span className="bg-orange-100 text-orange-800 text-sm px-2 py-1 rounded-full">
+                  {unassignedClients.length}
+                </span>
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Clients not assigned to any account
+              </p>
+            </div>
+            
+            <div className="divide-y divide-gray-100">
+              {unassignedClients.map((client, index) => (
+                <div 
+                  key={client.id}
+                  className="group p-6 hover:bg-gray-50 transition-all duration-200 animate-slide-up"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4 flex-1 min-w-0">
+                      <div className="flex-shrink-0">
+                        <div className="p-3 rounded-2xl bg-orange-100 border border-orange-200">
+                          <UserIcon className="w-6 h-6 text-orange-600" />
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-orange-600 transition-colors">
+                            {client.name}
+                          </h3>
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border bg-orange-100 text-orange-800 border-orange-200">
+                            Unassigned Client
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
+                          {client.email && (
+                            <div className="flex items-center">
+                              <EnvelopeIcon className="w-4 h-4 mr-2 text-gray-400" />
+                              <span className="truncate">{client.email}</span>
+                            </div>
+                          )}
+                          {client.phone && (
+                            <div className="flex items-center">
+                              <PhoneIcon className="w-4 h-4 mr-2 text-gray-400" />
+                              <span>{client.phone}</span>
+                            </div>
+                          )}
+                          {(client.city || client.state) && (
+                            <div className="flex items-center">
+                              <MapPinIcon className="w-4 h-4 mr-2 text-gray-400" />
+                              <span>
+                                {[client.city, client.state].filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {client.created_at && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            Added {new Date(client.created_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button 
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+                        title="View Details"
+                      >
+                        <EyeIcon className="w-5 h-5" />
+                      </button>
+                      
+                      {(isAdmin || isEditor) && (
+                        <button
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setEditModalOpen(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                          title="Edit Client"
+                        >
+                          <PencilIcon className="w-5 h-5" />
+                        </button>
+                      )}
+                      
+                      {isAdmin && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to delete "${client.name}"?`)) {
+                              clientService.deleteClient(client.id)
+                                .then(() => {
+                                  setUnassignedClients(prev => prev.filter(c => c.id !== client.id));
+                                })
+                                .catch(err => {
+                                  console.error('Error deleting client:', err);
+                                  setError('Failed to delete client');
+                                });
+                            }
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                          title="Delete Client"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Sub-account/Client Modal */}

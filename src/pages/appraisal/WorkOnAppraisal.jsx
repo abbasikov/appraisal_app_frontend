@@ -8,6 +8,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import Tabs from '../../components/ui/Tabs';
 import { appraisalService } from '../../services/appraisalService';
 import { projectService } from '../../services/projectService';
+import { templateService } from '../../services/templateService';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ToastContainer';
 import { 
@@ -30,9 +31,12 @@ const WorkOnAppraisal = () => {
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [templates, setTemplates] = useState([]);
 
   useEffect(() => {
     fetchProjectAndItems();
+    fetchTemplates();
   }, [projectId]);
 
   const fetchProjectAndItems = async () => {
@@ -52,6 +56,15 @@ const WorkOnAppraisal = () => {
       showError('Failed to load project data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const templatesData = await templateService.getTemplates();
+      setTemplates(templatesData.templates || templatesData || []);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
     }
   };
 
@@ -125,6 +138,53 @@ const WorkOnAppraisal = () => {
     navigate(`/projects/${projectId}/review`);
   };
 
+  const handleGenerateReport = async () => {
+    if (!project?.template_id) {
+      showError('No template assigned to this project');
+      return;
+    }
+
+    try {
+      setGeneratingReport(true);
+      const result = await templateService.generateReport(
+        project.template_id,
+        projectId,
+        'final',
+        true
+      );
+      
+      showSuccess('Report generated successfully');
+      
+      // Download the generated report
+      if (result.download_url) {
+        const downloadResponse = await fetch(`http://localhost:8000${result.download_url}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (downloadResponse.ok) {
+          const blob = await downloadResponse.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `appraisal_report_${projectId}.docx`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          showSuccess('Report downloaded successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error generating report:', error);
+      showError('Failed to generate report');
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -178,6 +238,16 @@ const WorkOnAppraisal = () => {
                 icon={DocumentTextIcon}
               >
                 Save All
+              </Button>
+              
+              <Button
+                onClick={handleGenerateReport}
+                loading={generatingReport}
+                disabled={generatingReport || !project?.template_id}
+                variant="primary"
+                icon={DocumentTextIcon}
+              >
+                Generate Report
               </Button>
               
               <Button

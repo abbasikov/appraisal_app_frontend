@@ -23,6 +23,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
   const [expandedAttributes, setExpandedAttributes] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [useTemplateMode, setUseTemplateMode] = useState(true); // Default to template mode
 
   useEffect(() => {
     const fetchSchema = async () => {
@@ -106,7 +107,21 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
       const newAttributes = { ...item.attributes, [attrName]: value };
       onItemUpdate(itemId, { attributes: newAttributes });
     } else {
-      onItemUpdate(itemId, { [field]: value });
+      // Handle item type change with template auto-population
+      if (field === 'item_type' && useTemplateMode && schema?.description_templates) {
+        const template = schema.description_templates[value];
+        if (template) {
+          // Auto-populate description with template
+          onItemUpdate(itemId, { 
+            [field]: value,
+            description: template
+          });
+        } else {
+          onItemUpdate(itemId, { [field]: value });
+        }
+      } else {
+        onItemUpdate(itemId, { [field]: value });
+      }
     }
     setEditingCell(null);
   };
@@ -288,16 +303,31 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                 <th className="table-header-cell w-20">Photo</th>
                 <th className="table-header-cell">Room/Area</th>
                 <th className="table-header-cell">Floor/Bldg</th>
-                <th className="table-header-cell">Type</th>
-                <th className="table-header-cell">Description</th>
+                <th className="table-header-cell">
+                  <div className="flex items-center justify-between">
+                    <span>Type</span>
+                    <Button
+                      onClick={() => setUseTemplateMode(!useTemplateMode)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50"
+                      title={useTemplateMode ? "Switch to legacy multi-field mode" : "Switch to template mode"}
+                    >
+                      {useTemplateMode ? "📝 Template" : "📋 Multi-field"}
+                    </Button>
+                  </div>
+                </th>
+                <th className="table-header-cell">
+                  {useTemplateMode ? "Description (Template)" : "Description"}
+                </th>
                 <th className="table-header-cell w-32">Value ($)</th>
-                {/* Dynamic attribute headers */}
-                {items.some(item => expandedAttributes[item.id] && item.item_type && schema?.type_attributes[item.item_type]) && 
+                {/* Dynamic attribute headers - only show in multi-field mode */}
+                {!useTemplateMode && items.some(item => expandedAttributes[item.id] && item.item_type && schema?.type_attributes[item.item_type]) && 
                   schema?.type_attributes[items.find(item => expandedAttributes[item.id])?.item_type]?.map(attr => (
                     <th key={attr} className="table-header-cell text-xs">{attr.replace('_', ' ')}</th>
                   ))
                 }
-                {!items.some(item => expandedAttributes[item.id]) && (
+                {!useTemplateMode && !items.some(item => expandedAttributes[item.id]) && (
                   <th className="table-header-cell">Attributes</th>
                 )}
                 <th className="table-header-cell w-24">Actions</th>
@@ -433,7 +463,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                       <textarea
                         defaultValue={item.description || ''}
                         className="form-input text-sm resize-none"
-                        rows="2"
+                        rows="4"
+                        style={{ minWidth: '300px' }}
                         onBlur={(e) => handleCellEdit(item.id, 'description', e.target.value)}
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
@@ -442,13 +473,21 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                           }
                         }}
                         autoFocus
+                        placeholder={useTemplateMode ? "Select item type to auto-populate template" : "Enter description"}
                       />
                     ) : (
                       <div
                         className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200 max-w-xs"
                         onClick={() => handleCellClick(item.id, 'description')}
+                        style={{ maxHeight: '80px', overflow: 'hidden' }}
                       >
-                        {item.description || <span className="text-gray-400 italic">Click to edit</span>}
+                        {item.description ? (
+                          <div className="whitespace-pre-line text-xs leading-tight">
+                            {item.description.length > 100 ? `${item.description.substring(0, 100)}...` : item.description}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">Click to edit</span>
+                        )}
                       </div>
                     )}
                   </td>
@@ -481,8 +520,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
                     )}
                   </td>
 
-                  {/* Dynamic Attributes */}
-                  {renderAttributeColumns(item)}
+                  {/* Dynamic Attributes - only in multi-field mode */}
+                  {!useTemplateMode && renderAttributeColumns(item)}
 
                   {/* Actions */}
                   <td className="table-cell">

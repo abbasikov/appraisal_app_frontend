@@ -29,5 +29,10 @@ export const appraisalService = {
   async deleteAppraisalItem(projectId, itemId) {
     const response = await api.delete(`/appraisal-workflow/projects/${projectId}/appraisal-items/${itemId}`);
     return response.data;
+  },
+
+  async getDescriptionTemplate(itemType) {
+    const response = await api.get(`/appraisal-workflow/description-template/${itemType}`);
+    return response.data;
   }
 };

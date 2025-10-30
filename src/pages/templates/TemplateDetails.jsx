@@ -107,10 +107,10 @@ const TemplateDetails = () => {
               </button>
             )}
             <button
-              onClick={() => handleDownload('updated')}
-              className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+              onClick={() => navigate(`/templates/${id}/preview`)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
-              Download with Field Values
+              Preview Template
             </button>
             {(isAdmin || isEditor) && (
               <>

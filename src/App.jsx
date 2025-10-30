@@ -22,8 +22,10 @@ import ProjectDropbox from './pages/projects/ProjectDropbox';
 import TemplateList from './pages/templates/TemplateList';
 import TemplateUpload from './pages/templates/TemplateUpload';
 import TemplateDetails from './pages/templates/TemplateDetails';
+import TemplatePreview from './pages/templates/TemplatePreview';
 import FieldMappingEditor from './pages/templates/FieldMappingEditor';
 import ReportGenerator from './pages/templates/ReportGenerator';
+import ProjectReview from './pages/projects/ProjectReview';
 import UserManagement from './pages/users/UserManagement';
 import AccountList from './pages/accounts/AccountList';
 import AddAccount from './pages/accounts/AddAccount';
@@ -123,6 +125,15 @@ function App() {
               } 
             />
             
+            <Route 
+              path="/projects/:id/review" 
+              element={
+                <ProtectedRoute roles={['admin', 'editor']}>
+                  <ProjectReview />
+                </ProtectedRoute>
+              } 
+            />
+            
             {/* Template routes */}
             <Route 
               path="/templates" 
@@ -147,6 +158,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <TemplateDetails />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/templates/:id/preview" 
+              element={
+                <ProtectedRoute>
+                  <TemplatePreview />
                 </ProtectedRoute>
               } 
             />

@@ -33,9 +33,13 @@ export const projectService = {
     return response.data;
   },
 
-  async addDropboxLinks(projectId, links) {
-    console.log('Sending to API:', links);
-    const response = await api.post(`/projects/${projectId}/dropbox-links`, links);
+  async addDropboxLinks(projectId, links, notificationEmail = null) {
+    const requestData = {
+      folder_links: links,
+      notification_email: notificationEmail
+    };
+    console.log('Sending to API:', requestData);
+    const response = await api.post(`/projects/${projectId}/dropbox-links`, requestData);
     return response.data;
   },
 

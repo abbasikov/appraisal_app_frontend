@@ -656,7 +656,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
         {selectedPhoto && (
           <div className="space-y-4">
             <img
-              src={`http://localhost:8000/api/v1/projects/${selectedPhoto.project_id}/photos/${selectedPhoto.photo_id}/thumbnail`}
+              src={`${import.meta.env.VITE_API_URL}/api/v1/projects/${selectedPhoto.project_id}/photos/${selectedPhoto.photo_id}/thumbnail`}
               alt={selectedPhoto.photo_filename || 'Photo'}
               className="w-full h-auto rounded-lg shadow-medium"
               onError={(e) => {

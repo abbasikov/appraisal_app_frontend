@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { templateService } from '../services/templateService';
 import { useToast } from '../hooks/useToast';
-import { DocumentArrowDownIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 
 const ProjectReports = ({ project }) => {
   const [templates, setTemplates] = useState([]);
@@ -92,17 +92,7 @@ const ProjectReports = ({ project }) => {
             </span>
           </div>
           
-          <div className="space-y-2">
-            <button
-              onClick={() => window.open(`/templates/${template.id}`, '_blank')}
-              className="w-full flex items-center justify-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-              title="View Template Details"
-            >
-              <EyeIcon className="h-4 w-4 mr-2" />
-              View Template
-            </button>
-            
-            <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleGenerateReport(template.id, 'draft')}
                 disabled={generatingReport}
@@ -119,7 +109,6 @@ const ProjectReports = ({ project }) => {
                 <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
                 Final
               </button>
-            </div>
           </div>
           
           {template.field_mappings && Object.keys(template.field_mappings).length > 0 && (

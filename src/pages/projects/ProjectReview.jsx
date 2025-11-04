@@ -31,6 +31,11 @@ const ProjectReview = () => {
       ]);
       setProject(projectData);
       setItems(itemsData);
+      
+      // If project has template, generate preview using template
+      if (projectData.template_id) {
+        await generateTemplatePreview(projectData.template_id);
+      }
     } catch (error) {
       showToast('Failed to load project data', 'error');
       navigate('/projects');
@@ -39,52 +44,61 @@ const ProjectReview = () => {
     }
   };
 
+  const generateTemplatePreview = async (templateId) => {
+    try {
+      const { templateService } = await import('../../services/templateService');
+      const result = await templateService.generateReport(templateId, id, 'draft', true);
+      // This would generate the actual template-based report preview
+    } catch (error) {
+      console.log('Template preview generation failed, using basic preview');
+    }
+  };
+
   const handleDownload = async (reportType) => {
     try {
       setGenerating(true);
+      console.log('Download clicked:', reportType, 'Project template_id:', project.template_id);
       
-      const children = [
-        new Paragraph({
-          children: [new TextRun({ text: "Appraisal Report", bold: true, size: 32 })],
-          alignment: "center"
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `${project.appraisal_type} Appraisal`, size: 24 })],
-          alignment: "center"
-        }),
-        new Paragraph({ text: "" }),
-        
-        new Paragraph({
-          children: [new TextRun({ text: "Project Information", bold: true, size: 24 })]
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `Project Name: ${project.project_name}` })]
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `Client: ${project.client_name}` })]
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `Case Number: ${project.case_number || 'N/A'}` })]
-        }),
-        new Paragraph({ text: "" })
-      ];
-      
-      if (reportType === 'draft') {
-        children.unshift(
-          new Paragraph({
-            children: [new TextRun({ text: "DRAFT", bold: true, size: 48, color: "CCCCCC" })],
-            alignment: "center"
-          })
-        );
-      }
-      
-      const doc = new Document({
-        sections: [{ children: children }]
+      // Use simple report generation endpoint since template_id might be null
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}/generate-report/1?report_type=${reportType}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
       });
       
-      const blob = await Packer.toBlob(doc);
-      saveAs(blob, `${project.project_name}_${reportType}_report.docx`);
-      showToast(`${reportType} report downloaded successfully`, 'success');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Generate result:', result);
+      
+      showToast('Report generated successfully', 'success');
+      
+      // Download the generated report
+      if (result.download_url) {
+        const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL}${result.download_url}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (downloadResponse.ok) {
+          const blob = await downloadResponse.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${project.project_name}_${reportType}_report.docx`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          showToast('Report downloaded successfully', 'success');
+        }
+      }
     } catch (error) {
       showToast('Failed to generate report', 'error');
       console.error('Report generation error:', error);
@@ -121,15 +135,21 @@ const ProjectReview = () => {
             <button
               onClick={() => handleDownload('draft')}
               disabled={generating}
-              className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50"
+              className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 flex items-center"
             >
+              {generating && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              )}
               {generating ? 'Generating...' : 'Download Draft'}
             </button>
             <button
               onClick={() => handleDownload('final')}
               disabled={generating}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
             >
+              {generating && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              )}
               {generating ? 'Generating...' : 'Download Final'}
             </button>
           </div>
@@ -137,11 +157,42 @@ const ProjectReview = () => {
 
         {/* Report Preview */}
         <div className="bg-white shadow rounded-lg">
+          <style>
+            {`
+              .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              }
+              .items-table th, .items-table td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: left;
+                vertical-align: top;
+              }
+              .items-table th {
+                background-color: #f8f9fa;
+                font-weight: bold;
+              }
+              .items-table tr:nth-child(even) {
+                background-color: #f8f9fa;
+              }
+              .total-row {
+                font-weight: bold;
+                background-color: #e3f2fd !important;
+                border-top: 2px solid #1976d2;
+              }
+            `}
+          </style>
           <div ref={contentRef} className="p-8">
+
+            
             {/* Header */}
             <div className="header">
               <h1 className="text-3xl font-bold mb-2">Appraisal Report</h1>
               <p className="text-lg text-gray-600">{project.appraisal_type} Appraisal</p>
+
             </div>
 
             {/* Project Information */}
@@ -176,6 +227,7 @@ const ProjectReview = () => {
                 <thead>
                   <tr>
                     <th>Item #</th>
+                    <th>Photo</th>
                     <th>Room/Area</th>
                     <th>Type</th>
                     <th>Description</th>
@@ -186,18 +238,35 @@ const ProjectReview = () => {
                   {items.map((item, index) => (
                     <tr key={item.id}>
                       <td>{index + 1}</td>
+                      <td>
+                        {item.photo_id ? (
+                          <img 
+                            src={`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}/photos/${item.photo_id}/thumbnail`}
+                            alt="Item photo"
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div style={{ width: '60px', height: '60px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontSize: '12px', color: '#6b7280' }}>
+                            No Photo
+                          </div>
+                        )}
+                      </td>
                       <td>{item.room_area || '-'}</td>
                       <td>{item.item_type || '-'}</td>
                       <td>
-                        <div style={{ maxWidth: '300px', wordWrap: 'break-word' }}>
-                          {item.description || '-'}
+                        <div style={{ maxWidth: '250px', wordWrap: 'break-word', whiteSpace: 'pre-line', fontSize: '14px' }}>
+                          {item.description ? 
+                            item.description.replace(/\[Enter [^\]]+\]/g, '___').replace(/:/g, ':\n') 
+                            : '-'
+                          }
                         </div>
                       </td>
-                      <td>${(item.appraised_value || 0).toLocaleString()}</td>
+                      <td style={{ fontWeight: 'bold', color: '#059669' }}>${(item.appraised_value || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                   <tr className="total-row">
-                    <td colSpan="4"><strong>Total Appraised Value:</strong></td>
+                    <td colSpan="5"><strong>Total Appraised Value:</strong></td>
                     <td><strong>${totalValue.toLocaleString()}</strong></td>
                   </tr>
                 </tbody>

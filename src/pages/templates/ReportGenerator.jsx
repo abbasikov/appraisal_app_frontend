@@ -61,7 +61,7 @@ const ReportGenerator = () => {
       
       // Download the generated report
       if (result.download_url) {
-        const downloadResponse = await fetch(`http://localhost:8000${result.download_url}`, {
+        const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL}${result.download_url}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

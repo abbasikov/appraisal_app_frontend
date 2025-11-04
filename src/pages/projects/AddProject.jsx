@@ -211,7 +211,9 @@ const AddProject = () => {
         }
       });
       
+      console.log('Sending project data:', cleanedData);
       const createdProject = await projectService.createProject(cleanedData);
+      console.log('Created project:', createdProject);
       // Redirect to Dropbox integration after project creation
       navigate(`/projects/${createdProject.id}/dropbox`);
     } catch (err) {

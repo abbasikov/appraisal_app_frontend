@@ -14,16 +14,26 @@ export const useToast = () => {
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const showToast = (message, type = 'success', duration = 5000) => {
+  const showToast = (message, type = 'success', duration = 5000, persistent = false, progress = null) => {
     const id = Date.now();
-    const toast = { id, message, type, duration };
+    const toast = { id, message, type, duration, persistent, progress };
     
     setToasts(prev => [...prev, toast]);
     
-    // Auto remove toast after duration
-    setTimeout(() => {
-      removeToast(id);
-    }, duration);
+    // Auto remove toast after duration (unless persistent)
+    if (!persistent) {
+      setTimeout(() => {
+        removeToast(id);
+      }, duration);
+    }
+    
+    return id; // Return the toast ID so it can be updated/removed later
+  };
+
+  const updateToast = (id, updates) => {
+    setToasts(prev => prev.map(toast => 
+      toast.id === id ? { ...toast, ...updates } : toast
+    ));
   };
 
   const removeToast = (id) => {
@@ -32,11 +42,14 @@ export const ToastProvider = ({ children }) => {
 
   const showSuccess = (message, duration = 4000) => showToast(message, 'success', duration);
   const showError = (message, duration = 6000) => showToast(message, 'error', duration);
+  const showLoading = (message, progress = null) => showToast(message, 'loading', null, true, progress);
 
   const value = {
     showToast,
     showSuccess,
     showError,
+    showLoading,
+    updateToast,
     removeToast
   };
 

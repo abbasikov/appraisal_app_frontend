@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { projectService } from '../services/projectService';
 import { useToast } from '../context/ToastContext';
 
@@ -10,10 +10,21 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
   const [importingPhotos, setImportingPhotos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showLoading, updateToast, removeToast } = useToast();
+  
+  // Keep track of current import task
+  const currentTaskRef = useRef(null);
+  const pollingIntervalRef = useRef(null);
 
   useEffect(() => {
     loadProjectLinks();
+    
+    // Cleanup polling on unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
   }, [projectId]);
 
 
@@ -118,23 +129,114 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
     }
   };
 
+  const pollTaskStatus = async (taskId, toastId) => {
+    try {
+      const status = await projectService.getTaskStatus(projectId, taskId);
+      console.log('Task status received:', status);
+      
+      // Update toast with progress if available
+      if (status.processed_items !== undefined && status.total_items !== undefined) {
+        updateToast(toastId, {
+          message: 'Importing photos...',
+          progress: {
+            current: status.processed_items || 0,
+            total: status.total_items || 0
+          }
+        });
+      }
+      
+      // Check if task is complete (backend returns lowercase status)
+      if (status.status === 'completed') {
+        console.log('✅ Import completed! Cleaning up...');
+        
+        // Clear polling
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        
+        // Remove loading toast
+        removeToast(toastId);
+        
+        // Parse result data if it's a JSON string
+        let importedCount = 0;
+        if (status.result_data) {
+          try {
+            const resultData = typeof status.result_data === 'string' 
+              ? JSON.parse(status.result_data) 
+              : status.result_data;
+            importedCount = resultData.imported_count || status.processed_items || 0;
+          } catch (e) {
+            importedCount = status.processed_items || 0;
+          }
+        } else {
+          importedCount = status.processed_items || 0;
+        }
+        
+        // Show success message
+        showSuccess(`Successfully imported ${importedCount} photo${importedCount !== 1 ? 's' : ''}!`);
+        
+        // Reset state
+        setImportingPhotos(false);
+        currentTaskRef.current = null;
+        
+        // Reload the page after a short delay to show imported images
+        setTimeout(() => {
+          console.log('🔄 Reloading page to show imported photos...');
+          window.location.reload();
+        }, 1500);
+      } else if (status.status === 'failed') {
+        console.log('❌ Import failed!');
+        
+        // Clear polling
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        
+        // Remove loading toast
+        removeToast(toastId);
+        
+        // Show error
+        showError(status.error_message || 'Photo import failed');
+        
+        // Reset state
+        setImportingPhotos(false);
+        currentTaskRef.current = null;
+      }
+      
+    } catch (error) {
+      console.error('Error checking task status:', error);
+      // Don't stop polling on individual errors, might be transient
+    }
+  };
+
   const importPhotos = async () => {
     setImportingPhotos(true);
     
     try {
       console.log('Starting background photo import for project:', projectId);
       
-      await projectService.importPhotosBackground(projectId, true); // recurring = true
+      const response = await projectService.importPhotosBackground(projectId, true); // recurring = true
+      const taskId = response.task_id;
       
-      showSuccess('Your photos are being imported in the background. You can continue working while the import processes automatically. Photos will appear on the project page once they are ready.');
+      console.log('Import task started with ID:', taskId);
       
-      // Reset importing state after a short delay to show the success message
+      // Show persistent loading toast
+      const toastId = showLoading('Starting import...', { current: 0, total: 0 });
+      
+      // Store task info
+      currentTaskRef.current = { taskId, toastId };
+      
+      // Start polling for status updates every 3 seconds
+      pollingIntervalRef.current = setInterval(() => {
+        pollTaskStatus(taskId, toastId);
+      }, 3000);
+      
+      // Do initial check after 1 second
       setTimeout(() => {
-        setImportingPhotos(false);
-        if (onLinksUpdate) {
-          onLinksUpdate();
-        }
-      }, 2000);
+        pollTaskStatus(taskId, toastId);
+      }, 1000);
       
     } catch (error) {
       console.error('Error starting background import:', error);
@@ -233,27 +335,12 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
             {importingPhotos ? 'Importing Photos...' : `Import Photos from ${links.length} Folder(s)`}
           </button>
           
-          {/* Background import status */}
+          {/* Info message when importing */}
           {importingPhotos && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-green-800">
-                    Photo import started successfully!
-                  </h3>
-                  <p className="text-sm text-green-700 mt-1">
-                    Your images are being fetched and processed in the background. This may take several minutes depending on the number and size of photos. You can continue using the application while the import runs automatically.
-                  </p>
-                  <p className="text-xs text-green-600 mt-2 font-medium">
-                    📱 Photos will appear on the project page once they're ready
-                  </p>
-                </div>
-              </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                📱 Check the bottom-right corner for live import progress
+              </p>
             </div>
           )}
         </div>

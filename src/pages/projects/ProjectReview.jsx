@@ -18,7 +18,8 @@ const ProjectReview = () => {
   const [items, setItems] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [generatingFinal, setGeneratingFinal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -68,7 +69,12 @@ const ProjectReview = () => {
 
   const handleDownload = async (reportType) => {
     try {
-      setGenerating(true);
+      // Set the appropriate loading state based on report type
+      if (reportType === 'draft') {
+        setGeneratingDraft(true);
+      } else if (reportType === 'final') {
+        setGeneratingFinal(true);
+      }
       console.log('Download clicked:', reportType, 'Project template_id:', project.template_id);
       
       // Get the template ID to use
@@ -115,7 +121,12 @@ const ProjectReview = () => {
       showToast('Failed to generate report', 'error');
       console.error('Report generation error:', error);
     } finally {
-      setGenerating(false);
+      // Clear the appropriate loading state
+      if (reportType === 'draft') {
+        setGeneratingDraft(false);
+      } else if (reportType === 'final') {
+        setGeneratingFinal(false);
+      }
     }
   };
 
@@ -146,23 +157,23 @@ const ProjectReview = () => {
             </button>
             <button
               onClick={() => handleDownload('draft')}
-              disabled={generating}
+              disabled={generatingDraft}
               className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 flex items-center"
             >
-              {generating && (
+              {generatingDraft && (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               )}
-              {generating ? 'Generating...' : 'Download Draft'}
+              {generatingDraft ? 'Generating...' : 'Download Draft'}
             </button>
             <button
               onClick={() => handleDownload('final')}
-              disabled={generating}
+              disabled={generatingFinal}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
             >
-              {generating && (
+              {generatingFinal && (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               )}
-              {generating ? 'Generating...' : 'Download Final'}
+              {generatingFinal ? 'Generating...' : 'Download Final'}
             </button>
           </div>
         </div>

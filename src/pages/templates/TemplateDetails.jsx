@@ -106,12 +106,13 @@ const TemplateDetails = () => {
                 Download Fillable
               </button>
             )}
-            <button
+            {/* Preview Template button temporarily hidden */}
+            {/* <button
               onClick={() => navigate(`/templates/${id}/preview`)}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
               Preview Template
-            </button>
+            </button> */}
             {(isAdmin || isEditor) && (
               <>
                 <button
@@ -120,12 +121,13 @@ const TemplateDetails = () => {
                 >
                   Edit Mappings
                 </button>
-                <button
+                {/* Generate Report button temporarily hidden */}
+                {/* <button
                   onClick={() => navigate(`/templates/${id}/generate`)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Generate Report
-                </button>
+                </button> */}
               </>
             )}
           </div>

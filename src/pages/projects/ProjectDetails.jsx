@@ -367,8 +367,8 @@ const ProjectDetails = () => {
               </div>
             </div>
 
-            {/* Reports Section */}
-            {(isAdmin || isEditor) && (
+            {/* Reports Section - Temporarily hidden */}
+            {/* {(isAdmin || isEditor) && (
               <div id="reports-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-green-50/30">
                   <div className="flex items-center space-x-3">
@@ -382,7 +382,7 @@ const ProjectDetails = () => {
                   <ProjectReports project={project} />
                 </div>
               </div>
-            )}
+            )} */}
           </div>
 
           {/* Sidebar */}

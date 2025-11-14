@@ -72,14 +72,14 @@ const Layout = ({ children }) => {
       roles: ['admin', 'editor', 'reader'],
       gradient: 'from-cyan-500 to-blue-600' 
     },
-    { 
-      name: 'Reports', 
-      href: '/reports', 
-      icon: DocumentTextIcon, 
-      iconSolid: DocumentTextIconSolid,
-      roles: ['admin', 'editor'],
-      gradient: 'from-amber-500 to-orange-600' 
-    },
+    // { 
+    //   name: 'Reports', 
+    //   href: '/reports', 
+    //   icon: DocumentTextIcon, 
+    //   iconSolid: DocumentTextIconSolid,
+    //   roles: ['admin', 'editor'],
+    //   gradient: 'from-amber-500 to-orange-600' 
+    // },
     { 
       name: 'Users', 
       href: '/users', 

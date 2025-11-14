@@ -240,7 +240,8 @@ const WorkOnAppraisal = () => {
                 Save All
               </Button>
               
-              <Button
+              {/* Generate Report button temporarily hidden */}
+              {/* <Button
                 onClick={handleGenerateReport}
                 loading={generatingReport}
                 disabled={generatingReport || !project?.template_id}
@@ -248,7 +249,7 @@ const WorkOnAppraisal = () => {
                 icon={DocumentTextIcon}
               >
                 Generate Report
-              </Button>
+              </Button> */}
               
               <Button
                 onClick={handleReviewMode}
@@ -268,18 +269,21 @@ const WorkOnAppraisal = () => {
                 <TableCellsIcon className="w-4 h-4" />
                 <span>Appraisal Items</span>
               </Tabs.Trigger>
-              <Tabs.Trigger value="settings" className="flex items-center space-x-2">
+              {/* Settings button temporarily hidden */}
+              {/* <Tabs.Trigger value="settings" className="flex items-center space-x-2">
                 <Cog6ToothIcon className="w-4 h-4" />
                 <span>Settings</span>
-              </Tabs.Trigger>
-              <Tabs.Trigger value="analytics" className="flex items-center space-x-2">
+              </Tabs.Trigger> */}
+              {/* Analytics button temporarily hidden */}
+              {/* <Tabs.Trigger value="analytics" className="flex items-center space-x-2">
                 <ChartBarIcon className="w-4 h-4" />
                 <span>Analytics</span>
-              </Tabs.Trigger>
+              </Tabs.Trigger> */}
             </Tabs.List>
           </Card>
 
-          <Tabs.Content value="settings">
+          {/* Settings tab content temporarily hidden */}
+          {/* <Tabs.Content value="settings">
             <Card>
               <Card.Header>
                 <h3 className="text-lg font-semibold text-gray-900">Appraisal Configuration</h3>
@@ -326,9 +330,10 @@ const WorkOnAppraisal = () => {
                 </div>
               </Card.Body>
             </Card>
-          </Tabs.Content>
+          </Tabs.Content> */}
 
-          <Tabs.Content value="analytics">
+          {/* Analytics tab content temporarily hidden */}
+          {/* <Tabs.Content value="analytics">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="p-6 text-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -358,7 +363,7 @@ const WorkOnAppraisal = () => {
                 <p className="text-sm text-gray-600">Items with Photos</p>
               </Card>
             </div>
-          </Tabs.Content>
+          </Tabs.Content> */}
 
           <Tabs.Content value="items">
 

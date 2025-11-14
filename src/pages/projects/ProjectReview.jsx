@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { appraisalService } from '../../services/appraisalService';
+import { templateService } from '../../services/templateService';
 import Layout from '../../components/Layout';
 import { useToast } from '../../hooks/useToast';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType } from 'docx';
@@ -15,6 +16,7 @@ const ProjectReview = () => {
   
   const [project, setProject] = useState(null);
   const [items, setItems] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
@@ -31,6 +33,16 @@ const ProjectReview = () => {
       ]);
       setProject(projectData);
       setItems(itemsData);
+      
+      // Fetch compatible templates for this project's appraisal type
+      if (projectData.appraisal_type) {
+        try {
+          const response = await templateService.getTemplates(projectData.appraisal_type, true);
+          setTemplates(response.templates || []);
+        } catch (err) {
+          console.error('Failed to load templates:', err);
+        }
+      }
       
       // If project has template, generate preview using template
       if (projectData.template_id) {
@@ -59,46 +71,46 @@ const ProjectReview = () => {
       setGenerating(true);
       console.log('Download clicked:', reportType, 'Project template_id:', project.template_id);
       
-      // Use simple report generation endpoint since template_id might be null
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}/generate-report/1?report_type=${reportType}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Get the template ID to use
+      let templateId = project.template_id;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // If no template is assigned to the project, use the first compatible template
+      if (!templateId && templates.length > 0) {
+        templateId = templates[0].id;
+        console.log(`No template assigned to project, using first compatible template: ${templateId}`);
       }
       
-      const result = await response.json();
-      console.log('Generate result:', result);
+      // If we still don't have a template ID, use a default template (ID 1)
+      if (!templateId) {
+        templateId = 1;
+        console.log('No compatible templates found, using default template ID 1');
+      }
+      
+      // Generate the report using templateService
+      const result = await templateService.generateReport(templateId, project.id, reportType, true);
       
       showToast('Report generated successfully', 'success');
       
       // Download the generated report
-      if (result.download_url) {
-        const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL}${result.download_url}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        if (downloadResponse.ok) {
-          const blob = await downloadResponse.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${project.project_name}_${reportType}_report.docx`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          
-          showToast('Report downloaded successfully', 'success');
-        }
-      }
+      const downloadResponse = await templateService.downloadReport(project.id, templateId, reportType);
+      
+      const blob = downloadResponse.data;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Find the template name if available
+      const template = templates.find(t => t.id === templateId);
+      const templateName = template ? template.name : '';
+      
+      // Create a descriptive filename
+      link.download = `${project.project_name}_${templateName ? templateName + '_' : ''}${reportType}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showToast('Report downloaded successfully', 'success');
     } catch (error) {
       showToast('Failed to generate report', 'error');
       console.error('Report generation error:', error);

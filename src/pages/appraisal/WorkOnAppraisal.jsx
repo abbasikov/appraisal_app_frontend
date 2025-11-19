@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Layout from '../../components/Layout';
-import AppraisalTable from '../../components/AppraisalTable';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import Tabs from '../../components/ui/Tabs';
-import { appraisalService } from '../../services/appraisalService';
-import { projectService } from '../../services/projectService';
-import { templateService } from '../../services/templateService';
-import { useToast } from '../../hooks/useToast';
-import ToastContainer from '../../components/ToastContainer';
-import { 
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Layout from "../../components/Layout";
+import AppraisalTable from "../../components/AppraisalTable";
+import Card from "../../components/ui/Card";
+import Button from "../../components/ui/Button";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import Tabs from "../../components/ui/Tabs";
+import { appraisalService } from "../../services/appraisalService";
+import { projectService } from "../../services/projectService";
+import { templateService } from "../../services/templateService";
+import { useToast } from "../../hooks/useToast";
+import ToastContainer from "../../components/ToastContainer";
+import {
   ArrowLeftIcon,
   PlayIcon,
   DocumentTextIcon,
   PhotoIcon,
   Cog6ToothIcon,
   TableCellsIcon,
-  ChartBarIcon
-} from '@heroicons/react/24/outline';
+  ChartBarIcon,
+} from "@heroicons/react/24/outline";
 
 const WorkOnAppraisal = () => {
   const { id: projectId } = useParams();
   const navigate = useNavigate();
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  
+
   const [project, setProject] = useState(null);
   const [appraisalItems, setAppraisalItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,18 +42,22 @@ const WorkOnAppraisal = () => {
   const fetchProjectAndItems = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch project details
       const projectData = await projectService.getProject(projectId);
       setProject(projectData);
-      
+
       // Fetch appraisal items
       const itemsData = await appraisalService.getAppraisalItems(projectId);
       setAppraisalItems(itemsData);
-      
+
+      // Auto-initialize items if none exist
+      if (itemsData.length === 0) {
+        await handleInitializeItemsInternal();
+      }
     } catch (error) {
-      console.error('Error fetching project data:', error);
-      showError('Failed to load project data');
+      console.error("Error fetching project data:", error);
+      showError("Failed to load project data");
     } finally {
       setLoading(false);
     }
@@ -64,40 +68,50 @@ const WorkOnAppraisal = () => {
       const templatesData = await templateService.getTemplates();
       setTemplates(templatesData.templates || templatesData || []);
     } catch (error) {
-      console.error('Error fetching templates:', error);
+      console.error("Error fetching templates:", error);
+    }
+  };
+
+  const handleInitializeItemsInternal = async () => {
+    try {
+      setInitializing(true);
+      const result = await appraisalService.initializeAppraisalItems(projectId);
+
+      // Fetch the newly created items
+      const itemsData = await appraisalService.getAppraisalItems(projectId);
+      setAppraisalItems(itemsData);
+
+      return result;
+    } catch (error) {
+      console.error("Error initializing items:", error);
+      throw error;
+    } finally {
+      setInitializing(false);
     }
   };
 
   const handleInitializeItems = async () => {
     try {
-      setInitializing(true);
-      const result = await appraisalService.initializeAppraisalItems(projectId);
+      const result = await handleInitializeItemsInternal();
       showSuccess(`Initialized ${result.count} items from photos`);
-      
-      // Refresh the items
-      await fetchProjectAndItems();
     } catch (error) {
-      console.error('Error initializing items:', error);
-      showError('Failed to initialize appraisal items');
-    } finally {
-      setInitializing(false);
+      showError("Failed to initialize appraisal items");
     }
   };
 
   const handleItemUpdate = async (itemId, updatedData) => {
     try {
       await appraisalService.updateAppraisalItem(itemId, updatedData);
-      
+
       // Update local state
-      setAppraisalItems(prev => 
-        prev.map(item => 
+      setAppraisalItems((prev) =>
+        prev.map((item) =>
           item.id === itemId ? { ...item, ...updatedData } : item
         )
       );
-      
     } catch (error) {
-      console.error('Error updating item:', error);
-      showError('Failed to update item');
+      console.error("Error updating item:", error);
+      showError("Failed to update item");
     }
   };
 
@@ -105,18 +119,17 @@ const WorkOnAppraisal = () => {
     try {
       // Update local state immediately for better UX
       setAppraisalItems(reorderedItems);
-      
+
       // Prepare reorder data
       const reorderData = reorderedItems.map((item, index) => ({
         item_id: item.id,
-        new_sort_order: index + 1
+        new_sort_order: index + 1,
       }));
-      
+
       await appraisalService.reorderAppraisalItems(projectId, reorderData);
-      
     } catch (error) {
-      console.error('Error reordering items:', error);
-      showError('Failed to reorder items');
+      console.error("Error reordering items:", error);
+      showError("Failed to reorder items");
       // Refresh to get correct order
       await fetchProjectAndItems();
     }
@@ -125,10 +138,10 @@ const WorkOnAppraisal = () => {
   const handleSaveAll = async () => {
     try {
       setSaving(true);
-      showSuccess('All changes saved successfully');
+      showSuccess("All changes saved successfully");
     } catch (error) {
-      console.error('Error saving:', error);
-      showError('Failed to save changes');
+      console.error("Error saving:", error);
+      showError("Failed to save changes");
     } finally {
       setSaving(false);
     }
@@ -140,7 +153,7 @@ const WorkOnAppraisal = () => {
 
   const handleGenerateReport = async () => {
     if (!project?.template_id) {
-      showError('No template assigned to this project');
+      showError("No template assigned to this project");
       return;
     }
 
@@ -149,37 +162,40 @@ const WorkOnAppraisal = () => {
       const result = await templateService.generateReport(
         project.template_id,
         projectId,
-        'final',
+        "final",
         true
       );
-      
-      showSuccess('Report generated successfully');
-      
+
+      showSuccess("Report generated successfully");
+
       // Download the generated report
       if (result.download_url) {
-        const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL}${result.download_url}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        const downloadResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}${result.download_url}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
           }
-        });
-        
+        );
+
         if (downloadResponse.ok) {
           const blob = await downloadResponse.blob();
           const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
+          const link = document.createElement("a");
           link.href = url;
           link.download = `appraisal_report_${projectId}.docx`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           window.URL.revokeObjectURL(url);
-          
-          showSuccess('Report downloaded successfully');
+
+          showSuccess("Report downloaded successfully");
         }
       }
     } catch (error) {
-      console.error('Error generating report:', error);
-      showError('Failed to generate report');
+      console.error("Error generating report:", error);
+      showError("Failed to generate report");
     } finally {
       setGeneratingReport(false);
     }
@@ -201,7 +217,7 @@ const WorkOnAppraisal = () => {
   return (
     <Layout>
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      
+
       <div className="space-y-6">
         {/* Header */}
         <Card className="p-6">
@@ -228,7 +244,7 @@ const WorkOnAppraisal = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <Button
                 onClick={handleSaveAll}
@@ -239,7 +255,7 @@ const WorkOnAppraisal = () => {
               >
                 Save All
               </Button>
-              
+
               {/* Generate Report button temporarily hidden */}
               {/* <Button
                 onClick={handleGenerateReport}
@@ -250,11 +266,8 @@ const WorkOnAppraisal = () => {
               >
                 Generate Report
               </Button> */}
-              
-              <Button
-                onClick={handleReviewMode}
-                icon={PlayIcon}
-              >
+
+              <Button onClick={handleReviewMode} icon={PlayIcon}>
                 Review Mode
               </Button>
             </div>
@@ -265,7 +278,10 @@ const WorkOnAppraisal = () => {
         <Tabs defaultValue="items" className="space-y-6">
           <Card className="p-6">
             <Tabs.List>
-              <Tabs.Trigger value="items" className="flex items-center space-x-2">
+              <Tabs.Trigger
+                value="items"
+                className="flex items-center space-x-2"
+              >
                 <TableCellsIcon className="w-4 h-4" />
                 <span>Appraisal Items</span>
               </Tabs.Trigger>
@@ -366,7 +382,6 @@ const WorkOnAppraisal = () => {
           </Tabs.Content> */}
 
           <Tabs.Content value="items">
-
             <div className="space-y-6">
               {/* Items Header */}
               <Card>
@@ -377,10 +392,16 @@ const WorkOnAppraisal = () => {
                         Appraisal Items
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {appraisalItems.length} items • Total value: ${appraisalItems.reduce((sum, item) => sum + (item.appraised_value || 0), 0).toLocaleString()}
+                        {appraisalItems.length} items • Total value: $
+                        {appraisalItems
+                          .reduce(
+                            (sum, item) => sum + (item.appraised_value || 0),
+                            0
+                          )
+                          .toLocaleString()}
                       </p>
                     </div>
-                    
+
                     <Button
                       onClick={handleInitializeItems}
                       loading={initializing}
@@ -392,7 +413,7 @@ const WorkOnAppraisal = () => {
                   </div>
                 </Card.Header>
               </Card>
-              
+
               {/* Appraisal Table */}
               <AppraisalTable
                 items={appraisalItems}

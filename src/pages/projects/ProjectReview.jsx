@@ -15,6 +15,8 @@ const ProjectReview = () => {
   const { showToast } = useToast();
   
   const [project, setProject] = useState(null);
+  const [template, setTemplate] = useState(null);
+  const [templateCategory, setTemplateCategory] = useState('image_based');
   const [items, setItems] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +36,18 @@ const ProjectReview = () => {
       ]);
       setProject(projectData);
       setItems(itemsData);
+      
+      // Fetch template to determine category
+      if (projectData.template_id) {
+        try {
+          const templateData = await templateService.getTemplate(projectData.template_id);
+          setTemplate(templateData);
+          setTemplateCategory(templateData.template_category || 'image_based');
+        } catch (templateErr) {
+          console.error('Error fetching template:', templateErr);
+          setTemplateCategory('image_based');
+        }
+      }
       
       // Fetch compatible templates for this project's appraisal type
       if (projectData.appraisal_type) {
@@ -140,7 +154,19 @@ const ProjectReview = () => {
     );
   }
 
-  const totalValue = items.reduce((sum, item) => sum + (item.appraised_value || 0), 0);
+  const totalValue = items.reduce((sum, item) => {
+    if (templateCategory === 'coin') {
+      const qty = parseFloat(item.attributes?.quantity || 0);
+      const price = parseFloat(item.attributes?.appraised_price || 0);
+      return sum + (qty * price);
+    } else if (templateCategory === 'wine') {
+      return sum + parseFloat(item.attributes?.total_price || 0);
+    } else if (templateCategory === 'content') {
+      return sum + parseFloat(item.attributes?.fair_market_value || 0);
+    } else {
+      return sum + (item.appraised_value || 0);
+    }
+  }, 0);
 
   return (
     <Layout>
@@ -246,54 +272,156 @@ const ProjectReview = () => {
             {/* Items Table */}
             <div>
               <h2 className="text-xl font-semibold mb-4">Appraisal Items</h2>
-              <table className="items-table">
-                <thead>
-                  <tr>
-                    <th>Item #</th>
-                    <th>Photo</th>
-                    <th>Room/Area</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                    <th>Appraised Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, index) => (
-                    <tr key={item.id}>
-                      <td>{index + 1}</td>
-                      <td>
-                        {item.photo_id ? (
-                          <img 
-                            src={`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}/photos/${item.photo_id}/thumbnail`}
-                            alt="Item photo"
-                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                          />
-                        ) : (
-                          <div style={{ width: '60px', height: '60px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontSize: '12px', color: '#6b7280' }}>
-                            No Photo
-                          </div>
-                        )}
-                      </td>
-                      <td>{item.room_area || '-'}</td>
-                      <td>{item.item_type || '-'}</td>
-                      <td>
-                        <div style={{ maxWidth: '250px', wordWrap: 'break-word', whiteSpace: 'pre-line', fontSize: '14px' }}>
-                          {item.description ? 
-                            item.description.replace(/\[Enter [^\]]+\]/g, '___').replace(/:/g, ':\n') 
-                            : '-'
-                          }
-                        </div>
-                      </td>
-                      <td style={{ fontWeight: 'bold', color: '#059669' }}>${(item.appraised_value || 0).toLocaleString()}</td>
+              
+              {/* Coin Table */}
+              {templateCategory === 'coin' && (
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Item #</th>
+                      <th>Quantity</th>
+                      <th>Year</th>
+                      <th>Coin</th>
+                      <th>Condition</th>
+                      <th>Appraised Price</th>
                     </tr>
-                  ))}
-                  <tr className="total-row">
-                    <td colSpan="5"><strong>Total Appraised Value:</strong></td>
-                    <td><strong>${totalValue.toLocaleString()}</strong></td>
-                  </tr>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={item.id}>
+                        <td>{index + 1}</td>
+                        <td>{item.attributes?.quantity || '-'}</td>
+                        <td>{item.attributes?.year || '-'}</td>
+                        <td>{item.attributes?.coin_name || '-'}</td>
+                        <td>{item.attributes?.condition || '-'}</td>
+                        <td style={{ fontWeight: 'bold', color: '#059669' }}>
+                          ${(parseFloat(item.attributes?.appraised_price || 0)).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan="5"><strong>Total Appraised Value:</strong></td>
+                      <td><strong>${totalValue.toLocaleString()}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+
+              {/* Wine Table */}
+              {templateCategory === 'wine' && (
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Item #</th>
+                      <th>Quantity</th>
+                      <th>Bottle Description</th>
+                      <th>Per Bottle Price</th>
+                      <th>Total Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={item.id}>
+                        <td>{index + 1}</td>
+                        <td>{item.attributes?.quantity || '-'}</td>
+                        <td style={{ maxWidth: '300px', wordWrap: 'break-word' }}>
+                          {item.attributes?.bottle_description || '-'}
+                        </td>
+                        <td style={{ fontWeight: 'bold', color: '#059669' }}>
+                          ${(parseFloat(item.attributes?.per_bottle_price || 0)).toLocaleString()}
+                        </td>
+                        <td style={{ fontWeight: 'bold', color: '#059669' }}>
+                          ${(parseFloat(item.attributes?.total_price || 0)).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan="4"><strong>Total Appraised Value:</strong></td>
+                      <td><strong>${totalValue.toLocaleString()}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+
+              {/* Content Table */}
+              {templateCategory === 'content' && (
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Item #</th>
+                      <th>Area</th>
+                      <th>Fair Market Value (FMV)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={item.id}>
+                        <td>{index + 1}</td>
+                        <td>{item.attributes?.area || '-'}</td>
+                        <td style={{ fontWeight: 'bold', color: '#059669' }}>
+                          ${(parseFloat(item.attributes?.fair_market_value || 0)).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan="2"><strong>Total Appraised Value:</strong></td>
+                      <td><strong>${totalValue.toLocaleString()}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+
+              {/* Image-based Table (default) */}
+              {templateCategory === 'image_based' && (
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Item #</th>
+                      <th>Photo</th>
+                      <th>Room/Area</th>
+                      <th>Type</th>
+                      <th>Description</th>
+                      <th>Appraised Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={item.id}>
+                        <td>{index + 1}</td>
+                        <td>
+                          {item.photo_id ? (
+                            <img 
+                              src={`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}/photos/${item.photo_id}/thumbnail`}
+                              alt="Item photo"
+                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div style={{ width: '60px', height: '60px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontSize: '12px', color: '#6b7280' }}>
+                              No Photo
+                            </div>
+                          )}
+                        </td>
+                        <td>{item.room_area || '-'}</td>
+                        <td>{item.item_type || '-'}</td>
+                        <td>
+                          <div style={{ maxWidth: '250px', wordWrap: 'break-word', whiteSpace: 'pre-line', fontSize: '14px' }}>
+                            {item.description ? 
+                              item.description.replace(/\[Enter [^\]]+\]/g, '___').replace(/:/g, ':\n') 
+                              : '-'
+                            }
+                          </div>
+                        </td>
+                        <td style={{ fontWeight: 'bold', color: '#059669' }}>${(item.appraised_value || 0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan="5"><strong>Total Appraised Value:</strong></td>
+                      <td><strong>${totalValue.toLocaleString()}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
             </div>
 
             {/* Summary */}

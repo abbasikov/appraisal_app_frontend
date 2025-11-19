@@ -16,6 +16,11 @@ export const appraisalService = {
     return response.data;
   },
 
+  async createAppraisalItem(itemData) {
+    const response = await api.post('/appraisal-workflow/appraisal-items', itemData);
+    return response.data;
+  },
+
   async updateAppraisalItem(itemId, itemData) {
     const response = await api.put(`/appraisal-workflow/appraisal-items/${itemId}`, itemData);
     return response.data;

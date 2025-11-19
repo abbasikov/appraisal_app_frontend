@@ -11,7 +11,8 @@ import { projectService } from "../../services/projectService";
 import { templateService } from "../../services/templateService";
 import { useToast } from "../../hooks/useToast";
 import ToastContainer from "../../components/ToastContainer";
-import {
+import TableDataEntry from '../../components/TableDataEntry';
+import { 
   ArrowLeftIcon,
   PlayIcon,
   DocumentTextIcon,
@@ -27,6 +28,8 @@ const WorkOnAppraisal = () => {
   const { toasts, showSuccess, showError, removeToast } = useToast();
 
   const [project, setProject] = useState(null);
+  const [template, setTemplate] = useState(null);
+  const [templateCategory, setTemplateCategory] = useState('image_based');
   const [appraisalItems, setAppraisalItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
@@ -46,7 +49,19 @@ const WorkOnAppraisal = () => {
       // Fetch project details
       const projectData = await projectService.getProject(projectId);
       setProject(projectData);
-
+      // Fetch template to determine category
+      if (projectData.template_id) {
+        try {
+          const templateData = await templateService.getTemplate(projectData.template_id);
+          setTemplate(templateData);
+          setTemplateCategory(templateData.template_category || 'image_based');
+          console.log('Template category:', templateData.template_category);
+        } catch (templateErr) {
+          console.error('Error fetching template:', templateErr);
+          setTemplateCategory('image_based');
+        }
+      }
+      
       // Fetch appraisal items
       const itemsData = await appraisalService.getAppraisalItems(projectId);
       setAppraisalItems(itemsData);
@@ -138,10 +153,38 @@ const WorkOnAppraisal = () => {
   const handleSaveAll = async () => {
     try {
       setSaving(true);
-      showSuccess("All changes saved successfully");
+      
+      console.log('💾 Saving all items...', appraisalItems);
+      
+      // For table-based templates, save attributes
+      if (['coin', 'wine', 'content'].includes(templateCategory)) {
+        for (const item of appraisalItems) {
+          if (item.id) {
+            // Update existing item
+            await appraisalService.updateAppraisalItem(item.id, {
+              item_type: item.item_type,
+              line_number: item.line_number,
+              sort_order: item.sort_order,
+              attributes: item.attributes
+            });
+          } else {
+            // Create new item
+            await appraisalService.createAppraisalItem({
+              project_id: parseInt(projectId),
+              item_type: item.item_type,
+              line_number: item.line_number,
+              sort_order: item.sort_order,
+              attributes: item.attributes
+            });
+          }
+        }
+      }
+      
+      showSuccess('All changes saved successfully');
+      await fetchProjectAndItems(); // Refresh data
     } catch (error) {
-      console.error("Error saving:", error);
-      showError("Failed to save changes");
+      console.error('Error saving:', error);
+      showError(error.response?.data?.detail || 'Failed to save changes');
     } finally {
       setSaving(false);
     }
@@ -389,38 +432,68 @@ const WorkOnAppraisal = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        Appraisal Items
+                        {['coin', 'wine', 'content'].includes(templateCategory) 
+                          ? 'Table Data' 
+                          : 'Appraisal Items'}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {appraisalItems.length} items • Total value: $
-                        {appraisalItems
-                          .reduce(
-                            (sum, item) => sum + (item.appraised_value || 0),
-                            0
-                          )
-                          .toLocaleString()}
+                        {appraisalItems.length} items • Total value: ${appraisalItems.reduce((sum, item) => {
+                          if (templateCategory === 'coin') {
+                            const qty = parseFloat(item.attributes?.quantity || 0);
+                            const price = parseFloat(item.attributes?.appraised_price || 0);
+                            return sum + (qty * price);
+                          } else if (templateCategory === 'wine') {
+                            return sum + parseFloat(item.attributes?.total_price || 0);
+                          } else if (templateCategory === 'content') {
+                            return sum + parseFloat(item.attributes?.fair_market_value || 0);
+                          } else {
+                            return sum + (item.appraised_value || 0);
+                          }
+                        }, 0).toLocaleString()}
                       </p>
                     </div>
-
-                    <Button
-                      onClick={handleInitializeItems}
-                      loading={initializing}
-                      disabled={initializing}
-                      icon={PhotoIcon}
-                    >
-                      Initialize from Photos
-                    </Button>
+                    
+                    {/* Only show Initialize from Photos button for image-based templates */}
+                    {templateCategory === 'image_based' && (
+                      <Button
+                        onClick={handleInitializeItems}
+                        loading={initializing}
+                        disabled={initializing}
+                        icon={PhotoIcon}
+                      >
+                        Initialize from Photos
+                      </Button>
+                    )}
+                    
+                    {/* Show info message for table-based templates */}
+                    {['coin', 'wine', 'content'].includes(templateCategory) && (
+                      <div className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-700">
+                          💡 Edit table data directly below
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </Card.Header>
               </Card>
-
-              {/* Appraisal Table */}
-              <AppraisalTable
-                items={appraisalItems}
-                onItemUpdate={handleItemUpdate}
-                onItemsReorder={handleItemsReorder}
-                loading={loading}
-              />
+              
+              {/* Appraisal Table or Table Data Entry */}
+              {['coin', 'wine', 'content'].includes(templateCategory) ? (
+                <TableDataEntry
+                  templateCategory={templateCategory}
+                  items={appraisalItems}
+                  onItemsChange={setAppraisalItems}
+                  projectId={projectId}
+                  loading={loading}
+                />
+              ) : (
+                <AppraisalTable
+                  items={appraisalItems}
+                  onItemUpdate={handleItemUpdate}
+                  onItemsReorder={handleItemsReorder}
+                  loading={loading}
+                />
+              )}
             </div>
           </Tabs.Content>
         </Tabs>

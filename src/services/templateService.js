@@ -66,5 +66,17 @@ export const templateService = {
       responseType: 'blob'
     });
     return response;
+  },
+
+  // Get template configuration (column definitions)
+  getTemplateConfig: async (templateId) => {
+    const response = await api.get(`/templates/${templateId}/config`);
+    return response.data;
+  },
+
+  // Get all template categories and their configurations
+  getAllCategories: async () => {
+    const response = await api.get(`/templates/categories/all`);
+    return response.data;
   }
 };

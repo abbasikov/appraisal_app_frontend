@@ -66,15 +66,35 @@ const WorkOnAppraisal = () => {
       const itemsData = await appraisalService.getAppraisalItems(projectId);
       setAppraisalItems(itemsData);
 
-      // Auto-initialize items if none exist
+      // Auto-initialize or refresh items based on current state
       if (itemsData.length === 0) {
+        // If no items exist, initialize from photos
         await handleInitializeItemsInternal();
+      } else {
+        // If items exist, check if there are new photos and sync
+        await handleSyncItemsWithPhotos();
       }
     } catch (error) {
       console.error("Error fetching project data:", error);
       showError("Failed to load project data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncItemsWithPhotos = async () => {
+    try {
+      // Silently sync items with photos (add new ones, remove deleted ones)
+      const result = await appraisalService.initializeAppraisalItems(projectId);
+      
+      // Refresh items after sync
+      if (result.count > 0) {
+        const itemsData = await appraisalService.getAppraisalItems(projectId);
+        setAppraisalItems(itemsData);
+      }
+    } catch (error) {
+      console.error("Error syncing items:", error);
+      // Don't show error to user as this is a background sync
     }
   };
 

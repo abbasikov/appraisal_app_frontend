@@ -237,7 +237,12 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
           setImageSrc(imageUrl);
           setError(false);
         } catch (err) {
-          console.error("Error loading thumbnail:", err);
+          // Silently handle 404 errors (deleted photos)
+          if (err.response && err.response.status === 404) {
+            console.log(`Photo ${photoId} not found (may have been deleted)`);
+          } else {
+            console.error("Error loading thumbnail:", err);
+          }
           setError(true);
         } finally {
           setLoading(false);
@@ -246,6 +251,9 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
 
       if (projectId && photoId) {
         fetchThumbnail();
+      } else {
+        setLoading(false);
+        setError(true);
       }
 
       return () => {

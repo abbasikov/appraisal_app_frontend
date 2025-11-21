@@ -330,7 +330,10 @@ const ProjectReview = () => {
                   <tr>
                     <th>Item #</th>
                     <th>Photo</th>
-                    <th>Room/Area</th>
+                    {/* Hide Room/Area for Coins and Wine */}
+                    {detectedItemType !== "Coins" && detectedItemType !== "Wine" && (
+                      <th>Room/Area</th>
+                    )}
                     <th>Type</th>
                     <th>Description</th>
                     <th>Appraised Value</th>
@@ -354,7 +357,10 @@ const ProjectReview = () => {
                           </div>
                         )}
                       </td>
-                      <td>{item.room_area || '-'}</td>
+                      {/* Hide Room/Area for Coins and Wine */}
+                      {detectedItemType !== "Coins" && detectedItemType !== "Wine" && (
+                        <td>{item.room_area || '-'}</td>
+                      )}
                       <td>{item.item_type || '-'}</td>
                       <td>
                         <div style={{ maxWidth: '250px', wordWrap: 'break-word', whiteSpace: 'pre-line', fontSize: '14px' }}>
@@ -368,11 +374,13 @@ const ProjectReview = () => {
                     </tr>
                   ))}
                   <tr className="total-row">
-                    <td colSpan="5"><strong>Total Appraised Value:</strong></td>
+                    <td colSpan={detectedItemType === "Coins" || detectedItemType === "Wine" ? "4" : "5"}>
+                      <strong>Total Appraised Value:</strong>
+                    </td>
                     <td><strong>${totalValue.toLocaleString()}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             {/* Summary */}

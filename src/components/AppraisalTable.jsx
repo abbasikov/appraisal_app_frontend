@@ -384,8 +384,13 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
               <tr>
                 <th className="table-header-cell w-16">#</th>
                 <th className="table-header-cell w-20">Photo</th>
-                <th className="table-header-cell">Room/Area</th>
-                <th className="table-header-cell">Floor/Bldg</th>
+                {/* Hide Room/Area and Floor/Bldg for Coins and Wine */}
+                {detectedItemType !== "Coins" && detectedItemType !== "Wine" && (
+                  <>
+                    <th className="table-header-cell">Room/Area</th>
+                    <th className="table-header-cell">Floor/Bldg</th>
+                  </>
+                )}
                 <th className="table-header-cell">
                   <div className="flex items-center justify-between">
                     <span>Type</span>
@@ -483,105 +488,109 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                         )}
                       </td>
 
-                      {/* Room/Area */}
-                      <td className="table-cell">
-                        {editingCell === `${item.id}-room_area` ? (
-                          <div className="relative">
-                            <input
-                              type="text"
-                              list={`room-area-list-${item.id}`}
-                              defaultValue={item.room_area || ""}
-                              className="form-input text-sm uppercase"
-                              placeholder="Type or select..."
-                              onBlur={(e) =>
-                                handleCellEdit(
-                                  item.id,
-                                  "room_area",
-                                  e.target.value.toUpperCase()
-                                )
-                              }
-                              onKeyPress={(e) => {
-                                if (e.key === "Enter") {
+                      {/* Room/Area - Hide for Coins and Wine */}
+                      {detectedItemType !== "Coins" && detectedItemType !== "Wine" && (
+                        <td className="table-cell">
+                          {editingCell === `${item.id}-room_area` ? (
+                            <div className="relative">
+                              <input
+                                type="text"
+                                list={`room-area-list-${item.id}`}
+                                defaultValue={item.room_area || ""}
+                                className="form-input text-sm uppercase"
+                                placeholder="Type or select..."
+                                onBlur={(e) =>
                                   handleCellEdit(
                                     item.id,
                                     "room_area",
                                     e.target.value.toUpperCase()
-                                  );
+                                  )
                                 }
-                              }}
-                              autoFocus
-                            />
-                            <datalist id={`room-area-list-${item.id}`}>
-                              {schema?.room_area_options?.map((option) => (
-                                <option key={option} value={option} />
-                              ))}
-                            </datalist>
-                          </div>
-                        ) : (
-                          <div
-                            className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                            onClick={() =>
-                              handleCellClick(item.id, "room_area")
-                            }
-                          >
-                            {item.room_area || (
-                              <span className="text-gray-400 italic">
-                                Click to select
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Floor/Building */}
-                      <td className="table-cell">
-                        {editingCell === `${item.id}-floor_building` ? (
-                          <div className="relative">
-                            <input
-                              type="text"
-                              list={`floor-building-list-${item.id}`}
-                              defaultValue={item.floor_building || ""}
-                              className="form-input text-sm uppercase"
-                              placeholder="Type or select..."
-                              onBlur={(e) =>
-                                handleCellEdit(
-                                  item.id,
-                                  "floor_building",
-                                  e.target.value.toUpperCase()
-                                )
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleCellEdit(
+                                      item.id,
+                                      "room_area",
+                                      e.target.value.toUpperCase()
+                                    );
+                                  }
+                                }}
+                                autoFocus
+                              />
+                              <datalist id={`room-area-list-${item.id}`}>
+                                {schema?.room_area_options?.map((option) => (
+                                  <option key={option} value={option} />
+                                ))}
+                              </datalist>
+                            </div>
+                          ) : (
+                            <div
+                              className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                              onClick={() =>
+                                handleCellClick(item.id, "room_area")
                               }
-                              onKeyPress={(e) => {
-                                if (e.key === "Enter") {
+                            >
+                              {item.room_area || (
+                                <span className="text-gray-400 italic">
+                                  Click to select
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      )}
+
+                      {/* Floor/Building - Hide for Coins and Wine */}
+                      {detectedItemType !== "Coins" && detectedItemType !== "Wine" && (
+                        <td className="table-cell">
+                          {editingCell === `${item.id}-floor_building` ? (
+                            <div className="relative">
+                              <input
+                                type="text"
+                                list={`floor-building-list-${item.id}`}
+                                defaultValue={item.floor_building || ""}
+                                className="form-input text-sm uppercase"
+                                placeholder="Type or select..."
+                                onBlur={(e) =>
                                   handleCellEdit(
                                     item.id,
                                     "floor_building",
                                     e.target.value.toUpperCase()
-                                  );
+                                  )
                                 }
-                              }}
-                              autoFocus
-                            />
-                            <datalist id={`floor-building-list-${item.id}`}>
-                              {schema?.floor_building_options?.map((option) => (
-                                <option key={option} value={option} />
-                              ))}
-                            </datalist>
-                          </div>
-                        ) : (
-                          <div
-                            className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                            onClick={() =>
-                              handleCellClick(item.id, "floor_building")
-                            }
-                          >
-                            {item.floor_building || (
-                              <span className="text-gray-400 italic">
-                                Click to select
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleCellEdit(
+                                      item.id,
+                                      "floor_building",
+                                      e.target.value.toUpperCase()
+                                    );
+                                  }
+                                }}
+                                autoFocus
+                              />
+                              <datalist id={`floor-building-list-${item.id}`}>
+                                {schema?.floor_building_options?.map((option) => (
+                                  <option key={option} value={option} />
+                                ))}
+                              </datalist>
+                            </div>
+                          ) : (
+                            <div
+                              className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                              onClick={() =>
+                                handleCellClick(item.id, "floor_building")
+                              }
+                            >
+                              {item.floor_building || (
+                                <span className="text-gray-400 italic">
+                                  Click to select
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      )}
 
                       {/* Type */}
                       <td className="table-cell">
@@ -694,10 +703,10 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                       {/* Value */}
                       <td className="table-cell">
                         <div className="px-3 py-2 rounded-lg">
-                          <span className="font-semibold text-green-700">
-                            {formatCurrency(item.appraised_value)}
-                          </span>
-                        </div>
+                            <span className="font-semibold text-green-700">
+                              {formatCurrency(item.appraised_value)}
+                            </span>
+                          </div>
                       </td>
 
                       {/* Dynamic Attributes - only in multi-field mode */}

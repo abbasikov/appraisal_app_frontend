@@ -77,7 +77,7 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
       return;
     }
 
-    if (!notificationEmail || !notificationEmail.includes('@')) {
+    if (notificationEmail && !notificationEmail.includes('@')) {
       showError('Please enter a valid email address for import notifications');
       return;
     }
@@ -292,13 +292,12 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
             type="email"
             value={notificationEmail}
             onChange={(e) => setNotificationEmail(e.target.value)}
-            placeholder="Enter email for import notifications (required)"
+            placeholder="Enter email for import notifications (optional)"
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
           />
           <button
             onClick={addLink}
-            disabled={validatingLink || !newLink.trim() || !notificationEmail.trim()}
+            disabled={validatingLink || !newLink.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {validatingLink ? 'Adding...' : 'Add Link'}
@@ -325,7 +324,7 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
       )}
 
       {/* Import photos button */}
-      {links.length > 0 && notificationEmail ? (
+      {links.length > 0 ? (
         <div className="space-y-3">
           <button
             onClick={importPhotos}
@@ -346,14 +345,14 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
         </div>
       ) : (
         <div className="text-sm text-gray-500 p-2 bg-gray-50 rounded">
-          {links.length === 0 ? 'Add Dropbox links above to enable photo import' : 'Enter notification email to enable photo import'}
+          Add Dropbox links above to enable photo import
         </div>
       )}
 
       {/* Help text */}
       <div className="text-sm text-gray-500">
         <p>• Share your Dropbox folder and paste the link above</p>
-        <p>• Enter an email address to receive import completion notifications</p>
+        <p>• Enter an email address (optional) to receive import completion notifications</p>
         <p>• You can add up to 10 Dropbox folders per project</p>
         <p>• Only image files (JPG, PNG, GIF, BMP) will be imported</p>
       </div>

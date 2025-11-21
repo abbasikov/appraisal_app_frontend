@@ -5,6 +5,8 @@ import { appraisalService } from "../../services/appraisalService";
 import { templateService } from "../../services/templateService";
 import Layout from "../../components/Layout";
 import { useToast } from "../../hooks/useToast";
+import InspectionVerificationModal from "../../components/InspectionVerificationModal";
+import { detectItemTypeFromTemplate } from "../../utils/templateDetector";
 import {
   Document,
   Packer,
@@ -22,15 +24,17 @@ const ProjectReview = () => {
   const navigate = useNavigate();
   const contentRef = useRef();
   const { showToast } = useToast();
-
+  
   const [project, setProject] = useState(null);
   const [template, setTemplate] = useState(null);
-  const [templateCategory, setTemplateCategory] = useState('image_based');
   const [items, setItems] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [generatingFinal, setGeneratingFinal] = useState(false);
+  const [showInspectionModal, setShowInspectionModal] = useState(false);
+  const [pendingReportType, setPendingReportType] = useState(null);
+  const [detectedItemType, setDetectedItemType] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -45,6 +49,20 @@ const ProjectReview = () => {
       ]);
       setProject(projectData);
       setItems(itemsData);
+      
+      // Detect item type from template
+      if (projectData.template_id) {
+        try {
+          const templateData = await templateService.getTemplate(projectData.template_id);
+          setTemplate(templateData);
+          const detectedType = detectItemTypeFromTemplate(templateData.name || '');
+          setDetectedItemType(detectedType);
+          console.log('Template name:', templateData.name, 'Detected item type:', detectedType);
+        } catch (err) {
+          console.error('Error fetching template:', err);
+        }
+      }
+      
       // Fetch compatible templates for this project's appraisal type
       if (projectData.appraisal_type) {
         try {
@@ -57,7 +75,7 @@ const ProjectReview = () => {
           console.error("Failed to load templates:", err);
         }
       }
-
+      
       // If project has template, generate preview using template
       if (projectData.template_id) {
         await generateTemplatePreview(projectData.template_id);
@@ -87,7 +105,16 @@ const ProjectReview = () => {
     }
   };
 
-  const handleDownload = async (reportType) => {
+  const handleDownload = (reportType) => {
+    // Show inspection verification modal first
+    setPendingReportType(reportType);
+    setShowInspectionModal(true);
+  };
+
+  const handleInspectionVerification = async (didInspect) => {
+    const reportType = pendingReportType;
+    setShowInspectionModal(false);
+    
     try {
       // Set the appropriate loading state based on report type
       if (reportType === "draft") {
@@ -99,12 +126,14 @@ const ProjectReview = () => {
         "Download clicked:",
         reportType,
         "Project template_id:",
-        project.template_id
+        project.template_id,
+        "Did inspect:",
+        didInspect
       );
-
+      
       // Get the template ID to use
       let templateId = project.template_id;
-
+      
       // If no template is assigned to the project, use the first compatible template
       if (!templateId && templates.length > 0) {
         templateId = templates[0].id;
@@ -112,7 +141,7 @@ const ProjectReview = () => {
           `No template assigned to project, using first compatible template: ${templateId}`
         );
       }
-
+      
       // If we still don't have a template ID, use a default template (ID 1)
       if (!templateId) {
         templateId = 1;
@@ -120,33 +149,34 @@ const ProjectReview = () => {
           "No compatible templates found, using default template ID 1"
         );
       }
-
-      // Generate the report using templateService
+      
+      // Generate the report using templateService with inspection verification
       const result = await templateService.generateReport(
         templateId,
         project.id,
         reportType,
-        true
+        true,
+        didInspect
       );
-
+      
       showToast("Report generated successfully", "success");
-
+      
       // Download the generated report
       const downloadResponse = await templateService.downloadReport(
         project.id,
         templateId,
         reportType
       );
-
+      
       const blob = downloadResponse.data;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-
+      
       // Find the template name if available
       const template = templates.find((t) => t.id === templateId);
       const templateName = template ? template.name : "";
-
+      
       // Create a descriptive filename
       link.download = `${project.project_name}_${
         templateName ? templateName + "_" : ""
@@ -155,7 +185,7 @@ const ProjectReview = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
+      
       showToast("Report downloaded successfully", "success");
     } catch (error) {
       showToast("Failed to generate report", "error");
@@ -167,6 +197,7 @@ const ProjectReview = () => {
       } else if (reportType === "final") {
         setGeneratingFinal(false);
       }
+      setPendingReportType(null);
     }
   };
 
@@ -294,155 +325,6 @@ const ProjectReview = () => {
             <div>
               <h2 className="text-xl font-semibold mb-4">Appraisal Items</h2>
               
-              {/* Coin Table */}
-              {templateCategory === 'coin' && (
-                <table className="items-table">
-                  <thead>
-                    <tr>
-                      <th>Item #</th>
-                      <th>Quantity</th>
-                      <th>Year</th>
-                      <th>Coin</th>
-                      <th>Condition</th>
-                      <th>Appraised Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{index + 1}</td>
-                        <td>{item.attributes?.quantity || '-'}</td>
-                        <td>{item.attributes?.year || '-'}</td>
-                        <td>{item.attributes?.coin_name || '-'}</td>
-                        <td>{item.attributes?.condition || '-'}</td>
-                        <td style={{ fontWeight: 'bold', color: '#059669' }}>
-                          ${(parseFloat(item.attributes?.appraised_price || 0)).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="total-row">
-                      <td colSpan="5"><strong>Total Appraised Value:</strong></td>
-                      <td><strong>${totalValue.toLocaleString()}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
-
-              {/* Wine Table */}
-              {templateCategory === 'wine' && (
-                <table className="items-table">
-                  <thead>
-                    <tr>
-                      <th>Item #</th>
-                      <th>Quantity</th>
-                      <th>Bottle Description</th>
-                      <th>Per Bottle Price</th>
-                      <th>Total Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{index + 1}</td>
-                        <td>{item.attributes?.quantity || '-'}</td>
-                        <td style={{ maxWidth: '300px', wordWrap: 'break-word' }}>
-                          {item.attributes?.bottle_description || '-'}
-                        </td>
-                        <td style={{ fontWeight: 'bold', color: '#059669' }}>
-                          ${(parseFloat(item.attributes?.per_bottle_price || 0)).toLocaleString()}
-                        </td>
-                        <td style={{ fontWeight: 'bold', color: '#059669' }}>
-                          ${(parseFloat(item.attributes?.total_price || 0)).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="total-row">
-                      <td colSpan="4"><strong>Total Appraised Value:</strong></td>
-                      <td><strong>${totalValue.toLocaleString()}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
-
-              {/* Content Table */}
-              {templateCategory === 'content' && (
-                <table className="items-table">
-                  <thead>
-                    <tr>
-                      <th>Item #</th>
-                      <th>Area</th>
-                      <th>Fair Market Value (FMV)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{index + 1}</td>
-                        <td>{item.attributes?.area || '-'}</td>
-                        <td style={{ fontWeight: 'bold', color: '#059669' }}>
-                          ${(parseFloat(item.attributes?.fair_market_value || 0)).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="total-row">
-                      <td colSpan="2"><strong>Total Appraised Value:</strong></td>
-                      <td><strong>${totalValue.toLocaleString()}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
-
-              {/* Image-based Table (default) */}
-              {templateCategory === 'image_based' && (
-                <table className="items-table">
-                  <thead>
-                    <tr>
-                      <th>Item #</th>
-                      <th>Photo</th>
-                      <th>Room/Area</th>
-                      <th>Type</th>
-                      <th>Description</th>
-                      <th>Appraised Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{index + 1}</td>
-                        <td>
-                          {item.photo_id ? (
-                            <img 
-                              src={`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}/photos/${item.photo_id}/thumbnail`}
-                              alt="Item photo"
-                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
-                              onError={(e) => { e.target.style.display = 'none'; }}
-                            />
-                          ) : (
-                            <div style={{ width: '60px', height: '60px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontSize: '12px', color: '#6b7280' }}>
-                              No Photo
-                            </div>
-                          )}
-                        </td>
-                        <td>{item.room_area || '-'}</td>
-                        <td>{item.item_type || '-'}</td>
-                        <td>
-                          <div style={{ maxWidth: '250px', wordWrap: 'break-word', whiteSpace: 'pre-line', fontSize: '14px' }}>
-                            {item.description ? 
-                              item.description.replace(/\[Enter [^\]]+\]/g, '___').replace(/:/g, ':\n') 
-                              : '-'
-                            }
-                          </div>
-                        </td>
-                        <td style={{ fontWeight: 'bold', color: '#059669' }}>${(item.appraised_value || 0).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                    <tr className="total-row">
-                      <td colSpan="5"><strong>Total Appraised Value:</strong></td>
-                      <td><strong>${totalValue.toLocaleString()}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
               <table className="items-table">
                 <thead>
                   <tr>
@@ -460,74 +342,37 @@ const ProjectReview = () => {
                       <td>{index + 1}</td>
                       <td>
                         {item.photo_id ? (
-                          <img
-                            src={`${
-                              import.meta.env.VITE_API_URL
-                            }/api/v1/projects/${id}/photos/${
-                              item.photo_id
-                            }/thumbnail`}
+                          <img 
+                            src={`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}/photos/${item.photo_id}/thumbnail`}
                             alt="Item photo"
-                            style={{
-                              width: "60px",
-                              height: "60px",
-                              objectFit: "cover",
-                              borderRadius: "4px",
-                            }}
-                            onError={(e) => {
-                              e.target.style.display = "none";
-                            }}
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
                           />
                         ) : (
-                          <div
-                            style={{
-                              width: "60px",
-                              height: "60px",
-                              backgroundColor: "#f3f4f6",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderRadius: "4px",
-                              fontSize: "12px",
-                              color: "#6b7280",
-                            }}
-                          >
+                          <div style={{ width: '60px', height: '60px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontSize: '12px', color: '#6b7280' }}>
                             No Photo
                           </div>
                         )}
                       </td>
-                      <td>{item.room_area || "-"}</td>
-                      <td>{item.item_type || "-"}</td>
+                      <td>{item.room_area || '-'}</td>
+                      <td>{item.item_type || '-'}</td>
                       <td>
-                        <div
-                          style={{
-                            maxWidth: "250px",
-                            wordWrap: "break-word",
-                            whiteSpace: "pre-line",
-                            fontSize: "14px",
-                          }}
-                        >
-                          {item.description
-                            ? item.description
-                                .replace(/\[Enter [^\]]+\]/g, "___")
-                                .replace(/:/g, ":\n")
-                            : "-"}
+                        <div style={{ maxWidth: '250px', wordWrap: 'break-word', whiteSpace: 'pre-line', fontSize: '14px' }}>
+                          {item.description ? 
+                            item.description.replace(/\[Enter [^\]]+\]/g, '___').replace(/:/g, ':\n') 
+                            : '-'
+                          }
                         </div>
                       </td>
-                      <td style={{ fontWeight: "bold", color: "#059669" }}>
-                        ${(item.appraised_value || 0).toLocaleString()}
-                      </td>
+                      <td style={{ fontWeight: 'bold', color: '#059669' }}>${(item.appraised_value || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                   <tr className="total-row">
-                    <td colSpan="5">
-                      <strong>Total Appraised Value:</strong>
-                    </td>
-                    <td>
-                      <strong>${totalValue.toLocaleString()}</strong>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                    <td colSpan="5"><strong>Total Appraised Value:</strong></td>
+                    <td><strong>${totalValue.toLocaleString()}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
             </div>
 
             {/* Summary */}
@@ -543,6 +388,16 @@ const ProjectReview = () => {
           </div>
         </div>
       </div>
+      
+      {/* Inspection Verification Modal */}
+      <InspectionVerificationModal
+        isOpen={showInspectionModal}
+        onClose={() => {
+          setShowInspectionModal(false);
+          setPendingReportType(null);
+        }}
+        onConfirm={handleInspectionVerification}
+      />
     </Layout>
   );
 };

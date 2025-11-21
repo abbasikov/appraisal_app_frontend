@@ -16,7 +16,7 @@ import Modal from "./ui/Modal";
 import api from "../services/api";
 import { appraisalService } from "../services/appraisalService";
 
-const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
+const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project, detectedItemType }) => {
   const [draggedItem, setDraggedItem] = useState(null);
   const [editingCell, setEditingCell] = useState(null);
   const [schema, setSchema] = useState(null);
@@ -106,6 +106,46 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
     onItemsReorder(updatedItems);
   };
 
+  // Helper function to parse description and extract quantity and price
+  const parseDescriptionForValue = (description, itemType) => {
+    if (!description) return 0;
+    
+    const isCoin = itemType?.toLowerCase() === 'coins' || itemType?.toLowerCase() === 'coin';
+    const isWine = itemType?.toLowerCase() === 'wine' || itemType?.toLowerCase() === 'wines';
+    
+    if (!isCoin && !isWine) return null; // Only for Coin/Wine templates
+    
+    try {
+      // Parse Coins template: "Quantity: X" and "Value Per Coin $: Y"
+      if (isCoin) {
+        const quantityMatch = description.match(/Quantity:\s*(\d+(?:\.\d+)?)/i);
+        const priceMatch = description.match(/Value Per Coin \$:\s*(\d+(?:\.\d+)?)/i);
+        
+        if (quantityMatch && priceMatch) {
+          const quantity = parseFloat(quantityMatch[1]) || 0;
+          const pricePerCoin = parseFloat(priceMatch[1]) || 0;
+          return quantity * pricePerCoin;
+        }
+      }
+      
+      // Parse Wine template: "Quantity: X" and "Per Bottle Price: Y"
+      if (isWine) {
+        const quantityMatch = description.match(/Quantity:\s*(\d+(?:\.\d+)?)/i);
+        const priceMatch = description.match(/Per Bottle Price:\s*(\d+(?:\.\d+)?)/i);
+        
+        if (quantityMatch && priceMatch) {
+          const quantity = parseFloat(quantityMatch[1]) || 0;
+          const pricePerBottle = parseFloat(priceMatch[1]) || 0;
+          return quantity * pricePerBottle;
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing description for value:', error);
+    }
+    
+    return null;
+  };
+
   const handleCellEdit = (itemId, field, value) => {
     if (field.startsWith("attr_")) {
       const attrName = field.replace("attr_", "");
@@ -113,8 +153,23 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
       const newAttributes = { ...item.attributes, [attrName]: value };
       onItemUpdate(itemId, { attributes: newAttributes });
     } else {
+      // Handle description change with auto-calculation
+      if (field === "description") {
+        const item = items.find((i) => i.id === itemId);
+        const calculatedValue = parseDescriptionForValue(value, item?.item_type || detectedItemType);
+        
+        if (calculatedValue !== null) {
+          // Auto-calculate value for Coin/Wine
+          onItemUpdate(itemId, { 
+            [field]: value,
+            appraised_value: calculatedValue
+          });
+        } else {
+          onItemUpdate(itemId, { [field]: value });
+        }
+      }
       // Handle item type change with template auto-population
-      if (
+      else if (
         field === "item_type" &&
         useTemplateMode &&
         schema?.description_templates
@@ -638,42 +693,11 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading }) => {
 
                       {/* Value */}
                       <td className="table-cell">
-                        {editingCell === `${item.id}-appraised_value` ? (
-                          <input
-                            type="number"
-                            step="0.01"
-                            defaultValue={item.appraised_value || ""}
-                            className="form-input text-sm"
-                            onBlur={(e) =>
-                              handleCellEdit(
-                                item.id,
-                                "appraised_value",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter") {
-                                handleCellEdit(
-                                  item.id,
-                                  "appraised_value",
-                                  parseFloat(e.target.value) || 0
-                                );
-                              }
-                            }}
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            className="cursor-pointer hover:bg-green-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-green-200"
-                            onClick={() =>
-                              handleCellClick(item.id, "appraised_value")
-                            }
-                          >
-                            <span className="font-semibold text-green-700">
-                              {formatCurrency(item.appraised_value)}
-                            </span>
-                          </div>
-                        )}
+                        <div className="px-3 py-2 rounded-lg">
+                          <span className="font-semibold text-green-700">
+                            {formatCurrency(item.appraised_value)}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Dynamic Attributes - only in multi-field mode */}

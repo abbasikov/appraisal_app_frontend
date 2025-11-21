@@ -7,7 +7,6 @@ import Layout from '../../components/Layout';
 import DropboxLinksManager from '../../components/DropboxLinksManager';
 import { PhotoTableWithPagination } from '../../components/PhotoTable';
 import ProjectReports from '../../components/ProjectReports';
-import TableDataEntry from '../../components/TableDataEntry';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ToastContainer';
@@ -35,12 +34,8 @@ const ProjectDetails = () => {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [template, setTemplate] = useState(null);
-  const [templateCategory, setTemplateCategory] = useState('image_based');
   const [photos, setPhotos] = useState([]);
-  const [appraisalItems, setAppraisalItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingItems, setLoadingItems] = useState(false);
-  const [savingItems, setSavingItems] = useState(false);
   const [error, setError] = useState('');
   
   // Pagination state for photos
@@ -78,17 +73,8 @@ const ProjectDetails = () => {
         try {
           const templateData = await templateService.getTemplate(response.template_id);
           setTemplate(templateData);
-          setTemplateCategory(templateData.template_category || 'image_based');
-          console.log('Template category:', templateData.template_category);
-          
-          // Fetch appraisal items for table-based templates
-          if (['coin', 'wine', 'content'].includes(templateData.template_category)) {
-            await fetchAppraisalItems();
-          }
         } catch (templateErr) {
           console.error('Error fetching template:', templateErr);
-          // Default to image_based if template fetch fails
-          setTemplateCategory('image_based');
         }
       }
     } catch (err) {
@@ -96,64 +82,6 @@ const ProjectDetails = () => {
       console.error('Error fetching project:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchAppraisalItems = async () => {
-    try {
-      setLoadingItems(true);
-      const itemsData = await appraisalService.getAppraisalItems(id);
-      setAppraisalItems(itemsData || []);
-    } catch (err) {
-      console.error('Error fetching appraisal items:', err);
-      setAppraisalItems([]);
-    } finally {
-      setLoadingItems(false);
-    }
-  };
-
-  const handleItemsChange = async (updatedItems) => {
-    setAppraisalItems(updatedItems);
-  };
-
-  const handleSaveTableData = async () => {
-    try {
-      setSavingItems(true);
-      
-      console.log('💾 Saving table data...', appraisalItems);
-      
-      // Save each item
-      for (const item of appraisalItems) {
-        console.log('Saving item:', item);
-        if (item.id) {
-          // Update existing item
-          await appraisalService.updateAppraisalItem(item.id, {
-            item_type: item.item_type,
-            line_number: item.line_number,
-            sort_order: item.sort_order,
-            attributes: item.attributes
-          });
-          console.log('✅ Updated item:', item.id);
-        } else {
-          // Create new item
-          const created = await appraisalService.createAppraisalItem({
-            project_id: parseInt(id),
-            item_type: item.item_type,
-            line_number: item.line_number,
-            sort_order: item.sort_order,
-            attributes: item.attributes
-          });
-          console.log('✅ Created item:', created);
-        }
-      }
-      
-      showSuccess('Table data saved successfully');
-      await fetchAppraisalItems(); // Refresh to get IDs for new items
-    } catch (err) {
-      console.error('❌ Error saving table data:', err);
-      showError(err.response?.data?.detail || 'Failed to save table data');
-    } finally {
-      setSavingItems(false);
     }
   };
 
@@ -411,41 +339,7 @@ const ProjectDetails = () => {
               </div>
             </div>
 
-            {/* Table Data Entry - For coin/wine/content templates */}
-            {['coin', 'wine', 'content'].includes(templateCategory) && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-purple-50/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-xl bg-purple-100 border border-purple-200">
-                        <DocumentTextIcon className="w-6 h-6 text-purple-600" />
-                      </div>
-                      <h2 className="text-xl font-semibold text-gray-900">Data Entry</h2>
-                    </div>
-                    <Button
-                      onClick={handleSaveTableData}
-                      loading={savingItems}
-                      disabled={savingItems}
-                      className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                      {savingItems ? 'Saving...' : 'Save Data'}
-                    </Button>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <TableDataEntry
-                    templateCategory={templateCategory}
-                    items={appraisalItems}
-                    onItemsChange={handleItemsChange}
-                    projectId={id}
-                    loading={loadingItems}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Dropbox Integration - Only show for image-based templates */}
-            {templateCategory === 'image_based' && (
+            {/* Dropbox Integration */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-cyan-50/30">
                 <div className="flex items-center space-x-3">
@@ -462,10 +356,8 @@ const ProjectDetails = () => {
                 />
               </div>
             </div>
-            )}
 
-            {/* Photos Section - Only show for image-based templates */}
-            {templateCategory === 'image_based' && (
+            {/* Photos Section */}
             <div id="photos-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-purple-50/30">
                 <div className="flex items-center justify-between">
@@ -491,7 +383,6 @@ const ProjectDetails = () => {
                 />
               </div>
             </div>
-            )}
 
             {/* Reports Section - Temporarily hidden */}
             {/* {(isAdmin || isEditor) && (

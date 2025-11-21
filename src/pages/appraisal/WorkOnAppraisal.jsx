@@ -11,7 +11,7 @@ import { projectService } from "../../services/projectService";
 import { templateService } from "../../services/templateService";
 import { useToast } from "../../hooks/useToast";
 import ToastContainer from "../../components/ToastContainer";
-import TableDataEntry from '../../components/TableDataEntry';
+import { detectItemTypeFromTemplate } from "../../utils/templateDetector";
 import { 
   ArrowLeftIcon,
   PlayIcon,
@@ -26,46 +26,96 @@ const WorkOnAppraisal = () => {
   const { id: projectId } = useParams();
   const navigate = useNavigate();
   const { toasts, showSuccess, showError, removeToast } = useToast();
-
+  
   const [project, setProject] = useState(null);
   const [template, setTemplate] = useState(null);
-  const [templateCategory, setTemplateCategory] = useState('image_based');
+  const [detectedItemType, setDetectedItemType] = useState(null);
   const [appraisalItems, setAppraisalItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [templates, setTemplates] = useState([]);
+  const [schema, setSchema] = useState(null);
 
   useEffect(() => {
-    fetchProjectAndItems();
-    fetchTemplates();
+    const initialize = async () => {
+      // Fetch schema first as it's needed for description templates
+      await fetchSchema();
+      await fetchProjectAndItems();
+      await fetchTemplates();
+    };
+    initialize();
   }, [projectId]);
+
+  const fetchSchema = async () => {
+    try {
+      const schemaData = await appraisalService.getAppraisalSchema();
+      setSchema(schemaData);
+      return schemaData;
+    } catch (error) {
+      console.error("Failed to load appraisal schema:", error);
+      return null;
+    }
+  };
 
   const fetchProjectAndItems = async () => {
     try {
       setLoading(true);
-
+      
       // Fetch project details
       const projectData = await projectService.getProject(projectId);
       setProject(projectData);
-      // Fetch template to determine category
+      // Fetch template to determine category from template name
+      let detectedType = null;
       if (projectData.template_id) {
         try {
           const templateData = await templateService.getTemplate(projectData.template_id);
           setTemplate(templateData);
-          setTemplateCategory(templateData.template_category || 'image_based');
-          console.log('Template category:', templateData.template_category);
+          // Detect item type keyword from template name
+          detectedType = detectItemTypeFromTemplate(templateData.name || '');
+          setDetectedItemType(detectedType);
+          console.log('Template name:', templateData.name, 'Detected item type:', detectedType);
         } catch (templateErr) {
           console.error('Error fetching template:', templateErr);
-          setTemplateCategory('image_based');
         }
       }
       
       // Fetch appraisal items
-      const itemsData = await appraisalService.getAppraisalItems(projectId);
+      let itemsData = await appraisalService.getAppraisalItems(projectId);
+      
+      // If we detected an item type from template and items don't have item_type set, update them
+      if (detectedType && itemsData.length > 0) {
+        const itemsNeedingUpdate = itemsData.filter(item => !item.item_type);
+        if (itemsNeedingUpdate.length > 0) {
+          console.log(`Setting item_type to "${detectedType}" for ${itemsNeedingUpdate.length} items`);
+          
+          // Ensure schema is loaded, fetch if needed
+          let currentSchema = schema;
+          if (!currentSchema) {
+            currentSchema = await fetchSchema();
+          }
+          
+          // Get description template for the detected type from schema
+          const descriptionTemplate = currentSchema?.description_templates?.[detectedType] || null;
+          
+          // Update items in parallel with both item_type and description
+          const updatePromises = itemsNeedingUpdate.map(item => {
+            const updateData = { item_type: detectedType };
+            // Always populate description template when item_type is set
+            if (descriptionTemplate) {
+              updateData.description = descriptionTemplate;
+            }
+            return appraisalService.updateAppraisalItem(item.id, updateData);
+          });
+          await Promise.all(updatePromises);
+          // Refresh items after update
+          itemsData = await appraisalService.getAppraisalItems(projectId);
+        }
+      }
+      
       setAppraisalItems(itemsData);
-
+      
       // Auto-initialize or refresh items based on current state
       if (itemsData.length === 0) {
         // If no items exist, initialize from photos
@@ -89,7 +139,37 @@ const WorkOnAppraisal = () => {
       
       // Refresh items after sync
       if (result.count > 0) {
-        const itemsData = await appraisalService.getAppraisalItems(projectId);
+        let itemsData = await appraisalService.getAppraisalItems(projectId);
+        
+        // If we detected an item type from template, set it for new items
+        if (detectedItemType) {
+          const itemsNeedingUpdate = itemsData.filter(item => !item.item_type);
+          if (itemsNeedingUpdate.length > 0) {
+            console.log(`Setting item_type to "${detectedItemType}" for ${itemsNeedingUpdate.length} synced items`);
+            
+            // Ensure schema is loaded, fetch if needed
+            let currentSchema = schema;
+            if (!currentSchema) {
+              currentSchema = await fetchSchema();
+            }
+            
+            // Get description template for the detected type from schema
+            const descriptionTemplate = currentSchema?.description_templates?.[detectedItemType] || null;
+            
+            // Update items with both item_type and description
+            const updatePromises = itemsNeedingUpdate.map(item => {
+              const updateData = { item_type: detectedItemType };
+              if (descriptionTemplate && !item.description) {
+                updateData.description = descriptionTemplate;
+              }
+              return appraisalService.updateAppraisalItem(item.id, updateData);
+            });
+            await Promise.all(updatePromises);
+            // Refresh items after update
+            itemsData = await appraisalService.getAppraisalItems(projectId);
+          }
+        }
+        
         setAppraisalItems(itemsData);
       }
     } catch (error) {
@@ -113,7 +193,34 @@ const WorkOnAppraisal = () => {
       const result = await appraisalService.initializeAppraisalItems(projectId);
 
       // Fetch the newly created items
-      const itemsData = await appraisalService.getAppraisalItems(projectId);
+      let itemsData = await appraisalService.getAppraisalItems(projectId);
+      
+      // If we detected an item type from template, set it for all new items
+      if (detectedItemType && itemsData.length > 0) {
+        console.log(`Setting item_type to "${detectedItemType}" for ${itemsData.length} newly initialized items`);
+        
+        // Ensure schema is loaded, fetch if needed
+        let currentSchema = schema;
+        if (!currentSchema) {
+          currentSchema = await fetchSchema();
+        }
+        
+        // Get description template for the detected type from schema
+        const descriptionTemplate = currentSchema?.description_templates?.[detectedItemType] || null;
+        
+        // Update all items to have the detected item type and description
+        const updatePromises = itemsData.map(item => {
+          const updateData = { item_type: detectedItemType };
+          if (descriptionTemplate && !item.description) {
+            updateData.description = descriptionTemplate;
+          }
+          return appraisalService.updateAppraisalItem(item.id, updateData);
+        });
+        await Promise.all(updatePromises);
+        // Refresh items after update
+        itemsData = await appraisalService.getAppraisalItems(projectId);
+      }
+      
       setAppraisalItems(itemsData);
 
       return result;
@@ -137,7 +244,7 @@ const WorkOnAppraisal = () => {
   const handleItemUpdate = async (itemId, updatedData) => {
     try {
       await appraisalService.updateAppraisalItem(itemId, updatedData);
-
+      
       // Update local state
       setAppraisalItems((prev) =>
         prev.map((item) =>
@@ -154,13 +261,13 @@ const WorkOnAppraisal = () => {
     try {
       // Update local state immediately for better UX
       setAppraisalItems(reorderedItems);
-
+      
       // Prepare reorder data
       const reorderData = reorderedItems.map((item, index) => ({
         item_id: item.id,
         new_sort_order: index + 1,
       }));
-
+      
       await appraisalService.reorderAppraisalItems(projectId, reorderData);
     } catch (error) {
       console.error("Error reordering items:", error);
@@ -176,32 +283,15 @@ const WorkOnAppraisal = () => {
       
       console.log('💾 Saving all items...', appraisalItems);
       
-      // For table-based templates, save attributes
-      if (['coin', 'wine', 'content'].includes(templateCategory)) {
-        for (const item of appraisalItems) {
-          if (item.id) {
-            // Update existing item
-            await appraisalService.updateAppraisalItem(item.id, {
-              item_type: item.item_type,
-              line_number: item.line_number,
-              sort_order: item.sort_order,
-              attributes: item.attributes
-            });
-          } else {
-            // Create new item
-            await appraisalService.createAppraisalItem({
-              project_id: parseInt(projectId),
-              item_type: item.item_type,
-              line_number: item.line_number,
-              sort_order: item.sort_order,
-              attributes: item.attributes
-            });
-          }
+      // Save all items
+      for (const item of appraisalItems) {
+        if (item.id) {
+          // Update existing item - use handleItemUpdate for consistency
+          await handleItemUpdate(item.id, item);
         }
       }
       
       showSuccess('All changes saved successfully');
-      await fetchProjectAndItems(); // Refresh data
     } catch (error) {
       console.error('Error saving:', error);
       showError(error.response?.data?.detail || 'Failed to save changes');
@@ -228,20 +318,20 @@ const WorkOnAppraisal = () => {
         "final",
         true
       );
-
+      
       showSuccess("Report generated successfully");
-
+      
       // Download the generated report
       if (result.download_url) {
         const downloadResponse = await fetch(
           `${import.meta.env.VITE_API_URL}${result.download_url}`,
           {
-            headers: {
+          headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
           }
         );
-
+        
         if (downloadResponse.ok) {
           const blob = await downloadResponse.blob();
           const url = window.URL.createObjectURL(blob);
@@ -252,7 +342,7 @@ const WorkOnAppraisal = () => {
           link.click();
           document.body.removeChild(link);
           window.URL.revokeObjectURL(url);
-
+          
           showSuccess("Report downloaded successfully");
         }
       }
@@ -280,7 +370,7 @@ const WorkOnAppraisal = () => {
   return (
     <Layout>
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-
+      
       <div className="space-y-6">
         {/* Header */}
         <Card className="p-6">
@@ -307,7 +397,7 @@ const WorkOnAppraisal = () => {
                 </div>
               </div>
             </div>
-
+            
             <div className="flex items-center space-x-3">
               <Button
                 onClick={handleSaveAll}
@@ -318,7 +408,7 @@ const WorkOnAppraisal = () => {
               >
                 Save All
               </Button>
-
+              
               {/* Generate Report button temporarily hidden */}
               {/* <Button
                 onClick={handleGenerateReport}
@@ -329,7 +419,7 @@ const WorkOnAppraisal = () => {
               >
                 Generate Report
               </Button> */}
-
+              
               <Button onClick={handleReviewMode} icon={PlayIcon}>
                 Review Mode
               </Button>
@@ -452,68 +542,34 @@ const WorkOnAppraisal = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {['coin', 'wine', 'content'].includes(templateCategory) 
-                          ? 'Table Data' 
-                          : 'Appraisal Items'}
+                        Appraisal Items
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {appraisalItems.length} items • Total value: ${appraisalItems.reduce((sum, item) => {
-                          if (templateCategory === 'coin') {
-                            const qty = parseFloat(item.attributes?.quantity || 0);
-                            const price = parseFloat(item.attributes?.appraised_price || 0);
-                            return sum + (qty * price);
-                          } else if (templateCategory === 'wine') {
-                            return sum + parseFloat(item.attributes?.total_price || 0);
-                          } else if (templateCategory === 'content') {
-                            return sum + parseFloat(item.attributes?.fair_market_value || 0);
-                          } else {
-                            return sum + (item.appraised_value || 0);
-                          }
-                        }, 0).toLocaleString()}
+                        {appraisalItems.length} items • Total value: ${appraisalItems.reduce((sum, item) => sum + (item.appraised_value || 0), 0).toLocaleString()}
                       </p>
                     </div>
                     
-                    {/* Only show Initialize from Photos button for image-based templates */}
-                    {templateCategory === 'image_based' && (
-                      <Button
-                        onClick={handleInitializeItems}
-                        loading={initializing}
-                        disabled={initializing}
-                        icon={PhotoIcon}
-                      >
-                        Initialize from Photos
-                      </Button>
-                    )}
-                    
-                    {/* Show info message for table-based templates */}
-                    {['coin', 'wine', 'content'].includes(templateCategory) && (
-                      <div className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-700">
-                          💡 Edit table data directly below
-                        </p>
-                      </div>
-                    )}
+                    <Button
+                      onClick={handleInitializeItems}
+                      loading={initializing}
+                      disabled={initializing}
+                      icon={PhotoIcon}
+                    >
+                      Initialize from Photos
+                    </Button>
                   </div>
                 </Card.Header>
               </Card>
               
-              {/* Appraisal Table or Table Data Entry */}
-              {['coin', 'wine', 'content'].includes(templateCategory) ? (
-                <TableDataEntry
-                  templateCategory={templateCategory}
-                  items={appraisalItems}
-                  onItemsChange={setAppraisalItems}
-                  projectId={projectId}
-                  loading={loading}
-                />
-              ) : (
-                <AppraisalTable
-                  items={appraisalItems}
-                  onItemUpdate={handleItemUpdate}
-                  onItemsReorder={handleItemsReorder}
-                  loading={loading}
-                />
-              )}
+              {/* Appraisal Table */}
+              <AppraisalTable
+                items={appraisalItems}
+                onItemUpdate={handleItemUpdate}
+                onItemsReorder={handleItemsReorder}
+                loading={loading}
+                project={project}
+                detectedItemType={detectedItemType}
+              />
             </div>
           </Tabs.Content>
         </Tabs>

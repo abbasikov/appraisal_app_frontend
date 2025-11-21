@@ -41,8 +41,13 @@ export const templateService = {
   },
 
   // Generate report
-  generateReport: async (templateId, projectId, reportType = 'draft', includePhotos = true) => {
-    const response = await api.post(`/projects/${projectId}/generate-report/${templateId}?report_type=${reportType}`);
+  generateReport: async (templateId, projectId, reportType = 'draft', includePhotos = true, didInspect = null) => {
+    const params = new URLSearchParams();
+    params.append('report_type', reportType);
+    if (didInspect !== null) {
+      params.append('did_inspect', didInspect.toString());
+    }
+    const response = await api.post(`/projects/${projectId}/generate-report/${templateId}?${params.toString()}`);
     return response.data;
   },
 

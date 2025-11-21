@@ -34,6 +34,9 @@ const AddProject = () => {
     purpose: '',
     inspection_date: '',
     report_date: '',
+    effective_date: '',
+    appraisal_location: '',
+    appraisal_location_type: 'manual', // 'client', 'appraiser', 'attorney', 'manual'
     assigned_user_id: '',
     template_id: '',
     notes: ''
@@ -200,8 +203,12 @@ const AddProject = () => {
           cleanedData[key] = parseInt(value);
         } else if (key === 'template_id' && value) {
           cleanedData[key] = parseInt(value);
-        } else if ((key === 'inspection_date' || key === 'report_date') && value && value.trim() !== '') {
+        } else if ((key === 'inspection_date' || key === 'report_date' || key === 'effective_date') && value && value.trim() !== '') {
           cleanedData[key] = value;
+        } else if (key === 'appraisal_location' && value && value.trim() !== '') {
+          cleanedData[key] = value.trim();
+        } else if (key === 'appraisal_location_type') {
+          // Skip this field - it's only for UI logic
         } else if (value && value.trim && value.trim() !== '') {
           cleanedData[key] = value.trim();
         } else if (!value || (value.trim && value.trim() === '')) {
@@ -254,7 +261,7 @@ const AddProject = () => {
   const selectedAppraisalType = appraisalTypes.find(type => type.value === formData.appraisal_type);
   const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
 
-  const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3, description = '' }) => {
+  const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3, description = '', disabled = false }) => {
     const isCompleted = completedFields.has(name);
     const isFocused = focusedField === name;
     const hasError = errors[name];
@@ -324,8 +331,11 @@ const AddProject = () => {
             onFocus={() => setFocusedField(name)}
             onBlur={() => setFocusedField('')}
             placeholder={placeholder}
+            disabled={disabled}
             className={`w-full px-4 py-3 rounded-2xl border-2 transition-all duration-200 ${
-              hasError
+              disabled
+                ? 'bg-gray-100 cursor-not-allowed opacity-60'
+                : hasError
                 ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
                 : isFocused
                 ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-blue-50/50'
@@ -549,6 +559,70 @@ const AddProject = () => {
                     label: 'Report Due Date',
                     type: 'date',
                     description: 'Expected completion date for the appraisal report'
+                  })}
+
+                  {renderField({
+                    name: 'effective_date',
+                    label: 'Effective Date',
+                    type: 'date',
+                    description: 'Effective date for the appraisal'
+                  })}
+                </div>
+              </div>
+
+              {/* Appraisal Location */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                  <BuildingOfficeIcon className="w-5 h-5 text-indigo-500" />
+                  <span>Appraisal Location</span>
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                      <span>Location Type</span>
+                    </label>
+                    <select
+                      name="appraisal_location_type"
+                      value={formData.appraisal_location_type}
+                      onChange={(e) => {
+                        const locationType = e.target.value;
+                        setFormData(prev => ({ ...prev, appraisal_location_type: locationType }));
+                        
+                        // Auto-populate location based on selection
+                        if (locationType === 'client' && selectedClient) {
+                          const clientLocation = selectedClient.address 
+                            ? `${selectedClient.address}${selectedClient.city ? `, ${selectedClient.city}` : ''}${selectedClient.state ? `, ${selectedClient.state}` : ''}${selectedClient.zip_code ? ` ${selectedClient.zip_code}` : ''}`.trim()
+                            : '';
+                          setFormData(prev => ({ ...prev, appraisal_location: clientLocation }));
+                        } else if (locationType === 'attorney' && selectedClient?.attorney_name) {
+                          // For attorney, we'll use attorney info if available
+                          const attorneyLocation = selectedClient.attorney_name || '';
+                          setFormData(prev => ({ ...prev, appraisal_location: attorneyLocation }));
+                        } else if (locationType === 'manual') {
+                          setFormData(prev => ({ ...prev, appraisal_location: '' }));
+                        }
+                      }}
+                      className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/20"
+                    >
+                      <option value="manual">Enter Manually</option>
+                      <option value="client">Client Location</option>
+                      <option value="appraiser">Appraiser Location</option>
+                      <option value="attorney">Attorney Location</option>
+                    </select>
+                  </div>
+
+                  {renderField({
+                    name: 'appraisal_location',
+                    label: 'Appraisal Location',
+                    type: 'text',
+                    placeholder: formData.appraisal_location_type === 'manual' 
+                      ? 'Enter appraisal location...' 
+                      : 'Location will be auto-populated based on selection',
+                    description: formData.appraisal_location_type === 'manual' 
+                      ? 'Enter the location where the appraisal will take place'
+                      : `Using ${formData.appraisal_location_type === 'client' ? 'client' : formData.appraisal_location_type === 'appraiser' ? 'appraiser' : 'attorney'} location. You can edit if needed.`,
+                    disabled: false
                   })}
                 </div>
               </div>

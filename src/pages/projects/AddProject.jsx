@@ -29,6 +29,7 @@ const AddProject = () => {
   const [formData, setFormData] = useState({
     project_name: '',
     client_id: '',
+    case_name: '',
     case_number: '',
     appraisal_type: 'DIVORCE',
     purpose: '',
@@ -535,6 +536,15 @@ const AddProject = () => {
                     label: 'Case Number',
                     placeholder: 'Enter case number if applicable...',
                     description: 'Optional reference number for tracking'
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderField({
+                    name: 'case_name',
+                    label: 'Case Name',
+                    placeholder: 'e.g., Estate of John Smith...',
+                    description: 'Name of case for this appraisal'
                   })}
                 </div>
               </div>

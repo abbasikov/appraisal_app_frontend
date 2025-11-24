@@ -25,6 +25,21 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [useTemplateMode, setUseTemplateMode] = useState(true); // Default to template mode
 
+  // Load saved items per page preference from localStorage
+  useEffect(() => {
+    try {
+      const savedItemsPerPage = localStorage.getItem('appraisalTableItemsPerPage');
+      if (savedItemsPerPage) {
+        const value = parseInt(savedItemsPerPage, 10);
+        if ([10, 25, 50, 100].includes(value)) {
+          setItemsPerPage(value);
+        }
+      }
+    } catch (error) {
+      console.warn("Could not load items per page preference:", error);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchSchema = async () => {
       try {
@@ -811,7 +826,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
         </div>
 
         {/* Pagination */}
-        {items.length > itemsPerPage && (
+        {items.length > 10 && (
           <div className="bg-white px-6 py-4 border-t border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -819,10 +834,17 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                 <select
                   value={itemsPerPage}
                   onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
+                    const newValue = Number(e.target.value);
+                    setItemsPerPage(newValue);
                     setCurrentPage(1);
+                    // Save preference to localStorage
+                    try {
+                      localStorage.setItem('appraisalTableItemsPerPage', String(newValue));
+                    } catch (error) {
+                      console.warn("Could not save items per page preference:", error);
+                    }
                   }}
-                  className="form-input text-sm w-20"
+                  className="form-input text-sm w-20 cursor-pointer bg-white border border-gray-300 rounded"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>

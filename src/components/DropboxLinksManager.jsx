@@ -270,12 +270,6 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
 
   return (
     <div className="space-y-4">
-      {/* Debug info */}
-      <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-        Debug: Project ID: {projectId}, Links count: {links.length}
-        {links.length > 0 && <div>Links: {JSON.stringify(links)}</div>}
-      </div>
-
       {/* Add new link input */}
       <div className="space-y-3">
         <div className="flex gap-2">

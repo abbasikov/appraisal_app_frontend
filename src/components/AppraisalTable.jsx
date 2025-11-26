@@ -409,10 +409,11 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                     <th className="table-header-cell">Floor/Bldg</th>
                   </>
                 )}
-                <th className="table-header-cell">
-                  <div className="flex items-center justify-between">
+                <th className="table-header-cell text-center">
+                  <div className="flex items-center justify-center">
                     <span>Type</span>
-                    <Button
+                    {/* Template/Multi-field toggle temporarily commented out */}
+                    {/* <Button
                       onClick={() => setUseTemplateMode(!useTemplateMode)}
                       variant="ghost"
                       size="sm"
@@ -424,7 +425,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                       }
                     >
                       {useTemplateMode ? "📝 Template" : "📋 Multi-field"}
-                    </Button>
+                    </Button> */}
                   </div>
                 </th>
                 <th className="table-header-cell">
@@ -633,7 +634,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                             autoFocus
                           >
                             <option value="">Select Type</option>
-                            {schema?.item_type_options?.map((option) => (
+                            {schema?.item_type_options?.sort((a, b) => a.localeCompare(b)).map((option) => (
                               <option key={option} value={option}>
                                 {option}
                               </option>

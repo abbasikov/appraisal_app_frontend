@@ -31,13 +31,15 @@ const AddProject = () => {
     client_id: '',
     case_name: '',
     case_number: '',
-    appraisal_type: 'DIVORCE',
+    appraisal_type: 'SELECT',
     purpose: '',
     inspection_date: '',
     report_date: '',
     effective_date: '',
     appraisal_location: '',
     appraisal_location_type: 'manual', // 'client', 'appraiser', 'attorney', 'manual'
+    estate_of: '',  // For ESTATE appraisals
+    date_of_death: '',  // For ESTATE appraisals
     assigned_user_id: '',
     template_id: '',
     notes: ''
@@ -48,7 +50,7 @@ const AddProject = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [errors, setErrors] = useState({});
 
-  const appraisalTypes = [
+  const appraisalTypes = [{ value: 'SELECT', label: 'Select', icon: UserIcon, color: 'blue', description: 'Please select appraisal type' },
     { value: 'DIVORCE', label: 'Divorce', icon: UserIcon, color: 'blue', description: 'Marital dissolution appraisals' },
     { value: 'ESTATE', label: 'Estate', icon: BuildingOfficeIcon, color: 'green', description: 'Estate settlement and probate' },
     { value: 'INSURANCE', label: 'Insurance', icon: DocumentTextIcon, color: 'purple', description: 'Insurance claim evaluations' },
@@ -149,7 +151,7 @@ const AddProject = () => {
       newErrors.client_id = 'Please select a client';
     }
     
-    if (!formData.appraisal_type) {
+    if (!formData.appraisal_type || formData.appraisal_type === 'SELECT') {
       newErrors.appraisal_type = 'Please select an appraisal type';
     }
     
@@ -605,10 +607,18 @@ const AddProject = () => {
                             ? `${selectedClient.address}${selectedClient.city ? `, ${selectedClient.city}` : ''}${selectedClient.state ? `, ${selectedClient.state}` : ''}${selectedClient.zip_code ? ` ${selectedClient.zip_code}` : ''}`.trim()
                             : '';
                           setFormData(prev => ({ ...prev, appraisal_location: clientLocation }));
-                        } else if (locationType === 'attorney' && selectedClient?.attorney_name) {
-                          // For attorney, we'll use attorney info if available
-                          const attorneyLocation = selectedClient.attorney_name || '';
-                          setFormData(prev => ({ ...prev, appraisal_location: attorneyLocation }));
+                        } else if (locationType === 'attorney' && selectedClient?.parent_account_id) {
+                          // For attorney, use parent account address
+                          const parentAddress = selectedClient.parent_account_address 
+                            ? `${selectedClient.parent_account_address}${selectedClient.parent_account_city ? `, ${selectedClient.parent_account_city}` : ''}${selectedClient.parent_account_state ? `, ${selectedClient.parent_account_state}` : ''}${selectedClient.parent_account_zip ? ` ${selectedClient.parent_account_zip}` : ''}`.trim()
+                            : '';
+                          setFormData(prev => ({ ...prev, appraisal_location: parentAddress }));
+                        } else if (locationType === 'appraiser' && selectedClient?.parent_account_id) {
+                          // For appraiser, use parent account address
+                          const parentAddress = selectedClient.parent_account_address 
+                            ? `${selectedClient.parent_account_address}${selectedClient.parent_account_city ? `, ${selectedClient.parent_account_city}` : ''}${selectedClient.parent_account_state ? `, ${selectedClient.parent_account_state}` : ''}${selectedClient.parent_account_zip ? ` ${selectedClient.parent_account_zip}` : ''}`.trim()
+                            : '';
+                          setFormData(prev => ({ ...prev, appraisal_location: parentAddress }));
                         } else if (locationType === 'manual') {
                           setFormData(prev => ({ ...prev, appraisal_location: '' }));
                         }
@@ -636,6 +646,33 @@ const AddProject = () => {
                   })}
                 </div>
               </div>
+
+              {/* Estate Information (only for ESTATE appraisals) */}
+              {formData.appraisal_type === 'ESTATE' && (
+                <div className="space-y-6 p-6 rounded-2xl bg-green-50 border-2 border-green-200">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                    <BuildingOfficeIcon className="w-5 h-5 text-green-600" />
+                    <span>Estate Information</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderField({
+                      name: 'estate_of',
+                      label: 'Estate Of',
+                      type: 'text',
+                      placeholder: 'Enter the name of the estate...',
+                      description: 'Name of the deceased person or estate'
+                    })}
+
+                    {renderField({
+                      name: 'date_of_death',
+                      label: 'Date of Death',
+                      type: 'date',
+                      description: 'Date when the individual passed away'
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Template Selection */}
               <div className="space-y-6">

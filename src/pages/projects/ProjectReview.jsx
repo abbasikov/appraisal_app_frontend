@@ -7,6 +7,7 @@ import Layout from "../../components/Layout";
 import { useToast } from "../../hooks/useToast";
 import InspectionVerificationModal from "../../components/InspectionVerificationModal";
 import { detectItemTypeFromTemplate } from "../../utils/templateDetector";
+import api from "../../services/api";
 import {
   Document,
   Packer,
@@ -18,6 +19,52 @@ import {
   WidthType,
 } from "docx";
 import { saveAs } from "file-saver";
+
+// ThumbnailImage component with proper auth token handling
+const ThumbnailImage = ({ projectId, photoId, alt, className, style }) => {
+  const [imageSrc, setImageSrc] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const fetchThumbnail = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/projects/${projectId}/photos/${photoId}/thumbnail`, {
+          responseType: 'blob'
+        });
+        const imageUrl = URL.createObjectURL(response.data);
+        setImageSrc(imageUrl);
+        setError(false);
+      } catch (err) {
+        console.error('Error loading thumbnail:', err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (projectId && photoId) {
+      fetchThumbnail();
+    }
+
+    return () => {
+      if (imageSrc) {
+        URL.revokeObjectURL(imageSrc);
+      }
+    };
+  }, [projectId, photoId]);
+
+  if (loading) {
+    return <div style={{ ...style, backgroundColor: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+  }
+
+  if (error || !imageSrc) {
+    return <div style={{ ...style, backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#6b7280' }}>No Photo</div>;
+  }
+
+  return <img src={imageSrc} alt={alt} className={className} style={style} />;
+};
 
 const ProjectReview = () => {
   const { id } = useParams();
@@ -345,11 +392,11 @@ const ProjectReview = () => {
                       <td>{index + 1}</td>
                       <td>
                         {item.photo_id ? (
-                          <img 
-                            src={`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}/photos/${item.photo_id}/thumbnail`}
+                          <ThumbnailImage
+                            projectId={id}
+                            photoId={item.photo_id}
                             alt="Item photo"
                             style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
-                            onError={(e) => { e.target.style.display = 'none'; }}
                           />
                         ) : (
                           <div style={{ width: '60px', height: '60px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontSize: '12px', color: '#6b7280' }}>

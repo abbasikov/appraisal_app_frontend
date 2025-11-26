@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import Button from './Button';
 
@@ -44,17 +45,17 @@ const Modal = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[9999] overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-hidden">
+      <div className="flex items-center justify-center w-full h-full">
         {/* Overlay */}
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity animate-fade-in"
+          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity animate-fade-in z-0"
           onClick={closeOnOverlayClick ? onClose : undefined}
         />
         
-        {/* Modal */}
-        <div className={`relative bg-white rounded-xl shadow-strong ${sizeClasses[size]} w-full animate-slide-in`}>
+        {/* Modal - with higher z-index than overlay */}
+        <div className={`relative z-10 bg-white rounded-xl shadow-strong ${sizeClasses[size]} w-full max-h-[95vh] overflow-y-auto animate-slide-in`}>
           {/* Header */}
           {(title || showCloseButton) && (
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -81,6 +82,9 @@ const Modal = ({
       </div>
     </div>
   );
+
+  // Render modal using Portal at document body level
+  return ReactDOM.createPortal(modalContent, document.body);
 };
 
 const ModalHeader = ({ children, className = '' }) => (

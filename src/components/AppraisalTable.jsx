@@ -16,6 +16,99 @@ import Modal from "./ui/Modal";
 import api from "../services/api";
 import { appraisalService } from "../services/appraisalService";
 
+// PhotoModal component to display photo with auth token
+const PhotoModal = ({ photo }) => {
+  const [imageSrc, setImageSrc] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPhoto = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/projects/${photo.project_id}/photos/${photo.photo_id}/thumbnail`, {
+          responseType: 'blob'
+        });
+        const imageUrl = URL.createObjectURL(response.data);
+        setImageSrc(imageUrl);
+      } catch (err) {
+        console.error('Error loading photo:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPhoto();
+
+    return () => {
+      if (imageSrc) {
+        URL.revokeObjectURL(imageSrc);
+      }
+    };
+  }, [photo]);
+
+  const formatCurrency = (value) => {
+    if (!value) return "$0.00";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(value);
+  };
+
+  return (
+    <div className="space-y-4 flex flex-col max-h-[calc(100vh-100px)]">
+      <div className="flex-1 overflow-hidden flex items-center justify-center rounded-lg">
+        {loading ? (
+          <div className="w-full h-full rounded-lg shadow-medium bg-gray-200 animate-pulse" style={{ minHeight: '550px' }}></div>
+        ) : imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={photo.photo_filename || "Photo"}
+            className="max-w-full max-h-[calc(100vh-120px)] object-contain rounded-lg shadow-medium"
+          />
+        ) : (
+          <div className="w-full h-full rounded-lg shadow-medium bg-gray-100 flex items-center justify-center" style={{ minHeight: '550px' }}>
+            <p className="text-gray-500">Failed to load photo</p>
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-sm overflow-y-auto">
+        <div>
+          <span className="font-medium text-gray-700">Room/Area:</span>
+          <p className="text-gray-900">
+            {photo.room_area || "Not specified"}
+          </p>
+        </div>
+        <div>
+          <span className="font-medium text-gray-700">Type:</span>
+          <p className="text-gray-900 capitalize">
+            {photo.item_type || "Not specified"}
+          </p>
+        </div>
+        <div className="col-span-2">
+          <span className="font-medium text-gray-700">Description:</span>
+          <p className="text-gray-900">
+            {photo.description || "No description"}
+          </p>
+        </div>
+        <div>
+          <span className="font-medium text-gray-700">Floor/Building:</span>
+          <p className="text-gray-900">
+            {photo.floor_building || "Not specified"}
+          </p>
+        </div>
+        <div>
+          <span className="font-medium text-gray-700">
+            Appraised Value:
+          </span>
+          <p className="text-green-700 font-semibold">
+            {formatCurrency(photo.appraised_value)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project, detectedItemType }) => {
   const [draggedItem, setDraggedItem] = useState(null);
   const [editingCell, setEditingCell] = useState(null);
@@ -938,47 +1031,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
         size="lg"
       >
         {selectedPhoto && (
-          <div className="space-y-4">
-            <img
-              src={`${import.meta.env.VITE_API_URL}/api/v1/projects/${
-                selectedPhoto.project_id
-              }/photos/${selectedPhoto.photo_id}/thumbnail`}
-              alt={selectedPhoto.photo_filename || "Photo"}
-              className="w-full h-auto rounded-lg shadow-medium"
-              onError={(e) => {
-                e.target.src =
-                  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEwMCAxMDBaIiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K";
-              }}
-            />
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-gray-700">Room/Area:</span>
-                <p className="text-gray-900">
-                  {selectedPhoto.room_area || "Not specified"}
-                </p>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Type:</span>
-                <p className="text-gray-900 capitalize">
-                  {selectedPhoto.item_type || "Not specified"}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <span className="font-medium text-gray-700">Description:</span>
-                <p className="text-gray-900">
-                  {selectedPhoto.description || "No description"}
-                </p>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">
-                  Appraised Value:
-                </span>
-                <p className="text-green-700 font-semibold">
-                  {formatCurrency(selectedPhoto.appraised_value)}
-                </p>
-              </div>
-            </div>
-          </div>
+          <PhotoModal photo={selectedPhoto} />
         )}
       </Modal>
     </>

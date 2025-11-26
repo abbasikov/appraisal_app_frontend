@@ -10,6 +10,7 @@ import { appraisalService } from "../../services/appraisalService";
 import { projectService } from "../../services/projectService";
 import { templateService } from "../../services/templateService";
 import { useToast } from "../../hooks/useToast";
+import { useImport } from "../../context/ImportContext";
 import ToastContainer from "../../components/ToastContainer";
 import { detectItemTypeFromTemplate } from "../../utils/templateDetector";
 import { 
@@ -26,6 +27,7 @@ const WorkOnAppraisal = () => {
   const { id: projectId } = useParams();
   const navigate = useNavigate();
   const { toasts, showSuccess, showError, removeToast } = useToast();
+  const { isImporting, projectId: importProjectId } = useImport();
   
   const [project, setProject] = useState(null);
   const [template, setTemplate] = useState(null);
@@ -47,6 +49,61 @@ const WorkOnAppraisal = () => {
     };
     initialize();
   }, [projectId]);
+
+  // Track previous import state to detect when import completes
+  const prevIsImporting = React.useRef(isImporting);
+  
+  useEffect(() => {
+    // Check if an import just completed for THIS specific project
+    // We detect this by checking if import WAS true and is now false
+    if (prevIsImporting.current === true && isImporting === false && importProjectId === projectId) {
+      console.log('Import completed for current project, refreshing template detection...');
+      const refreshData = async () => {
+        try {
+          let itemsData = await appraisalService.getAppraisalItems(projectId);
+          
+          // If we have detected item type, apply it to items that don't have it
+          if (detectedItemType && itemsData.length > 0) {
+            const itemsNeedingUpdate = itemsData.filter(item => !item.item_type);
+            if (itemsNeedingUpdate.length > 0) {
+              console.log(`Auto-applying item_type "${detectedItemType}" to ${itemsNeedingUpdate.length} items`);
+              
+              // Ensure schema is loaded
+              let currentSchema = schema;
+              if (!currentSchema) {
+                currentSchema = await fetchSchema();
+              }
+              
+              // Get description template
+              const descriptionTemplate = currentSchema?.description_templates?.[detectedItemType] || null;
+              
+              // Update all new items
+              const updatePromises = itemsNeedingUpdate.map(item => {
+                const updateData = { item_type: detectedItemType };
+                if (descriptionTemplate) {
+                  updateData.description = descriptionTemplate;
+                }
+                return appraisalService.updateAppraisalItem(item.id, updateData);
+              });
+              
+              await Promise.all(updatePromises);
+              itemsData = await appraisalService.getAppraisalItems(projectId);
+            }
+          }
+          
+          setAppraisalItems(itemsData);
+          showSuccess('Template type and description auto-loaded!');
+        } catch (error) {
+          console.error('Error refreshing after import:', error);
+        }
+      };
+      
+      refreshData();
+    }
+    
+    // Update ref to track state change
+    prevIsImporting.current = isImporting;
+  }, [isImporting, importProjectId, projectId, detectedItemType, schema]);
 
   const fetchSchema = async () => {
     try {

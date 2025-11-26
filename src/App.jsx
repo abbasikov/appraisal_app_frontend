@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { ImportProvider } from './context/ImportContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
@@ -38,8 +39,9 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <Router>
-        <div className="App">
+        <ImportProvider>
+          <Router>
+          <div className="App">
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
@@ -259,6 +261,7 @@ function App() {
           </Routes>
         </div>
         </Router>
+        </ImportProvider>
       </ToastProvider>
     </AuthProvider>
   );

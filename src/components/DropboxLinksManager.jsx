@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { projectService } from '../services/projectService';
 import { useToast } from '../context/ToastContext';
+import { useImport } from '../context/ImportContext';
 
 const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
   const [links, setLinks] = useState([]);
@@ -11,6 +12,7 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { showSuccess, showError, showLoading, updateToast, removeToast } = useToast();
+  const { isImporting, setImporting, setProgress, setPollingInterval, clearImportState, pollingIntervalId, toastId } = useImport();
   
   // Keep track of current import task
   const currentTaskRef = useRef(null);
@@ -19,13 +21,18 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
   useEffect(() => {
     loadProjectLinks();
     
+    // If there's an ongoing import for this project, restore it
+    if (isImporting && currentTaskRef.current?.projectId === projectId) {
+      setImportingPhotos(true);
+      pollingIntervalRef.current = pollingIntervalId;
+    }
+    
     // Cleanup polling on unmount
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      // Don't clear polling here - let the global context handle it
+      // This way the import continues even when navigating away
     };
-  }, [projectId]);
+  }, [projectId, isImporting]);
 
 
   const loadProjectLinks = async () => {
@@ -136,12 +143,14 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
       
       // Update toast with progress if available
       if (status.processed_items !== undefined && status.total_items !== undefined) {
+        const progressData = {
+          current: status.processed_items || 0,
+          total: status.total_items || 0
+        };
+        setProgress(progressData.current, progressData.total);
         updateToast(toastId, {
           message: 'Importing photos...',
-          progress: {
-            current: status.processed_items || 0,
-            total: status.total_items || 0
-          }
+          progress: progressData
         });
       }
       
@@ -178,6 +187,7 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
         
         // Reset state
         setImportingPhotos(false);
+        clearImportState(); // Clear global import state
         currentTaskRef.current = null;
         
         // Reload the page after a short delay to show imported images
@@ -202,6 +212,7 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
         
         // Reset state
         setImportingPhotos(false);
+        clearImportState(); // Clear global import state
         currentTaskRef.current = null;
       }
       
@@ -225,13 +236,18 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
       // Show persistent loading toast
       const toastId = showLoading('Starting import...', { current: 0, total: 0 });
       
-      // Store task info
-      currentTaskRef.current = { taskId, toastId };
+      // Store task info in refs AND global state
+      currentTaskRef.current = { taskId, toastId, projectId };
+      setImporting(true, projectId, taskId, toastId);
       
       // Start polling for status updates every 3 seconds
-      pollingIntervalRef.current = setInterval(() => {
+      const intervalId = setInterval(() => {
         pollTaskStatus(taskId, toastId);
       }, 3000);
+      
+      // Store interval in global state for cleanup on unmount
+      setPollingInterval(intervalId);
+      pollingIntervalRef.current = intervalId;
       
       // Do initial check after 1 second
       setTimeout(() => {

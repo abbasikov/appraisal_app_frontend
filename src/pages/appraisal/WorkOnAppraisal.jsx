@@ -606,14 +606,21 @@ const WorkOnAppraisal = () => {
                       </p>
                     </div>
                     
-                    <Button
-                      onClick={handleInitializeItems}
-                      loading={initializing}
-                      disabled={initializing}
-                      icon={PhotoIcon}
-                    >
-                      Initialize from Photos
-                    </Button>
+                    <div className="flex flex-col items-end space-y-2">
+                      <Button
+                        onClick={handleInitializeItems}
+                        loading={initializing}
+                        disabled={initializing || (isImporting && importProjectId === projectId)}
+                        icon={PhotoIcon}
+                      >
+                        Initialize from Photos
+                      </Button>
+                      {isImporting && importProjectId === projectId && (
+                        <p className="text-xs text-amber-600 font-medium">
+                          ⏳ Please wait until photo import process completes
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </Card.Header>
               </Card>

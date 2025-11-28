@@ -410,7 +410,7 @@ const ProjectDetails = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                 <div className="space-y-3">
                   <button
-                    onClick={() => navigate(`/projects/${id}/appraisal`)}
+                    onClick={() => navigate(`/projects/${id}/appraisal?detect=true`)}
                     className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     <PlayIcon className="w-5 h-5" />

@@ -50,6 +50,68 @@ const WorkOnAppraisal = () => {
     initialize();
   }, [projectId]);
 
+  // Check for 'detect=true' query parameter to force template detection
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const shouldDetect = searchParams.get('detect') === 'true';
+    
+    if (shouldDetect && detectedItemType && appraisalItems.length > 0) {
+      console.log('🔍 Detect parameter found - forcing template detection and description auto-population');
+      
+      const applyTemplateDetection = async () => {
+        try {
+          // Get all items that need updating (items without item_type or description)
+          const itemsNeedingUpdate = appraisalItems.filter(item => !item.item_type || !item.description);
+          
+          if (itemsNeedingUpdate.length > 0) {
+            console.log(`Applying template detection to ${itemsNeedingUpdate.length} items`);
+            
+            // Ensure schema is loaded
+            let currentSchema = schema;
+            if (!currentSchema) {
+              currentSchema = await fetchSchema();
+            }
+            
+            // Get description template for the detected type
+            const descriptionTemplate = currentSchema?.description_templates?.[detectedItemType] || null;
+            
+            // Update all items
+            const updatePromises = itemsNeedingUpdate.map(item => {
+              const updateData = { item_type: detectedItemType };
+              if (descriptionTemplate) {
+                updateData.description = descriptionTemplate;
+              }
+              return appraisalService.updateAppraisalItem(item.id, updateData);
+            });
+            
+            await Promise.all(updatePromises);
+            
+            // Refresh items
+            const itemsData = await appraisalService.getAppraisalItems(projectId);
+            setAppraisalItems(itemsData);
+            
+            showSuccess('Template type and description auto-populated!');
+          } else {
+            console.log('All items already have template type and description');
+          }
+          
+          // Clear the detect parameter from URL
+          searchParams.delete('detect');
+          const newUrl = window.location.pathname + (searchParams.toString() ? '?' + searchParams.toString() : '');
+          window.history.replaceState({}, '', newUrl);
+          console.log('✅ Cleared detect parameter from URL');
+          
+        } catch (error) {
+          console.error('Error applying template detection:', error);
+          showError('Failed to apply template detection');
+        }
+      };
+      
+      applyTemplateDetection();
+    }
+  }, [detectedItemType, appraisalItems, schema, projectId]);
+
+
   // Track previous import state to detect when import completes
   const prevIsImporting = React.useRef(isImporting);
   

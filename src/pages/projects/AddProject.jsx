@@ -40,6 +40,7 @@ const AddProject = () => {
     appraisal_location_type: 'manual', // 'client', 'appraiser', 'attorney', 'manual'
     estate_of: '',  // For ESTATE appraisals
     date_of_death: '',  // For ESTATE appraisals
+    address_letter_to: '',  // Address to send letter to
     assigned_user_id: '',
     template_id: '',
     notes: ''
@@ -153,6 +154,22 @@ const AddProject = () => {
     
     if (!formData.appraisal_type || formData.appraisal_type === 'SELECT') {
       newErrors.appraisal_type = 'Please select an appraisal type';
+    }
+    
+    // Validate estate fields if appraisal type is ESTATE
+    if (formData.appraisal_type === 'ESTATE') {
+      if (!formData.estate_of || !formData.estate_of.trim()) {
+        newErrors.estate_of = 'Estate Of is required for Estate appraisals';
+      }
+      
+      if (!formData.date_of_death || !formData.date_of_death.trim()) {
+        newErrors.date_of_death = 'Date of Death is required for Estate appraisals';
+      }
+    }
+    
+    // Validate address_letter_to
+    if (!formData.address_letter_to || !formData.address_letter_to.trim()) {
+      newErrors.address_letter_to = 'Address Letter To is required';
     }
     
     // Validate dates if provided
@@ -534,14 +551,23 @@ const AddProject = () => {
                   })}
 
                   {renderField({
+                    name: 'address_letter_to',
+                    label: 'Address Letter To',
+                    type: 'text',
+                    required: true,
+                    placeholder: 'Enter address where letter should be sent...',
+                    description: 'Person to whom the letter should be addressed'
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderField({
                     name: 'case_number',
                     label: 'Case Number',
                     placeholder: 'Enter case number if applicable...',
                     description: 'Optional reference number for tracking'
                   })}
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {renderField({
                     name: 'case_name',
                     label: 'Case Name',
@@ -647,32 +673,7 @@ const AddProject = () => {
                 </div>
               </div>
 
-              {/* Estate Information (only for ESTATE appraisals) */}
-              {formData.appraisal_type === 'ESTATE' && (
-                <div className="space-y-6 p-6 rounded-2xl bg-green-50 border-2 border-green-200">
-                  <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
-                    <BuildingOfficeIcon className="w-5 h-5 text-green-600" />
-                    <span>Estate Information</span>
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderField({
-                      name: 'estate_of',
-                      label: 'Estate Of',
-                      type: 'text',
-                      placeholder: 'Enter the name of the estate...',
-                      description: 'Name of the deceased person or estate'
-                    })}
 
-                    {renderField({
-                      name: 'date_of_death',
-                      label: 'Date of Death',
-                      type: 'date',
-                      description: 'Date when the individual passed away'
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* Template Selection */}
               <div className="space-y-6">
@@ -697,6 +698,35 @@ const AddProject = () => {
                   ]
                 })}
               </div>
+
+              {/* Estate Information - Only for ESTATE appraisals */}
+              {formData.appraisal_type === 'ESTATE' && (
+                <div className="space-y-6 p-6 rounded-2xl bg-green-50 border-2 border-green-200">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                    <BuildingOfficeIcon className="w-5 h-5 text-green-600" />
+                    <span>Estate Information</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderField({
+                      name: 'estate_of',
+                      label: 'Estate Of',
+                      type: 'text',
+                      required: true,
+                      placeholder: 'Enter the name of the estate...',
+                      description: 'Name of the deceased person or estate'
+                    })}
+
+                    {renderField({
+                      name: 'date_of_death',
+                      label: 'Date of Death',
+                      type: 'date',
+                      required: true,
+                      description: 'Date when the individual passed away'
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Additional Information */}
               <div className="space-y-6">

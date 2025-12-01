@@ -35,6 +35,9 @@ const EditProject = () => {
     purpose: '',
     inspection_date: '',
     report_date: '',
+    estate_of: '',
+    date_of_death: '',
+    address_letter_to: '',
     assigned_user_id: '',
     status: 'DRAFT',
     notes: ''
@@ -80,6 +83,9 @@ const EditProject = () => {
         purpose: projectData.purpose || '',
         inspection_date: projectData.inspection_date || '',
         report_date: projectData.report_date || '',
+        estate_of: projectData.estate_of || '',
+        date_of_death: projectData.date_of_death || '',
+        address_letter_to: projectData.address_letter_to || '',
         assigned_user_id: projectData.assigned_user_id || '',
         status: projectData.status || 'DRAFT',
         notes: projectData.notes || ''
@@ -136,6 +142,22 @@ const EditProject = () => {
     
     if (!formData.client_id) {
       newErrors.client_id = 'Please select a client';
+    }
+    
+    // Validate estate fields if appraisal type is ESTATE
+    if (formData.appraisal_type === 'ESTATE') {
+      if (!formData.estate_of || !formData.estate_of.trim()) {
+        newErrors.estate_of = 'Estate Of is required for Estate appraisals';
+      }
+      
+      if (!formData.date_of_death || !formData.date_of_death.trim()) {
+        newErrors.date_of_death = 'Date of Death is required for Estate appraisals';
+      }
+    }
+    
+    // Validate address_letter_to
+    if (!formData.address_letter_to || !formData.address_letter_to.trim()) {
+      newErrors.address_letter_to = 'Address Letter To is required';
     }
     
     setErrors(newErrors);
@@ -450,13 +472,21 @@ const EditProject = () => {
                   })}
 
                   {renderField({
-                    name: 'case_number',
-                    label: 'Case Number',
-                    placeholder: 'Enter case number...'
+                    name: 'address_letter_to',
+                    label: 'Address Letter To',
+                    type: 'text',
+                    required: true,
+                    placeholder: 'Enter address where letter should be sent...'
                   })}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderField({
+                    name: 'case_number',
+                    label: 'Case Number',
+                    placeholder: 'Enter case number...'
+                  })}
+
                   {renderField({
                     name: 'case_name',
                     label: 'Case Name',
@@ -494,6 +524,31 @@ const EditProject = () => {
                   })}
                 </div>
               </div>
+
+              {/* Estate Information - Only for ESTATE appraisals */}
+              {formData.appraisal_type === 'ESTATE' && (
+                <div className="space-y-6 p-6 rounded-2xl bg-green-50 border-2 border-green-200">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                    <BuildingOfficeIcon className="w-5 h-5 text-green-600" />
+                    <span>Estate Information</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderField({
+                      name: 'estate_of',
+                      label: 'Estate Of',
+                      type: 'text',
+                      placeholder: 'Enter the name of the estate...'
+                    })}
+
+                    {renderField({
+                      name: 'date_of_death',
+                      label: 'Date of Death',
+                      type: 'date'
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Additional Information */}
               <div className="space-y-6">

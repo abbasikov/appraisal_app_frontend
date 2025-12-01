@@ -383,7 +383,7 @@ const ProjectReview = () => {
                     )}
                     <th>Type</th>
                     <th>Description</th>
-                    <th>Appraised Value</th>
+                    <th>{project.appraisal_type === 'INSURANCE' || project.appraisal_type === 'REPLACEMENT' ? 'Replacement Value' : 'Appraised Value'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -422,7 +422,7 @@ const ProjectReview = () => {
                   ))}
                   <tr className="total-row">
                     <td colSpan={detectedItemType === "Coins" || detectedItemType === "Wine" ? "4" : "5"}>
-                      <strong>Total Appraised Value:</strong>
+                      <strong>Total {project.appraisal_type === 'INSURANCE' || project.appraisal_type === 'REPLACEMENT' ? 'Replacement' : 'Appraised'} Value:</strong>
                     </td>
                     <td><strong>${totalValue.toLocaleString()}</strong></td>
                   </tr>
@@ -434,8 +434,8 @@ const ProjectReview = () => {
             <div className="mt-8">
               <h2 className="text-xl font-semibold mb-4">Summary</h2>
               <p>
-                This appraisal report contains {items.length} items with a total
-                appraised value of ${totalValue.toLocaleString()}. The appraisal
+                This appraisal report contains {items.length} items with a total{" "}
+                {project.appraisal_type === 'INSURANCE' || project.appraisal_type === 'REPLACEMENT' ? 'replacement' : 'appraised'} value of ${totalValue.toLocaleString()}. The appraisal
                 was conducted for {project.appraisal_type.toLowerCase()}{" "}
                 purposes.
               </p>

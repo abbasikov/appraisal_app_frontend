@@ -905,7 +905,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600 mb-1">
-                Total Appraised Value
+                {project?.appraisal_type === 'INSURANCE' || project?.appraisal_type === 'REPLACEMENT' ? 'Total Replacement Value' : 'Total Appraised Value'}
               </p>
               <p className="text-2xl font-bold text-green-700">
                 {formatCurrency(

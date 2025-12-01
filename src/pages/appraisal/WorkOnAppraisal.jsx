@@ -638,7 +638,7 @@ const WorkOnAppraisal = () => {
                 <h3 className="text-2xl font-bold text-gray-900">
                   ${appraisalItems.reduce((sum, item) => sum + (item.appraised_value || 0), 0).toLocaleString()}
                 </h3>
-                <p className="text-sm text-gray-600">Total Value</p>
+                <p className="text-sm text-gray-600">{project?.appraisal_type === 'INSURANCE' || project?.appraisal_type === 'REPLACEMENT' ? 'Total Replacement Value' : 'Total Value'}</p>
               </Card>
               
               <Card className="p-6 text-center">
@@ -664,7 +664,7 @@ const WorkOnAppraisal = () => {
                         Appraisal Items
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {appraisalItems.length} items • Total value: ${appraisalItems.reduce((sum, item) => sum + (item.appraised_value || 0), 0).toLocaleString()}
+                        {appraisalItems.length} items • {project?.appraisal_type === 'INSURANCE' || project?.appraisal_type === 'REPLACEMENT' ? 'Total Replacement Value' : 'Total value'}: ${appraisalItems.reduce((sum, item) => sum + (item.appraised_value || 0), 0).toLocaleString()}
                       </p>
                     </div>
                     

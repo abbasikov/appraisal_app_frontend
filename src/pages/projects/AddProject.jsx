@@ -633,14 +633,8 @@ const AddProject = () => {
                             ? `${selectedClient.address}${selectedClient.city ? `, ${selectedClient.city}` : ''}${selectedClient.state ? `, ${selectedClient.state}` : ''}${selectedClient.zip_code ? ` ${selectedClient.zip_code}` : ''}`.trim()
                             : '';
                           setFormData(prev => ({ ...prev, appraisal_location: clientLocation }));
-                        } else if (locationType === 'attorney' && selectedClient?.parent_account_id) {
-                          // For attorney, use parent account address
-                          const parentAddress = selectedClient.parent_account_address 
-                            ? `${selectedClient.parent_account_address}${selectedClient.parent_account_city ? `, ${selectedClient.parent_account_city}` : ''}${selectedClient.parent_account_state ? `, ${selectedClient.parent_account_state}` : ''}${selectedClient.parent_account_zip ? ` ${selectedClient.parent_account_zip}` : ''}`.trim()
-                            : '';
-                          setFormData(prev => ({ ...prev, appraisal_location: parentAddress }));
-                        } else if (locationType === 'appraiser' && selectedClient?.parent_account_id) {
-                          // For appraiser, use parent account address
+                        } else if ((locationType === 'attorney' || locationType === 'appraiser') && selectedClient?.parent_account_id) {
+                          // For attorney/appraiser, use parent account address
                           const parentAddress = selectedClient.parent_account_address 
                             ? `${selectedClient.parent_account_address}${selectedClient.parent_account_city ? `, ${selectedClient.parent_account_city}` : ''}${selectedClient.parent_account_state ? `, ${selectedClient.parent_account_state}` : ''}${selectedClient.parent_account_zip ? ` ${selectedClient.parent_account_zip}` : ''}`.trim()
                             : '';
@@ -653,8 +647,12 @@ const AddProject = () => {
                     >
                       <option value="manual">Enter Manually</option>
                       <option value="client">Client Location</option>
-                      <option value="appraiser">Appraiser Location</option>
-                      <option value="attorney">Attorney Location</option>
+                      {selectedClient?.parent_account_type === 'appraiser' && (
+                        <option value="appraiser">Appraiser Location</option>
+                      )}
+                      {selectedClient?.parent_account_type === 'attorney' && (
+                        <option value="attorney">Attorney Location</option>
+                      )}
                     </select>
                   </div>
 
@@ -667,7 +665,7 @@ const AddProject = () => {
                       : 'Location will be auto-populated based on selection',
                     description: formData.appraisal_location_type === 'manual' 
                       ? 'Enter the location where the appraisal will take place'
-                      : `Using ${formData.appraisal_location_type === 'client' ? 'client' : formData.appraisal_location_type === 'appraiser' ? 'appraiser' : 'attorney'} location. You can edit if needed.`,
+                      : `Using ${formData.appraisal_location_type === 'client' ? 'client' : formData.appraisal_location_type} location. You can edit if needed.`,
                     disabled: false
                   })}
                 </div>

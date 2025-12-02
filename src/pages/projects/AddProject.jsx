@@ -555,7 +555,7 @@ const AddProject = () => {
                     label: 'Address Letter To',
                     type: 'text',
                     required: true,
-                    placeholder: 'Enter address where letter should be sent...',
+                    placeholder: 'Enter Person Name',
                     description: 'Person to whom the letter should be addressed'
                   })}
                 </div>

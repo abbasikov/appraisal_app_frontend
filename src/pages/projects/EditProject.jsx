@@ -476,7 +476,7 @@ const EditProject = () => {
                     label: 'Address Letter To',
                     type: 'text',
                     required: true,
-                    placeholder: 'Enter address where letter should be sent...'
+                    placeholder: 'Enter Person Name'
                   })}
                 </div>
 

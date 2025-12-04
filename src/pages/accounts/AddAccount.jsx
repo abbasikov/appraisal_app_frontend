@@ -39,7 +39,7 @@ const AddAccount = () => {
   });
 
   useEffect(() => {
-    if (formData.account_type === 'client') {
+    if (formData.account_type !== 'attorney' && formData.account_type !== 'client') {
       fetchAttorneyAccounts();
     }
   }, [formData.account_type]);
@@ -48,9 +48,9 @@ const AddAccount = () => {
     try {
       setLoadingAccounts(true);
       const response = await accountService.getAccounts(null, true);
-      // Filter out client accounts - only show non-client accounts
-      const nonClientAccounts = (response.accounts || []).filter(account => account.account_type !== 'client');
-      setAttorneyAccounts(nonClientAccounts);
+      // Only show attorney accounts for association
+      const attorneyAccounts = (response.accounts || []).filter(account => account.account_type === 'attorney');
+      setAttorneyAccounts(attorneyAccounts);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
@@ -293,12 +293,12 @@ const AddAccount = () => {
                 </div>
               </div>
               
-              {/* Attorney Assignment for Client accounts */}
-              {formData.account_type === 'client' && (
+              {/* Account Assignment for non-Attorney/Client accounts */}
+              {formData.account_type !== 'attorney' && formData.account_type !== 'client' && (
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700 flex items-center space-x-2">
                     <BuildingOfficeIcon className="w-4 h-4 text-gray-400" />
-                    <span>Assign to Account (Optional)</span>
+                    <span>Assigned to Account (Optional)</span>
                   </label>
                   <select
                     name="parent_account_id"

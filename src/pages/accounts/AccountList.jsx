@@ -141,9 +141,9 @@ const AccountList = () => {
       newExpanded.delete(accountId);
     } else {
       newExpanded.add(accountId);
-      // Always fetch fresh clients data when expanding
+      // Fetch clients based on project relationships
       try {
-        const clientsData = await accountService.getAccountClients(accountId);
+        const clientsData = await accountService.getAccountClientsByProjects(accountId);
         setClients(prev => ({ ...prev, [accountId]: clientsData }));
       } catch (err) {
         console.error('Error fetching clients:', err);
@@ -421,16 +421,24 @@ const AccountList = () => {
                               <div className="space-y-2">
                                 {clients[account.id]?.length > 0 ? (
                                   clients[account.id].map(client => (
-                                    <div key={client.id} className="group flex items-center space-x-3 p-3 bg-white rounded-lg border hover:bg-gray-50 transition-colors">
-                                      <UserIcon className="w-4 h-4 text-gray-400" />
-                                      <div className="flex-1">
-                                        <span className="text-sm font-medium">{client.name}</span>
-                                        {client.case_number && (
-                                          <span className="text-xs text-gray-500 ml-2">Case: {client.case_number}</span>
-                                        )}
+                                    <div key={client.id} className="group flex items-center justify-between p-3 bg-white rounded-lg border hover:bg-gray-50 transition-colors">
+                                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                                        <UserIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                          <span className="text-sm font-medium flex-shrink-0">{client.name}</span>
+                                          {client.projects && client.projects.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
+                                              {client.projects.map(project => (
+                                                <span key={project.id} className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-xs">
+                                                  {project.name}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                       {(isAdmin || isEditor) && (
-                                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0">
                                           <button
                                             onClick={() => {
                                               setSelectedClient(client);
@@ -448,10 +456,10 @@ const AccountList = () => {
                                                   clientService.deleteClient(client.id)
                                                     .then(() => {
                                                       // Refresh clients list
-                                                      if (client.parent_account_id && expandedAccounts.has(client.parent_account_id)) {
-                                                        accountService.getAccountClients(client.parent_account_id)
+                                                      if (expandedAccounts.has(account.id)) {
+                                                        accountService.getAccountClientsByProjects(account.id)
                                                           .then(clientsData => {
-                                                            setClients(prev => ({ ...prev, [client.parent_account_id]: clientsData }));
+                                                            setClients(prev => ({ ...prev, [account.id]: clientsData }));
                                                           })
                                                           .catch(err => console.error('Error refreshing clients:', err));
                                                       }

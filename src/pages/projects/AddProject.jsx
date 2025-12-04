@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { clientService } from '../../services/clientService';
 import { templateService } from '../../services/templateService';
+import { accountService } from '../../services/accountService';
 import Layout from '../../components/Layout';
 import { 
   ArrowLeftIcon,
@@ -42,12 +43,15 @@ const AddProject = () => {
     date_of_death: '',  // For ESTATE appraisals
     address_letter_to: '',  // Address to send letter to
     assigned_user_id: '',
+    account_id: '',  // NEW: Account assignment
     template_id: '',
     notes: ''
   });
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [appraisers, setAppraisers] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [errors, setErrors] = useState({});
 
@@ -70,23 +74,36 @@ const AddProject = () => {
 
   const fetchData = async () => {
     try {
-      const [clientsData, usersData, templatesData] = await Promise.all([
+      const [clientsData, usersData, templatesData, accountsData] = await Promise.all([
         clientService.getClients(0, 1000),
         // Users endpoint would be needed here - for now skip
         Promise.resolve([]),
-        templateService.getTemplates()
+        templateService.getTemplates(),
+        accountService.getAccounts(null, true)
       ]);
       
       console.log('Clients data:', clientsData);
       console.log('Templates data:', templatesData);
+      console.log('Accounts data:', accountsData);
       
       setClients(Array.isArray(clientsData) ? clientsData : []);
       setUsers(Array.isArray(usersData) ? usersData : []);
       setTemplates(Array.isArray(templatesData?.templates) ? templatesData.templates : Array.isArray(templatesData) ? templatesData : []);
+      
+      // Filter out client accounts
+      const allAccounts = accountsData.accounts || [];
+      const nonClientAccounts = allAccounts.filter(account => account.account_type !== 'client');
+      setAccounts(nonClientAccounts);
+      
+      // Filter appraisers from all accounts
+      const appraiserAccounts = allAccounts.filter(account => account.account_type === 'appraiser');
+      setAppraisers(appraiserAccounts);
     } catch (err) {
       setClients([]);
       setUsers([]);
       setTemplates([]);
+      setAccounts([]);
+      setAppraisers([]);
       console.error('Error fetching data:', err);
     }
   };
@@ -108,20 +125,12 @@ const AddProject = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Auto-populate client details when client is selected
+    // Store selected client for reference
     if (name === 'client_id' && value) {
       const client = clients.find(c => c.id === parseInt(value));
-      if (client) {
-        setSelectedClient(client);
-        setFormData(prev => ({
-          ...prev,
-          [name]: value,
-          case_number: client.case_number || prev.case_number,
-          // You can add more fields here if needed
-        }));
-      } else {
-        setSelectedClient(null);
-      }
+      setSelectedClient(client || null);
+    } else if (name === 'client_id' && !value) {
+      setSelectedClient(null);
     }
     
     // Track completed fields for visual feedback
@@ -220,6 +229,8 @@ const AddProject = () => {
         if (key === 'client_id' && value) {
           cleanedData[key] = parseInt(value);
         } else if (key === 'assigned_user_id' && value) {
+          cleanedData[key] = parseInt(value);
+        } else if (key === 'account_id' && value) {
           cleanedData[key] = parseInt(value);
         } else if (key === 'template_id' && value) {
           cleanedData[key] = parseInt(value);
@@ -516,31 +527,6 @@ const AddProject = () => {
                   })}
                 </div>
 
-                {/* Client Account Information */}
-                {selectedClient && selectedClient.parent_account_name && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <BuildingOfficeIcon className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium text-blue-900">Account Information</span>
-                    </div>
-                    <p className="text-sm text-blue-700">
-                      This client belongs to: <span className="font-semibold">{selectedClient.parent_account_name}</span>
-                    </p>
-                  </div>
-                )}
-                
-                {selectedClient && !selectedClient.parent_account_name && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <BuildingOfficeIcon className="w-5 h-5 text-yellow-600" />
-                      <span className="font-medium text-yellow-900">Account Information</span>
-                    </div>
-                    <p className="text-sm text-yellow-700">
-                      This client is not linked to any account.
-                    </p>
-                  </div>
-                )}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {renderField({
                     name: 'project_name',
@@ -558,6 +544,36 @@ const AddProject = () => {
                     placeholder: 'Enter Person Name',
                     description: 'Person to whom the letter should be addressed'
                   })}
+                </div>
+
+                {/* Assigned to Account field */}
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <BuildingOfficeIcon className="w-5 h-5 text-gray-400" />
+                    <span>Assigned to Account (Optional)</span>
+                  </label>
+                  <p className="text-xs text-gray-500">Select an account to associate with this project</p>
+                  <select
+                    name="account_id"
+                    value={formData.account_id}
+                    onChange={handleChange}
+                    onFocus={() => setFocusedField('account_id')}
+                    onBlur={() => setFocusedField('')}
+                    className={`w-full px-4 py-3 rounded-2xl border-2 transition-all duration-200 ${
+                      focusedField === 'account_id'
+                        ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-blue-50/50'
+                        : completedFields.has('account_id')
+                        ? 'border-green-300 bg-green-50/50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    } focus:outline-none focus:ring-4`}
+                  >
+                    <option value="">No account assigned</option>
+                    {accounts.map(account => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.account_type.replace('_', ' ')})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -633,28 +649,116 @@ const AddProject = () => {
                             ? `${selectedClient.address}${selectedClient.city ? `, ${selectedClient.city}` : ''}${selectedClient.state ? `, ${selectedClient.state}` : ''}${selectedClient.zip_code ? ` ${selectedClient.zip_code}` : ''}`.trim()
                             : '';
                           setFormData(prev => ({ ...prev, appraisal_location: clientLocation }));
-                        } else if ((locationType === 'attorney' || locationType === 'appraiser') && selectedClient?.parent_account_id) {
-                          // For attorney/appraiser, use parent account address
-                          const parentAddress = selectedClient.parent_account_address 
-                            ? `${selectedClient.parent_account_address}${selectedClient.parent_account_city ? `, ${selectedClient.parent_account_city}` : ''}${selectedClient.parent_account_state ? `, ${selectedClient.parent_account_state}` : ''}${selectedClient.parent_account_zip ? ` ${selectedClient.parent_account_zip}` : ''}`.trim()
-                            : '';
-                          setFormData(prev => ({ ...prev, appraisal_location: parentAddress }));
+                        } else if (locationType === 'assigned_account' && formData.account_id) {
+                          // Use assigned account address
+                          const account = accounts.find(a => a.id === parseInt(formData.account_id));
+                          if (account) {
+                            const accountLocation = account.address
+                              ? `${account.address}${account.city ? `, ${account.city}` : ''}${account.state ? `, ${account.state}` : ''}${account.zip_code ? ` ${account.zip_code}` : ''}`.trim()
+                              : '';
+                            setFormData(prev => ({ ...prev, appraisal_location: accountLocation }));
+                          }
+                        } else if (locationType === 'parent_account' && formData.account_id) {
+                          // Use parent account address
+                          const account = accounts.find(a => a.id === parseInt(formData.account_id));
+                          if (account && account.parent_account_id) {
+                            // Find parent account
+                            const parentAccount = accounts.find(a => a.id === account.parent_account_id);
+                            if (parentAccount) {
+                              const parentLocation = parentAccount.address
+                                ? `${parentAccount.address}${parentAccount.city ? `, ${parentAccount.city}` : ''}${parentAccount.state ? `, ${parentAccount.state}` : ''}${parentAccount.zip_code ? ` ${parentAccount.zip_code}` : ''}`.trim()
+                                : '';
+                              setFormData(prev => ({ ...prev, appraisal_location: parentLocation }));
+                            }
+                          }
                         } else if (locationType === 'manual') {
+                          setFormData(prev => ({ ...prev, appraisal_location: '' }));
+                        } else if (locationType === 'appraiser') {
+                          // Clear location, wait for appraiser selection
                           setFormData(prev => ({ ...prev, appraisal_location: '' }));
                         }
                       }}
                       className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/20"
                     >
                       <option value="manual">Enter Manually</option>
-                      <option value="client">Client Location</option>
-                      {selectedClient?.parent_account_type === 'appraiser' && (
-                        <option value="appraiser">Appraiser Location</option>
-                      )}
-                      {selectedClient?.parent_account_type === 'attorney' && (
-                        <option value="attorney">Attorney Location</option>
-                      )}
+                      <option value="client">Client Address</option>
+                      <option value="appraiser">Appraiser Location</option>
+                      
+                      {/* Dynamic options based on assigned account */}
+                      {(() => {
+                        if (!formData.account_id) return null;
+                        
+                        const selectedAccount = accounts.find(a => a.id === parseInt(formData.account_id));
+                        if (!selectedAccount) return null;
+                        
+                        // Get readable account type name
+                        const accountTypeLabel = selectedAccount.account_type.replace('_', ' ')
+                          .split(' ')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ');
+                        
+                        const options = [];
+                        
+                        // Option 4: Assigned account address (for all account types including attorney)
+                        options.push(
+                          <option key="assigned_account" value="assigned_account">
+                            {accountTypeLabel} Address
+                          </option>
+                        );
+                        
+                        // Option 5: Parent account address (only if parent exists and account is NOT an attorney)
+                        // Attorneys don't have parents, so this won't show for them
+                        if (selectedAccount.parent_account_id && selectedAccount.account_type !== 'attorney') {
+                          const parentAccount = accounts.find(a => a.id === selectedAccount.parent_account_id);
+                          if (parentAccount) {
+                            // Format parent account type label
+                            const parentTypeLabel = parentAccount.account_type.replace('_', ' ')
+                              .split(' ')
+                              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                              .join(' ');
+                            
+                            options.push(
+                              <option key="parent_account" value="parent_account">
+                                {parentTypeLabel} Address
+                              </option>
+                            );
+                          }
+                        }
+                        
+                        return options;
+                      })()}
                     </select>
                   </div>
+
+                  {/* Appraiser Selection - shown when location type is 'appraiser' */}
+                  {formData.appraisal_location_type === 'appraiser' && (
+                    <div className="space-y-2">
+                      <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                        <UserIcon className="w-5 h-5 text-gray-400" />
+                        <span>Select Appraiser</span>
+                      </label>
+                      <p className="text-xs text-gray-500">Choose an appraiser to use their location</p>
+                      <select
+                        onChange={(e) => {
+                          const appraiser = appraisers.find(a => a.id === parseInt(e.target.value));
+                          if (appraiser) {
+                            const appraiserLocation = appraiser.address
+                              ? `${appraiser.address}${appraiser.city ? `, ${appraiser.city}` : ''}${appraiser.state ? `, ${appraiser.state}` : ''}${appraiser.zip_code ? ` ${appraiser.zip_code}` : ''}`.trim()
+                              : '';
+                            setFormData(prev => ({ ...prev, appraisal_location: appraiserLocation }));
+                          }
+                        }}
+                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/20"
+                      >
+                        <option value="">Select an appraiser...</option>
+                        {appraisers.map(appraiser => (
+                          <option key={appraiser.id} value={appraiser.id}>
+                            {appraiser.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {renderField({
                     name: 'appraisal_location',
@@ -665,7 +769,11 @@ const AddProject = () => {
                       : 'Location will be auto-populated based on selection',
                     description: formData.appraisal_location_type === 'manual' 
                       ? 'Enter the location where the appraisal will take place'
-                      : `Using ${formData.appraisal_location_type === 'client' ? 'client' : formData.appraisal_location_type} location. You can edit if needed.`,
+                      : formData.appraisal_location_type === 'appraiser'
+                      ? 'Select an appraiser above to populate this field. You can edit if needed.'
+                      : formData.appraisal_location_type === 'client'
+                      ? 'Using client address. You can edit if needed.'
+                      : 'Using selected account address. You can edit if needed.',
                     disabled: false
                   })}
                 </div>

@@ -6,7 +6,7 @@ export const accountService = {
     const params = new URLSearchParams();
     if (accountType) params.append('account_type', accountType);
     params.append('is_active', isActive);
-    
+
     const response = await api.get(`/accounts/?${params}`);
     return response.data;
   },
@@ -44,6 +44,12 @@ export const accountService = {
   // Get clients for an account
   getAccountClients: async (accountId) => {
     const response = await api.get(`/accounts/${accountId}/clients`);
+    return response.data;
+  },
+
+  // Get clients for an account based on project relationships
+  getAccountClientsByProjects: async (accountId) => {
+    const response = await api.get(`/accounts/${accountId}/clients-by-projects`);
     return response.data;
   },
 

@@ -814,50 +814,35 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
 
                       {/* Value */}
                       <td className="table-cell">
-                        {detectedItemType === "Coins" || detectedItemType === "Wine" ? (
-                          <div className="px-3 py-2 rounded-lg">
+                        {editingCell === `${item.id}-appraised_value` ? (
+                          <input
+                            type="number"
+                            value={item.appraised_value ?? ""}
+                            className="form-input text-sm w-full"
+                            onChange={(e) => {
+                              // Update value without closing the edit cell
+                              const numericValue = e.target.value === "" || e.target.value === null ? null : Number(e.target.value);
+                              onItemUpdate(item.id, { appraised_value: isNaN(numericValue) ? null : numericValue });
+                            }}
+                            onBlur={() => setEditingCell(null)}
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                setEditingCell(null);
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                            onClick={() =>
+                              handleCellClick(item.id, "appraised_value")
+                            }
+                          >
                             <span className="font-semibold text-green-700">
                               {formatCurrency(item.appraised_value)}
                             </span>
                           </div>
-                        ) : (
-                          <>
-                            {editingCell === `${item.id}-appraised_value` ? (
-                              <input
-                                type="number"
-                                defaultValue={item.appraised_value ?? ""}
-                                className="form-input text-sm w-full"
-                                onBlur={(e) =>
-                                  handleCellEdit(
-                                    item.id,
-                                    "appraised_value",
-                                    e.target.value
-                                  )
-                                }
-                                onKeyPress={(e) => {
-                                  if (e.key === "Enter") {
-                                    handleCellEdit(
-                                      item.id,
-                                      "appraised_value",
-                                      e.target.value
-                                    );
-                                  }
-                                }}
-                                autoFocus
-                              />
-                            ) : (
-                              <div
-                                className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                                onClick={() =>
-                                  handleCellClick(item.id, "appraised_value")
-                                }
-                              >
-                                <span className="font-semibold text-green-700">
-                                  {formatCurrency(item.appraised_value)}
-                                </span>
-                              </div>
-                            )}
-                          </>
                         )}
                       </td>
 

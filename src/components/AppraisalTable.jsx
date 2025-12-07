@@ -224,26 +224,32 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
     if (!isCoin && !isWine) return null; // Only for Coin/Wine templates
     
     try {
-      // Parse Coins template: "Quantity: X" and "Value Per Coin $: Y"
+      // Parse Coins template: "Quantity: X" and "Value Per Coin $: Y" (with optional $ sign)
       if (isCoin) {
         const quantityMatch = description.match(/Quantity:\s*(\d+(?:\.\d+)?)/i);
-        const priceMatch = description.match(/Value Per Coin \$:\s*(\d+(?:\.\d+)?)/i);
+        // Updated pattern to handle optional $ sign and commas: "$25.00" or "25.00" or "$1,250.50"
+        const priceMatch = description.match(/Value Per Coin \$:\s*\$?\s*([\d,]+(?:\.\d+)?)/i);
         
         if (quantityMatch && priceMatch) {
           const quantity = parseFloat(quantityMatch[1]) || 0;
-          const pricePerCoin = parseFloat(priceMatch[1]) || 0;
+          // Strip $ and commas before parsing
+          const priceStr = priceMatch[1].replace(/\$/g, '').replace(/,/g, '');
+          const pricePerCoin = parseFloat(priceStr) || 0;
           return quantity * pricePerCoin;
         }
       }
       
-      // Parse Wine template: "Quantity: X" and "Per Bottle Price: Y"
+      // Parse Wine template: "Quantity: X" and "Per Bottle Price: Y" (with optional $ sign)
       if (isWine) {
         const quantityMatch = description.match(/Quantity:\s*(\d+(?:\.\d+)?)/i);
-        const priceMatch = description.match(/Per Bottle Price:\s*(\d+(?:\.\d+)?)/i);
+        // Updated pattern to handle optional $ sign and commas: "$100" or "100" or "$1,250.50"
+        const priceMatch = description.match(/Per Bottle Price:\s*\$?\s*([\d,]+(?:\.\d+)?)/i);
         
         if (quantityMatch && priceMatch) {
           const quantity = parseFloat(quantityMatch[1]) || 0;
-          const pricePerBottle = parseFloat(priceMatch[1]) || 0;
+          // Strip $ and commas before parsing
+          const priceStr = priceMatch[1].replace(/\$/g, '').replace(/,/g, '');
+          const pricePerBottle = parseFloat(priceStr) || 0;
           return quantity * pricePerBottle;
         }
       }

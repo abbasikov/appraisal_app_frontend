@@ -149,15 +149,15 @@ const Dashboard = () => {
       gradient: 'from-purple-500 to-indigo-600',
       action: () => navigate('/templates'),
       show: true
-    },
-    {
-      name: 'View Reports',
-      description: 'Access analytics and reports',
-      icon: ChartBarIcon,
-      gradient: 'from-orange-500 to-red-500',
-      action: () => navigate('/reports'),
-      show: isAdmin || isEditor
     }
+    // {
+    //   name: 'View Reports',
+    //   description: 'Access analytics and reports',
+    //   icon: ChartBarIcon,
+    //   gradient: 'from-orange-500 to-red-500',
+    //   action: () => navigate('/reports'),
+    //   show: isAdmin || isEditor
+    // }
   ].filter(action => action.show);
 
   const filteredProjects = allProjects.filter(project => {

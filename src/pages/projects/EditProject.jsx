@@ -189,8 +189,10 @@ const EditProject = () => {
         ...formData,
         client_id: parseInt(formData.client_id),
         assigned_user_id: formData.assigned_user_id ? parseInt(formData.assigned_user_id) : null,
+        // Convert empty date strings to null for backend validation
         inspection_date: formData.inspection_date || null,
-        report_date: formData.report_date || null
+        report_date: formData.report_date || null,
+        date_of_death: formData.date_of_death || null
       };
       
       await projectService.updateProject(id, projectData);

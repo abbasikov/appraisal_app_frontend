@@ -40,6 +40,7 @@ const EditProject = () => {
     address_letter_to: '',
     assigned_user_id: '',
     status: 'DRAFT',
+    effective_date: '',
     notes: ''
   });
   const [clients, setClients] = useState([]);
@@ -88,6 +89,7 @@ const EditProject = () => {
         address_letter_to: projectData.address_letter_to || '',
         assigned_user_id: projectData.assigned_user_id || '',
         status: projectData.status || 'DRAFT',
+        effective_date: projectData.effective_date || '',
         notes: projectData.notes || ''
       };
       
@@ -143,6 +145,16 @@ const EditProject = () => {
     if (!formData.client_id) {
       newErrors.client_id = 'Please select a client';
     }
+
+    // 1. case_name required for DIVORCE
+    if (formData.appraisal_type === 'DIVORCE') {
+      if (!formData.case_name || !formData.case_name.trim()) {
+        newErrors.case_name = 'Case Name is required for Divorce appraisals';
+      }
+      if (!formData.effective_date || !formData.effective_date.trim()) {
+        newErrors.effective_date = 'Effective Date is required for Divorce appraisals';
+      }
+    }
     
     // Validate estate fields if appraisal type is ESTATE
     if (formData.appraisal_type === 'ESTATE') {
@@ -158,6 +170,11 @@ const EditProject = () => {
     // Validate address_letter_to
     if (!formData.address_letter_to || !formData.address_letter_to.trim()) {
       newErrors.address_letter_to = 'Address Letter To is required';
+    }
+
+    // Inspection Date (Appointment Date) required for ALL
+    if (!formData.inspection_date || !formData.inspection_date.trim()) {
+      newErrors.inspection_date = 'Inspection Date is required';
     }
     
     setErrors(newErrors);
@@ -192,6 +209,7 @@ const EditProject = () => {
         // Convert empty date strings to null for backend validation
         inspection_date: formData.inspection_date || null,
         report_date: formData.report_date || null,
+        effective_date: formData.effective_date || null,
         date_of_death: formData.date_of_death || null
       };
       
@@ -522,6 +540,12 @@ const EditProject = () => {
                   {renderField({
                     name: 'report_date',
                     label: 'Report Date',
+                    type: 'date'
+                  })}
+
+                  {renderField({
+                    name: 'effective_date',
+                    label: 'Effective Date',
                     type: 'date'
                   })}
                 </div>

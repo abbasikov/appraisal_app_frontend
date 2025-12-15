@@ -7,7 +7,6 @@
 // Template keywords to category mapping
 const TEMPLATE_KEYWORDS = {
   // Image-based templates (all identical)
-  "jewellery": "image_based",
   "jewelry": "image_based",
   "artwork": "image_based",
   "art": "image_based",
@@ -19,7 +18,7 @@ const TEMPLATE_KEYWORDS = {
   "handbags": "image_based",
   "watch": "image_based",
   "watches": "image_based",
-  
+
   // Table-based templates (each different)
   "coin": "coin",
   "coins": "coin",
@@ -36,8 +35,8 @@ const TEMPLATE_KEYWORDS = {
  * Examples:
  *   "Divorce Template Wine Appraisal MSTEMPLATE-Doc" → "wine"
  *   "Estate Template Coin Collection MSTEMPLATE" → "coin"
- *   "Divorce Template Jewellery Appraisal-FORM-FINAL" → "image_based"
- *   "jewellery" → "image_based"
+ *   "Divorce Template Jewelry Appraisal-FORM-FINAL" → "image_based"
+ *   "jewelry" → "image_based"
  * 
  * @param {string} templateName - Name of the template (case-insensitive)
  * @returns {string} Template category ("image_based", "coin", "content", or "wine")
@@ -46,35 +45,34 @@ export function detectTemplateCategory(templateName) {
   if (!templateName || typeof templateName !== 'string') {
     return "image_based";
   }
-  
+
   // Normalize name (lowercase, trim)
   const normalized = templateName.toLowerCase().trim();
-  
+
   // Remove common separators and split into words
   // This helps match "Wine" in "Divorce Template Wine Appraisal"
   const words = normalized.split(/[\s\-_]+/);
-  
+
   // First pass: Check for exact keyword matches in words
   for (const word of words) {
     if (TEMPLATE_KEYWORDS[word]) {
       return TEMPLATE_KEYWORDS[word];
     }
   }
-  
+
   // Second pass: Check if any keyword is contained in the full name
   for (const [keyword, category] of Object.entries(TEMPLATE_KEYWORDS)) {
     if (normalized.includes(keyword)) {
       return category;
     }
   }
-  
+
   // Default to image-based (backward compatible)
   return "image_based";
 }
 
 // Mapping from template keywords to item type options (as they appear in dropdown)
 const KEYWORD_TO_ITEM_TYPE = {
-  "jewellery": "Jewelry",
   "jewelry": "Jewelry",
   "artwork": "Artwork",
   "art": "Artwork",
@@ -102,8 +100,8 @@ const KEYWORD_TO_ITEM_TYPE = {
  * Examples:
  *   "Divorce Template Wine Appraisal MSTEMPLATE-Doc" → "Wine"
  *   "Estate Template Coin Collection MSTEMPLATE" → "Coins"
- *   "Divorce Template Jewellery Appraisal-FORM-FINAL" → "Jewelry"
- *   "jewellery" → "Jewelry"
+ *   "Divorce Template Jewelry Appraisal-FORM-FINAL" → "Jewelry"
+ *   "jewelry" → "Jewelry"
  * 
  * @param {string} templateName - Name of the template (case-insensitive)
  * @returns {string|null} Item type matching dropdown options or null if not found
@@ -112,27 +110,27 @@ export function detectItemTypeFromTemplate(templateName) {
   if (!templateName || typeof templateName !== 'string') {
     return null;
   }
-  
+
   // Normalize name (lowercase, trim)
   const normalized = templateName.toLowerCase().trim();
-  
+
   // Remove common separators and split into words
   const words = normalized.split(/[\s\-_]+/);
-  
+
   // First pass: Check for exact keyword matches in words
   for (const word of words) {
     if (KEYWORD_TO_ITEM_TYPE[word]) {
       return KEYWORD_TO_ITEM_TYPE[word];
     }
   }
-  
+
   // Second pass: Check if any keyword is contained in the full name
   for (const [keyword, itemType] of Object.entries(KEYWORD_TO_ITEM_TYPE)) {
     if (normalized.includes(keyword)) {
       return itemType;
     }
   }
-  
+
   // No keyword found
   return null;
 }

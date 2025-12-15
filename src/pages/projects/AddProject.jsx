@@ -164,6 +164,16 @@ const AddProject = () => {
     if (!formData.appraisal_type || formData.appraisal_type === 'SELECT') {
       newErrors.appraisal_type = 'Please select an appraisal type';
     }
+
+    // 1. case_name required for DIVORCE
+    if (formData.appraisal_type === 'DIVORCE') {
+      if (!formData.case_name || !formData.case_name.trim()) {
+        newErrors.case_name = 'Case Name is required for Divorce appraisals';
+      }
+      if (!formData.effective_date || !formData.effective_date.trim()) {
+        newErrors.effective_date = 'Effective Date is required for Divorce appraisals';
+      }
+    }
     
     // Validate estate fields if appraisal type is ESTATE
     if (formData.appraisal_type === 'ESTATE') {
@@ -179,6 +189,11 @@ const AddProject = () => {
     // Validate address_letter_to
     if (!formData.address_letter_to || !formData.address_letter_to.trim()) {
       newErrors.address_letter_to = 'Address Letter To is required';
+    }
+
+    // Inspection Date (Appointment Date) required for ALL
+    if (!formData.inspection_date || !formData.inspection_date.trim()) {
+      newErrors.inspection_date = 'Inspection Date is required';
     }
     
     // Validate dates if provided

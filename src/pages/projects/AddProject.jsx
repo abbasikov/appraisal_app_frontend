@@ -57,6 +57,9 @@ const AddProject = () => {
     recipient_source: '' // 'manual', 'client', 'account'
   });
   const [clients, setClients] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [appraisers, setAppraisers] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [errors, setErrors] = useState({});

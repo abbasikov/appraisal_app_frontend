@@ -25,6 +25,7 @@ const AddProject = () => {
   const [error, setError] = useState('');
   const [completedFields, setCompletedFields] = useState(new Set());
   const [focusedField, setFocusedField] = useState('');
+  const [projectNamePreview, setProjectNamePreview] = useState('');
   const [formData, setFormData] = useState({
     project_name: '',
     client_id: '',

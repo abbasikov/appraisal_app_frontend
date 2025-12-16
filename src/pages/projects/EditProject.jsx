@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { clientService } from '../../services/clientService';
+import { accountService } from '../../services/accountService';
 import Layout from '../../components/Layout';
 import { 
   ArrowLeftIcon,
@@ -11,9 +12,7 @@ import {
   BuildingOfficeIcon,
   CalendarIcon,
   DocumentTextIcon,
-  ClockIcon,
   PencilSquareIcon,
-  SparklesIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
@@ -39,11 +38,22 @@ const EditProject = () => {
     date_of_death: '',
     address_letter_to: '',
     assigned_user_id: '',
-    status: 'DRAFT',
-    effective_date: '',
-    notes: ''
+    account_id: '',
+    template_id: '',
+    notes: '',
+    recipient: {
+      name: '',
+      title: '',
+      company: '',
+      address: '',
+      city: '',
+      state: '',
+      zip_code: ''
+    },
+    recipient_source: '' // 'manual', 'client', 'account'
   });
   const [clients, setClients] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [errors, setErrors] = useState({});
 
   const appraisalTypes = [
@@ -70,9 +80,10 @@ const EditProject = () => {
   const fetchData = async () => {
     try {
       setFetchLoading(true);
-      const [projectData, clientsData] = await Promise.all([
+      const [projectData, clientsData, accountsData] = await Promise.all([
         projectService.getProject(id),
-        clientService.getClients(0, 1000)
+        clientService.getClients(0, 1000),
+        accountService.getAccounts(null, true)
       ]);
       
       const projectFormData = {
@@ -82,20 +93,44 @@ const EditProject = () => {
         case_number: projectData.case_number || '',
         appraisal_type: projectData.appraisal_type || 'DIVORCE',
         purpose: projectData.purpose || '',
-        inspection_date: projectData.inspection_date || '',
-        report_date: projectData.report_date || '',
+        inspection_date: projectData.inspection_date ? projectData.inspection_date.split('T')[0] : '',
+        report_date: projectData.report_date ? projectData.report_date.split('T')[0] : '',
         estate_of: projectData.estate_of || '',
-        date_of_death: projectData.date_of_death || '',
+        date_of_death: projectData.date_of_death ? projectData.date_of_death.split('T')[0] : '',
         address_letter_to: projectData.address_letter_to || '',
         assigned_user_id: projectData.assigned_user_id || '',
         status: projectData.status || 'DRAFT',
-        effective_date: projectData.effective_date || '',
-        notes: projectData.notes || ''
+        effective_date: projectData.effective_date ? projectData.effective_date.split('T')[0] : '',
+        notes: projectData.notes || '',
+        account_id: projectData.account_id || '',
+        template_id: projectData.template_id || '',
+        recipient: projectData.recipient ? {
+          name: projectData.recipient.name || '',
+          title: projectData.recipient.title || '',
+          company: projectData.recipient.company || '',
+          address: projectData.recipient.address || '',
+          city: projectData.recipient.city || '',
+          state: projectData.recipient.state || '',
+          zip_code: projectData.recipient.zip_code || ''
+        } : {
+          name: '',
+          title: '',
+          company: '',
+          address: '',
+          city: '',
+          state: '',
+          zip_code: ''
+        },
+        recipient_source: projectData.recipient ? 'manual' : '' // Default to manual if recipient exists
       };
       
       setFormData(projectFormData);
       setOriginalData(projectFormData);
       setClients(Array.isArray(clientsData) ? clientsData : []);
+      
+      const allAccounts = accountsData.accounts || [];
+      const nonClientAccounts = allAccounts.filter(account => account.account_type !== 'client');
+      setAccounts(nonClientAccounts);
       
       // Track completed fields
       const completed = new Set();
@@ -116,7 +151,54 @@ const EditProject = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name.startsWith('recipient.')) {
+      const field = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        recipient: {
+          ...prev.recipient,
+          [field]: value
+        }
+      }));
+    } else {
+      setFormData(prev => {
+        const newData = { ...prev, [name]: value };
+
+        // Auto-populate recipient if source matches
+        if (name === 'client_id' && prev.recipient_source === 'client') {
+          const client = clients.find(c => c.id === parseInt(value));
+          if (client) {
+            newData.recipient = {
+              name: client.name || '',
+              title: '',
+              company: client.company || '',
+              address: client.address || '',
+              city: client.city || '',
+              state: client.state || '',
+              zip_code: client.zip_code || ''
+            };
+          }
+        }
+
+        if (name === 'account_id' && prev.recipient_source === 'account') {
+          const account = accounts.find(a => a.id === parseInt(value));
+          if (account) {
+            newData.recipient = {
+              name: account.name || '',
+              title: '',
+              company: account.name || '',
+              address: account.address || '',
+              city: account.city || '',
+              state: account.state || '',
+              zip_code: account.zip_code || ''
+            };
+          }
+        }
+
+        return newData;
+      });
+    }
     
     // Track completed fields for visual feedback
     if (value.trim()) {
@@ -177,6 +259,25 @@ const EditProject = () => {
       newErrors.inspection_date = 'Inspection Date is required';
     }
     
+    // Recipient validation - if a recipient source is selected, require name and address
+    if (formData.recipient_source && formData.recipient_source !== '') {
+      if (!formData.recipient.name || !formData.recipient.name.trim()) {
+        newErrors['recipient.name'] = 'Recipient name is required';
+      }
+      if (!formData.recipient.address || !formData.recipient.address.trim()) {
+        newErrors['recipient.address'] = 'Recipient address is required';
+      }
+      if (!formData.recipient.city || !formData.recipient.city.trim()) {
+        newErrors['recipient.city'] = 'Recipient city is required';
+      }
+      if (!formData.recipient.state || !formData.recipient.state.trim()) {
+        newErrors['recipient.state'] = 'Recipient state is required';
+      }
+      if (!formData.recipient.zip_code || !formData.recipient.zip_code.trim()) {
+        newErrors['recipient.zip_code'] = 'Recipient zip code is required';
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -202,8 +303,10 @@ const EditProject = () => {
     setError('');
 
     try {
+      const { recipient_source, ...rest } = formData;
+
       const projectData = {
-        ...formData,
+        ...rest,
         client_id: parseInt(formData.client_id),
         assigned_user_id: formData.assigned_user_id ? parseInt(formData.assigned_user_id) : null,
         // Convert empty date strings to null for backend validation
@@ -212,6 +315,13 @@ const EditProject = () => {
         effective_date: formData.effective_date || null,
         date_of_death: formData.date_of_death || null
       };
+
+      // Only send recipient when a source is selected
+      if (recipient_source && recipient_source !== '') {
+        projectData.recipient = formData.recipient;
+      } else if (projectData.recipient) {
+        delete projectData.recipient;
+      }
       
       await projectService.updateProject(id, projectData);
       navigate('/projects');
@@ -228,11 +338,23 @@ const EditProject = () => {
   const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
   const changedFields = getChangedFieldsCount();
 
-  const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3 }) => {
+  const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3, value }) => {
     const isCompleted = completedFields.has(name);
     const isFocused = focusedField === name;
     const hasError = errors[name];
-    const isChanged = formData[name] !== originalData[name];
+
+    const getValueFromState = (data) => {
+      if (!data) return '';
+      if (name.startsWith('recipient.')) {
+        const field = name.split('.')[1];
+        return data.recipient ? data.recipient[field] : '';
+      }
+      return data[name];
+    };
+
+    const fieldValue = value !== undefined ? value : getValueFromState(formData);
+    const originalValue = getValueFromState(originalData);
+    const isChanged = fieldValue !== originalValue;
 
     return (
       <div className="space-y-2">
@@ -250,7 +372,7 @@ const EditProject = () => {
         {type === 'select' ? (
           <select
             name={name}
-            value={formData[name]}
+            value={fieldValue}
             onChange={handleChange}
             onFocus={() => setFocusedField(name)}
             onBlur={() => setFocusedField('')}
@@ -273,7 +395,7 @@ const EditProject = () => {
         ) : type === 'textarea' ? (
           <textarea
             name={name}
-            value={formData[name]}
+            value={fieldValue}
             onChange={handleChange}
             onFocus={() => setFocusedField(name)}
             onBlur={() => setFocusedField('')}
@@ -293,7 +415,7 @@ const EditProject = () => {
           <input
             type={type}
             name={name}
-            value={formData[name]}
+            value={fieldValue}
             onChange={handleChange}
             onFocus={() => setFocusedField(name)}
             onBlur={() => setFocusedField('')}
@@ -521,6 +643,156 @@ const EditProject = () => {
                   type: 'select',
                   options: statusOptions
                 })}
+
+                {/* Recipient Information */}
+                <div className="space-y-6 bg-purple-50 p-6 rounded-2xl border border-purple-200">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                    <UserIcon className="w-5 h-5 text-indigo-500" />
+                    <span>Recipient Information</span>
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                        <span>Recipient Source</span>
+                      </label>
+                      <select
+                        name="recipient_source"
+                        value={formData.recipient_source}
+                        onChange={(e) => {
+                          const source = e.target.value;
+                          
+                          setFormData(prev => {
+                            const newData = { ...prev, recipient_source: source };
+                            
+                            if (source === 'client') {
+                              const client = clients.find(c => c.id === parseInt(prev.client_id));
+                              
+                              if (client) {
+                                newData.recipient = {
+                                  name: client.name || '',
+                                  title: '',
+                                  company: client.company || '',
+                                  address: client.address || '',
+                                  city: client.city || '',
+                                  state: client.state || '',
+                                  zip_code: client.zip_code || ''
+                                };
+                              }
+                            } else if (source === 'account' && prev.account_id) {
+                              const account = accounts.find(a => a.id === parseInt(prev.account_id));
+                              
+                              if (account) {
+                                const title = account.account_type
+                                  ? account.account_type.split('_')
+                                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                      .join(' ')
+                                  : '';
+
+                                newData.recipient = {
+                                  name: account.name || '',
+                                  title: title,
+                                  company: account.company || '',
+                                  address: account.address || '',
+                                  city: account.city || '',
+                                  state: account.state || '',
+                                  zip_code: account.zip_code || ''
+                                };
+                              }
+                            } else if (source === 'manual') {
+                              newData.recipient = {
+                                name: '',
+                                title: '',
+                                company: '',
+                                address: '',
+                                city: '',
+                                state: '',
+                                zip_code: ''
+                              };
+                            }
+                            
+                            return newData;
+                          });
+                        }}
+                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/20"
+                      >
+                        <option value="">Select Source...</option>
+                        <option value="manual">Enter Manually</option>
+                        <option value="client">Client</option>
+                        {formData.account_id && (() => {
+                          const account = accounts.find(a => a.id === parseInt(formData.account_id));
+                          if (account) {
+                            const typeLabel = account.account_type.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                            return <option value="account">{typeLabel}</option>;
+                          }
+                          return null;
+                        })()}
+                      </select>
+                    </div>
+
+                    {formData.recipient_source && (
+                      <div className="space-y-6 animate-fadeIn">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {renderField({
+                            name: 'recipient.name',
+                            label: 'Recipient Name',
+                            required: true,
+                            placeholder: 'Enter recipient name',
+                            value: formData.recipient.name
+                          })}
+
+                          {renderField({
+                            name: 'recipient.title',
+                            label: 'Title',
+                            placeholder: 'e.g. Attorney',
+                            value: formData.recipient.title
+                          })}
+
+                          {renderField({
+                            name: 'recipient.company',
+                            label: 'Company / Firm',
+                            placeholder: 'e.g. Smith Law LLC',
+                            value: formData.recipient.company
+                          })}
+                        </div>
+
+                        {renderField({
+                          name: 'recipient.address',
+                          label: 'Address',
+                          required: true,
+                          type: 'textarea',
+                          rows: 3,
+                          placeholder: 'Street Address',
+                          value: formData.recipient.address
+                        })}
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          {renderField({
+                            name: 'recipient.city',
+                            label: 'City',
+                            required: true,
+                            value: formData.recipient.city,
+                            placeholder: 'City'
+                          })}
+                          {renderField({
+                            name: 'recipient.state',
+                            label: 'State',
+                            required: true,
+                            value: formData.recipient.state,
+                            placeholder: 'State'
+                          })}
+                          {renderField({
+                            name: 'recipient.zip_code',
+                            label: 'Zip Code',
+                            required: true,
+                            value: formData.recipient.zip_code,
+                            placeholder: 'Zip Code'
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Scheduling */}

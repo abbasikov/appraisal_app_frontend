@@ -46,10 +46,28 @@ const AddClient = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // Auto-populate attorney fields when parent_account_id changes
+      if (name === 'parent_account_id') {
+        const selectedAccount = attorneyAccounts.find(acc => acc.id === parseInt(value));
+        if (selectedAccount) {
+          newData.attorney_name = selectedAccount.name || '';
+          newData.attorney_email = selectedAccount.email || '';
+          newData.attorney_phone = selectedAccount.phone || '';
+        } else if (value === '') {
+          // Clear fields if no account selected
+          newData.attorney_name = '';
+          newData.attorney_email = '';
+          newData.attorney_phone = '';
+        }
+      }
+      
+      return newData;
+    });
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({

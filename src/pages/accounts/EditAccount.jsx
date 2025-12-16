@@ -29,6 +29,7 @@ const EditAccount = () => {
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
+    company: '',
     account_type: 'client',
     parent_account_id: '',
     address: '',
@@ -81,6 +82,7 @@ const EditAccount = () => {
       const account = await accountService.getAccount(id);
       const accountData = {
         name: account.name || '',
+        company: account.company || '',
         account_type: account.account_type || 'client',
         parent_account_id: account.parent_account_id || '',
         address: account.address || '',
@@ -343,6 +345,14 @@ const EditAccount = () => {
                   required: true,
                   placeholder: 'Enter account name'
                 })}
+
+                {renderField({
+                  name: 'company',
+                  label: 'Company',
+                  placeholder: 'Enter company name'
+                })}
+
+
 
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700 flex items-center space-x-2">

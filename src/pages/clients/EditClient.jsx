@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { clientService } from '../../services/clientService';
+import { accountService } from '../../services/accountService';
 import Layout from '../../components/Layout';
 
 const EditClient = () => {
@@ -14,6 +15,7 @@ const EditClient = () => {
     city: '',
     state: '',
     zip_code: '',
+    parent_account_id: '',
     attorney_name: '',
     attorney_email: '',
     attorney_phone: '',
@@ -23,11 +25,26 @@ const EditClient = () => {
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [attorneyAccounts, setAttorneyAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchClient();
+    fetchAttorneyAccounts();
   }, [id]);
+
+  const fetchAttorneyAccounts = async () => {
+    try {
+      setLoadingAccounts(true);
+      const response = await accountService.getAccounts('attorney', true);
+      setAttorneyAccounts(response.accounts || []);
+    } catch (error) {
+      console.error('Error fetching attorney accounts:', error);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
 
   const fetchClient = async () => {
     try {
@@ -41,6 +58,7 @@ const EditClient = () => {
         city: client.city || '',
         state: client.state || '',
         zip_code: client.zip_code || '',
+        parent_account_id: client.parent_account_id || '',
         attorney_name: client.attorney_name || '',
         attorney_email: client.attorney_email || '',
         attorney_phone: client.attorney_phone || '',
@@ -56,10 +74,29 @@ const EditClient = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // Auto-populate attorney fields when parent_account_id changes
+      if (name === 'parent_account_id') {
+        const selectedAccount = attorneyAccounts.find(acc => acc.id === parseInt(value));
+        if (selectedAccount) {
+          newData.attorney_name = selectedAccount.name || '';
+          newData.attorney_email = selectedAccount.email || '';
+          newData.attorney_phone = selectedAccount.phone || '';
+        } else if (value === '') {
+          // Don't clear fields on edit if they were manually set, unless user explicitly clears selection
+          // But here we can't distinguish easily. Let's clear to be consistent with AddClient
+          newData.attorney_name = '';
+          newData.attorney_email = '';
+          newData.attorney_phone = '';
+        }
+      }
+      
+      return newData;
+    });
+
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -253,6 +290,27 @@ const EditClient = () => {
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-4">Attorney Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Attorney Account (Optional)
+                  </label>
+                  <select
+                    name="parent_account_id"
+                    value={formData.parent_account_id}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    disabled={loadingAccounts}
+                  >
+                    <option value="">Select an attorney account or enter manually below</option>
+                    {attorneyAccounts.map(account => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} - {account.email || 'No email'}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingAccounts && <p className="text-gray-500 text-sm mt-1">Loading attorney accounts...</p>}
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Attorney Name
@@ -263,6 +321,7 @@ const EditClient = () => {
                     value={formData.attorney_name}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter manually if not selected above"
                   />
                 </div>
                 
@@ -278,6 +337,7 @@ const EditClient = () => {
                     className={`w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
                       errors.attorney_email ? 'border-red-500' : 'border-gray-300'
                     }`}
+                    placeholder="Enter manually if not selected above"
                   />
                   {errors.attorney_email && <p className="text-red-500 text-sm mt-1">{errors.attorney_email}</p>}
                 </div>
@@ -292,6 +352,7 @@ const EditClient = () => {
                     value={formData.attorney_phone}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter manually if not selected above"
                   />
                 </div>
               </div>

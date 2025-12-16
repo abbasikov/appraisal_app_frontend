@@ -16,7 +16,6 @@ import {
   PlusIcon,
   SparklesIcon,
   ExclamationTriangleIcon,
-  LightBulbIcon,
   StarIcon
 } from '@heroicons/react/24/outline';
 
@@ -26,7 +25,6 @@ const AddProject = () => {
   const [error, setError] = useState('');
   const [completedFields, setCompletedFields] = useState(new Set());
   const [focusedField, setFocusedField] = useState('');
-  const [projectNamePreview, setProjectNamePreview] = useState('');
   const [formData, setFormData] = useState({
     project_name: '',
     client_id: '',
@@ -45,14 +43,21 @@ const AddProject = () => {
     assigned_user_id: '',
     account_id: '',  // NEW: Account assignment
     template_id: '',
-    notes: ''
+    notes: '',
+    recipient: {
+      name: '',
+      title: '',
+      company: '',
+      address: '',
+      city: '',
+      state: '',
+      zip_code: ''
+    },
+    recipient_source: '' // 'manual', 'client', 'account'
   });
   const [clients, setClients] = useState([]);
-  const [users, setUsers] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [accounts, setAccounts] = useState([]);
-  const [appraisers, setAppraisers] = useState([]);
-  const [selectedClient, setSelectedClient] = useState(null);
   const [errors, setErrors] = useState({});
 
   const appraisalTypes = [{ value: 'SELECT', label: 'Select', icon: UserIcon, color: 'blue', description: 'Please select appraisal type' },
@@ -68,26 +73,15 @@ const AddProject = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    generateProjectNamePreview();
-  }, [formData.client_id, formData.appraisal_type]);
-
   const fetchData = async () => {
     try {
-      const [clientsData, usersData, templatesData, accountsData] = await Promise.all([
+      const [clientsData, templatesData, accountsData] = await Promise.all([
         clientService.getClients(0, 1000),
-        // Users endpoint would be needed here - for now skip
-        Promise.resolve([]),
         templateService.getTemplates(),
         accountService.getAccounts(null, true)
       ]);
       
-      console.log('Clients data:', clientsData);
-      console.log('Templates data:', templatesData);
-      console.log('Accounts data:', accountsData);
-      
       setClients(Array.isArray(clientsData) ? clientsData : []);
-      setUsers(Array.isArray(usersData) ? usersData : []);
       setTemplates(Array.isArray(templatesData?.templates) ? templatesData.templates : Array.isArray(templatesData) ? templatesData : []);
       
       // Filter out client accounts
@@ -100,41 +94,84 @@ const AddProject = () => {
       setAppraisers(appraiserAccounts);
     } catch (err) {
       setClients([]);
-      setUsers([]);
       setTemplates([]);
       setAccounts([]);
-      setAppraisers([]);
       console.error('Error fetching data:', err);
-    }
-  };
-
-  const generateProjectNamePreview = () => {
-    if (formData.client_id && formData.appraisal_type) {
-      const client = clients.find(c => c.id === parseInt(formData.client_id));
-      if (client) {
-        const year = new Date().getFullYear();
-        const preview = `${client.name}_${formData.appraisal_type}_${year}`;
-        setProjectNamePreview(preview);
-        // Always update project name when client or type changes
-        setFormData(prev => ({ ...prev, project_name: preview }));
-      }
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name.startsWith('recipient.')) {
+      const field = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        recipient: {
+          ...prev.recipient,
+          [field]: value
+        }
+      }));
+    } else {
+      setFormData(prev => {
+        const newData = { ...prev, [name]: value };
+        
+        // Auto-populate project name when client or type changes
+        if (name === 'client_id' || name === 'appraisal_type') {
+          const clientId = name === 'client_id' ? value : prev.client_id;
+          const appraisalType = name === 'appraisal_type' ? value : prev.appraisal_type;
+          if (clientId && appraisalType && appraisalType !== 'SELECT') {
+            const client = clients.find(c => c.id === parseInt(clientId));
+            if (client) {
+              const year = new Date().getFullYear();
+              newData.project_name = `${client.name}_${appraisalType}_${year}`;
+            }
+          }
+        }
+        
+        // Auto-populate recipient if source matches
+        if (name === 'client_id' && prev.recipient_source === 'client') {
+          const client = clients.find(c => c.id === parseInt(value));
+          if (client) {
+            newData.recipient = {
+              name: client.name || '',
+              title: '',
+              company: client.company || '',
+              address: client.address || '',
+              city: client.city || '',
+              state: client.state || '',
+              zip_code: client.zip_code || ''
+            };
+          }
+        }
+        
+        if (name === 'account_id' && prev.recipient_source === 'account') {
+          const account = accounts.find(a => a.id === parseInt(value));
+          if (account) {
+            newData.recipient = {
+              name: account.name || '',
+              title: '',
+              company: account.name || '',
+              address: account.address || '',
+              city: account.city || '',
+              state: account.state || '',
+              zip_code: account.zip_code || ''
+            };
+          }
+        }
+        
+        return newData;
+      });
+    }
     
     // Store selected client for reference
-    if (name === 'client_id' && value) {
-      const client = clients.find(c => c.id === parseInt(value));
+    if (name === 'client_id') {
+      const client = value ? clients.find(c => c.id === parseInt(value)) : null;
       setSelectedClient(client || null);
-    } else if (name === 'client_id' && !value) {
-      setSelectedClient(null);
     }
     
     // Track completed fields for visual feedback
-    if (value.trim()) {
+    if (value && value.trim()) {
       setCompletedFields(prev => new Set([...prev, name]));
     } else {
       setCompletedFields(prev => {
@@ -222,6 +259,25 @@ const AddProject = () => {
       }
     }
     
+    // Recipient validation - if a recipient source is selected, require name and address
+    if (formData.recipient_source && formData.recipient_source !== '') {
+      if (!formData.recipient.name || !formData.recipient.name.trim()) {
+        newErrors['recipient.name'] = 'Recipient name is required';
+      }
+      if (!formData.recipient.address || !formData.recipient.address.trim()) {
+        newErrors['recipient.address'] = 'Recipient address is required';
+      }
+      if (!formData.recipient.city || !formData.recipient.city.trim()) {
+        newErrors['recipient.city'] = 'Recipient city is required';
+      }
+      if (!formData.recipient.state || !formData.recipient.state.trim()) {
+        newErrors['recipient.state'] = 'Recipient state is required';
+      }
+      if (!formData.recipient.zip_code || !formData.recipient.zip_code.trim()) {
+        newErrors['recipient.zip_code'] = 'Recipient zip code is required';
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -264,9 +320,12 @@ const AddProject = () => {
         }
       });
       
-      console.log('Sending project data:', cleanedData);
+      // Add recipient data if source is not empty
+      if (formData.recipient_source && formData.recipient_source !== '') {
+        cleanedData.recipient = formData.recipient;
+      }
+      
       const createdProject = await projectService.createProject(cleanedData);
-      console.log('Created project:', createdProject);
       // Redirect to Dropbox integration after project creation
       navigate(`/projects/${createdProject.id}/dropbox`);
     } catch (err) {
@@ -307,10 +366,11 @@ const AddProject = () => {
   const selectedAppraisalType = appraisalTypes.find(type => type.value === formData.appraisal_type);
   const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
 
-  const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3, description = '', disabled = false }) => {
+  const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3, description = '', disabled = false, value }) => {
     const isCompleted = completedFields.has(name);
     const isFocused = focusedField === name;
     const hasError = errors[name];
+    const fieldValue = value !== undefined ? value : formData[name];
 
     return (
       <div className="space-y-2">
@@ -329,7 +389,7 @@ const AddProject = () => {
         {type === 'select' ? (
           <select
             name={name}
-            value={formData[name]}
+            value={fieldValue}
             onChange={handleChange}
             onFocus={() => setFocusedField(name)}
             onBlur={() => setFocusedField('')}
@@ -352,7 +412,7 @@ const AddProject = () => {
         ) : type === 'textarea' ? (
           <textarea
             name={name}
-            value={formData[name]}
+            value={fieldValue}
             onChange={handleChange}
             onFocus={() => setFocusedField(name)}
             onBlur={() => setFocusedField('')}
@@ -372,7 +432,7 @@ const AddProject = () => {
           <input
             type={type}
             name={name}
-            value={formData[name]}
+            value={fieldValue}
             onChange={handleChange}
             onFocus={() => setFocusedField(name)}
             onBlur={() => setFocusedField('')}
@@ -559,6 +619,162 @@ const AddProject = () => {
                     placeholder: 'Enter Person Name',
                     description: 'Person to whom the letter should be addressed'
                   })}
+                </div>
+
+                {/* Recipient Information */}
+                <div className="space-y-6 bg-purple-50 p-6 rounded-2xl border border-purple-200">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                    <UserIcon className="w-5 h-5 text-indigo-500" />
+                    <span>Recipient Information</span>
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                        <span>Recipient Source</span>
+                      </label>
+                      <select
+                        name="recipient_source"
+                        value={formData.recipient_source}
+                        onChange={(e) => {
+                          const source = e.target.value;
+                          
+                          setFormData(prev => {
+                            const newData = { ...prev, recipient_source: source };
+                            
+                            if (source === 'client') {
+                              // Use selectedClient if available, otherwise try to find it from client_id
+                              let client = selectedClient;
+                              
+                              if (!client && prev.client_id) {
+                                client = clients.find(c => c.id === parseInt(prev.client_id));
+                              }
+                              
+                              if (client) {
+                                newData.recipient = {
+                                  name: client.name || '',
+                                  title: '',
+                                  company: client.company || '',
+                                  address: client.address || '',
+                                  city: client.city || '',
+                                  state: client.state || '',
+                                  zip_code: client.zip_code || ''
+                                };
+                              }
+                            } else if (source === 'account' && prev.account_id) {
+                              const account = accounts.find(a => a.id === parseInt(prev.account_id));
+                              
+                              if (account) {
+                                // Format account type for title (e.g., "estate_planner" -> "Estate Planner")
+                                const title = account.account_type
+                                  ? account.account_type.split('_')
+                                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                      .join(' ')
+                                  : '';
+
+                                newData.recipient = {
+                                  name: account.name || '',
+                                  title: title,
+                                  company: account.company || '',
+                                  address: account.address || '',
+                                  city: account.city || '',
+                                  state: account.state || '',
+                                  zip_code: account.zip_code || ''
+                                };
+                              }
+                            } else if (source === 'manual') {
+                              newData.recipient = {
+                                name: '',
+                                title: '',
+                                company: '',
+                                address: '',
+                                city: '',
+                                state: '',
+                                zip_code: ''
+                              };
+                            }
+                            
+                            return newData;
+                          });
+                        }}
+                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/20"
+                      >
+                        <option value="">Select Source...</option>
+                        <option value="manual">Enter Manually</option>
+                        <option value="client">Client</option>
+                        {formData.account_id && (() => {
+                          const account = accounts.find(a => a.id === parseInt(formData.account_id));
+                          if (account) {
+                            const typeLabel = account.account_type.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                            return <option value="account">{typeLabel}</option>;
+                          }
+                          return null;
+                        })()}
+                      </select>
+                    </div>
+
+                    {formData.recipient_source && (
+                      <div className="space-y-6 animate-fadeIn">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {renderField({
+                            name: 'recipient.name',
+                            label: 'Recipient Name',
+                            required: true,
+                            placeholder: 'Enter recipient name',
+                            value: formData.recipient.name
+                          })}
+
+                          {renderField({
+                            name: 'recipient.title',
+                            label: 'Title',
+                            placeholder: 'e.g. Attorney',
+                            value: formData.recipient.title
+                          })}
+
+                          {renderField({
+                            name: 'recipient.company',
+                            label: 'Company / Firm',
+                            placeholder: 'e.g. Smith Law LLC',
+                            value: formData.recipient.company
+                          })}
+                        </div>
+
+                        {renderField({
+                          name: 'recipient.address',
+                          label: 'Address',
+                          required: true,
+                          type: 'textarea',
+                          rows: 3,
+                          placeholder: 'Enter full address',
+                          value: formData.recipient.address
+                        })}
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          {renderField({
+                            name: 'recipient.city',
+                            label: 'City',
+                            required: true,
+                            value: formData.recipient.city,
+                            placeholder: 'City'
+                          })}
+                          {renderField({
+                            name: 'recipient.state',
+                            label: 'State',
+                            required: true,
+                            value: formData.recipient.state,
+                            placeholder: 'State'
+                          })}
+                          {renderField({
+                            name: 'recipient.zip_code',
+                            label: 'Zip Code',
+                            required: true,
+                            value: formData.recipient.zip_code,
+                            placeholder: 'Zip Code'
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Assigned to Account field */}

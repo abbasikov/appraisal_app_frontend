@@ -26,6 +26,7 @@ const AddAccount = () => {
   const [formData, setFormData] = useState({
     parent_account_id: '',
     name: '',
+    company: '',
     account_type: 'attorney',
     address: '',
     city: '',
@@ -269,6 +270,12 @@ const AddAccount = () => {
                   label: 'Account Name',
                   required: true,
                   placeholder: 'Enter account name'
+                })}
+
+                {renderField({
+                  name: 'company',
+                  label: 'Company',
+                  placeholder: 'Enter company name'
                 })}
 
                 <div className="space-y-2">

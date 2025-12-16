@@ -307,8 +307,10 @@ const EditProject = () => {
 
       const projectData = {
         ...rest,
-        client_id: parseInt(formData.client_id),
+        client_id: formData.client_id ? parseInt(formData.client_id) : null,
         assigned_user_id: formData.assigned_user_id ? parseInt(formData.assigned_user_id) : null,
+        account_id: formData.account_id ? parseInt(formData.account_id) : null,
+        template_id: formData.template_id ? parseInt(formData.template_id) : null,
         // Convert empty date strings to null for backend validation
         inspection_date: formData.inspection_date || null,
         report_date: formData.report_date || null,

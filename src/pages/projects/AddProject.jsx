@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { clientService } from '../../services/clientService';
@@ -26,6 +27,7 @@ const AddProject = () => {
   const [completedFields, setCompletedFields] = useState(new Set());
   const [focusedField, setFocusedField] = useState('');
   const [projectNamePreview, setProjectNamePreview] = useState('');
+  const [archivedModal, setArchivedModal] = useState({ isOpen: false, clientId: null, accountId: null });
   const [formData, setFormData] = useState({
     project_name: '',
     client_id: '',
@@ -355,7 +357,24 @@ const AddProject = () => {
             setError('Validation failed. Please check your input.');
           }
         } else {
-          setError(`Failed to create project: ${err.response.data.detail}`);
+          // Check if error message is about archived client-attorney pair
+          const detail = err.response.data.detail;
+          if (detail && detail.includes('archived') && detail.includes('Client ID:') && detail.includes('Account ID:')) {
+            // Extract client and account IDs from error message
+            const clientIdMatch = detail.match(/Client ID: (\d+)/);
+            const accountIdMatch = detail.match(/Account ID: (\d+)/);
+            
+            const clientId = clientIdMatch ? parseInt(clientIdMatch[1]) : null;
+            const accountId = accountIdMatch ? parseInt(accountIdMatch[1]) : null;
+            
+            setArchivedModal({
+              isOpen: true,
+              clientId: clientId,
+              accountId: accountId
+            });
+          } else {
+            setError(`Failed to create project: ${detail}`);
+          }
         }
       } else if (err.response?.status === 422) {
         setError('Invalid data provided. Please check all required fields and date formats.');
@@ -467,8 +486,59 @@ const AddProject = () => {
   };
 
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto space-y-8">
+    <>
+      {/* Archived Client Modal - Rendered via Portal */}
+      {archivedModal.isOpen && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in">
+            {/* Close Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => setArchivedModal({ isOpen: false, clientId: null, accountId: null })}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Icon */}
+            <div className="flex justify-center">
+              <div className="bg-red-100 rounded-full p-3">
+                <ExclamationTriangleIcon className="w-8 h-8 text-red-600" />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-lg font-semibold text-gray-900 text-center">
+              Client-Attorney Pair Archived
+            </h3>
+
+            {/* Message */}
+            <p className="text-gray-600 text-center text-sm">
+              This client-attorney pair has been archived and cannot be used to create new projects.
+            </p>
+
+            {/* Additional Info */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-xs text-red-700">
+                <center><strong>Why?</strong> <br />This client has been deleted for selected attorney.</center>
+              </p>
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setArchivedModal({ isOpen: false, clientId: null, accountId: null })}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Got It
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      <Layout>
+        <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-700 p-8 shadow-2xl">
           {/* Animated background elements */}
@@ -605,7 +675,6 @@ const AddProject = () => {
                     options: appraisalTypes
                   })}
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {renderField({
                     name: 'project_name',
@@ -615,15 +684,38 @@ const AddProject = () => {
                     description: 'A unique name to identify this project'
                   })}
 
-                  {renderField({
-                    name: 'address_letter_to',
-                    label: 'Address Letter To',
-                    type: 'text',
-                    required: true,
-                    placeholder: 'Enter Person Name',
-                    description: 'Person to whom the letter should be addressed'
-                  })}
+
+                {/* Assigned to Account field */}
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <BuildingOfficeIcon className="w-5 h-5 text-gray-400" />
+                    <span>Assigned to Account (Optional)</span>
+                  </label>
+                  <p className="text-xs text-gray-500">Select an account to associate with this project</p>
+                  <select
+                    name="account_id"
+                    value={formData.account_id}
+                    onChange={handleChange}
+                    onFocus={() => setFocusedField('account_id')}
+                    onBlur={() => setFocusedField('')}
+                    className={`w-full px-4 py-3 rounded-2xl border-2 transition-all duration-200 ${
+                      focusedField === 'account_id'
+                        ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-blue-50/50'
+                        : completedFields.has('account_id')
+                        ? 'border-green-300 bg-green-50/50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    } focus:outline-none focus:ring-4`}
+                  >
+                    <option value="">No account assigned</option>
+                    {accounts.map(account => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.account_type.replace('_', ' ')})
+                      </option>
+                    ))}
+                  </select>
                 </div>
+                </div>
+
 
                 {/* Recipient Information */}
                 <div className="space-y-6 bg-purple-50 p-6 rounded-2xl border border-purple-200">
@@ -780,35 +872,15 @@ const AddProject = () => {
                     )}
                   </div>
                 </div>
-
-                {/* Assigned to Account field */}
                 <div className="space-y-2">
-                  <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
-                    <BuildingOfficeIcon className="w-5 h-5 text-gray-400" />
-                    <span>Assigned to Account (Optional)</span>
-                  </label>
-                  <p className="text-xs text-gray-500">Select an account to associate with this project</p>
-                  <select
-                    name="account_id"
-                    value={formData.account_id}
-                    onChange={handleChange}
-                    onFocus={() => setFocusedField('account_id')}
-                    onBlur={() => setFocusedField('')}
-                    className={`w-full px-4 py-3 rounded-2xl border-2 transition-all duration-200 ${
-                      focusedField === 'account_id'
-                        ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-blue-50/50'
-                        : completedFields.has('account_id')
-                        ? 'border-green-300 bg-green-50/50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    } focus:outline-none focus:ring-4`}
-                  >
-                    <option value="">No account assigned</option>
-                    {accounts.map(account => (
-                      <option key={account.id} value={account.id}>
-                        {account.name} ({account.account_type.replace('_', ' ')})
-                      </option>
-                    ))}
-                  </select>
+                  {renderField({
+                    name: 'address_letter_to',
+                    label: 'Address Letter To',
+                    type: 'text',
+                    required: true,
+                    placeholder: 'Enter Person Name',
+                    description: 'Person to whom the letter should be addressed'
+                  })}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1125,7 +1197,6 @@ const AddProject = () => {
             </div>
           </div>
         </form>
-      </div>
 
       <style>{`
         @keyframes slide-up {
@@ -1144,8 +1215,9 @@ const AddProject = () => {
           opacity: 0;
         }
       `}</style>
-    </Layout>
+      </div>
+      </Layout>
+    </>
   );
 };
-
 export default AddProject;

@@ -19,7 +19,8 @@ import {
   FunnelIcon,
   EyeIcon,
   ChevronDownIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 const AccountList = () => {
@@ -35,6 +36,7 @@ const AccountList = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, clientId: null, clientName: '', parentAccountId: null, accountId: null });
   const { isAdmin, isEditor } = useAuth();
 
   useEffect(() => {
@@ -135,6 +137,39 @@ const AccountList = () => {
     }
   };
 
+  const handleDeleteClient = (clientId, clientName, parentAccountId, accountId = null) => {
+    setDeleteModal({
+      isOpen: true,
+      clientId: clientId,
+      clientName: clientName,
+      parentAccountId: parentAccountId,
+      accountId: accountId  // The account/attorney ID doing the deletion
+    });
+  };
+
+  const confirmDeleteClient = async () => {
+    const { clientId, parentAccountId, accountId } = deleteModal;
+    try {
+      // Pass accountId to the backend so only this specific pair is archived
+      await clientService.deleteClient(clientId, accountId);
+      
+      // Refresh clients list
+      if (parentAccountId && expandedAccounts.has(parentAccountId)) {
+        const clientsData = await accountService.getAccountClientsByProjects(parentAccountId);
+        setClients(prev => ({ ...prev, [parentAccountId]: clientsData }));
+      } else if (!parentAccountId) {
+        // Refresh unassigned clients
+        const unassigned = await clientService.getClients(0, 1000);
+        setUnassignedClients(unassigned.filter(c => !c.parent_account_id));
+      }
+      
+      setDeleteModal({ isOpen: false, clientId: null, clientName: '', parentAccountId: null, accountId: null });
+    } catch (err) {
+      console.error('Error deleting client:', err);
+      setError('Failed to delete client');
+    }
+  };
+
   const toggleAccountExpansion = async (accountId) => {
     const newExpanded = new Set(expandedAccounts);
     if (expandedAccounts.has(accountId)) {
@@ -230,6 +265,53 @@ const AccountList = () => {
 
   return (
     <Layout>
+      {/* Delete Client Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in">
+            {/* Icon */}
+            <div className="flex justify-center">
+              <div className="bg-orange-100 rounded-full p-3">
+                <ExclamationTriangleIcon className="w-8 h-8 text-orange-600" />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-lg font-semibold text-gray-900 text-center">
+              Delete "{deleteModal.clientName}"?
+            </h3>
+
+            {/* Warning Message */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-2">
+              <p className="text-sm text-orange-800">
+                <strong>⚠️ Caution:</strong> This will archive this client.
+              </p>
+              <ul className="text-xs text-orange-700 space-y-1 ml-4 list-disc">
+                <li>No new projects can be created for this pair</li>
+                <li>Other attorneys with the same client will not be affected</li>
+                <li>This action cannot be undone</li>
+              </ul>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => setDeleteModal({ isOpen: false, clientId: null, clientName: '', parentAccountId: null })}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteClient}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -393,7 +475,7 @@ const AccountList = () => {
                             </Link>
                           )}
                           
-                          {isAdmin && (
+                          {/* {isAdmin && (
                             <button
                               onClick={() => handleDelete(account.id, account.name)}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
@@ -401,7 +483,7 @@ const AccountList = () => {
                             >
                               <TrashIcon className="w-5 h-5" />
                             </button>
-                          )}
+                          )} */}
                         </div>
                       </div>
                     </div>
@@ -451,25 +533,7 @@ const AccountList = () => {
                                           </button>
                                           {isAdmin && (
                                             <button
-                                              onClick={() => {
-                                                if (window.confirm(`Are you sure you want to delete "${client.name}"?`)) {
-                                                  clientService.deleteClient(client.id)
-                                                    .then(() => {
-                                                      // Refresh clients list
-                                                      if (expandedAccounts.has(account.id)) {
-                                                        accountService.getAccountClientsByProjects(account.id)
-                                                          .then(clientsData => {
-                                                            setClients(prev => ({ ...prev, [account.id]: clientsData }));
-                                                          })
-                                                          .catch(err => console.error('Error refreshing clients:', err));
-                                                      }
-                                                    })
-                                                    .catch(err => {
-                                                      console.error('Error deleting client:', err);
-                                                      setError('Failed to delete client');
-                                                    });
-                                                }
-                                              }}
+                                              onClick={() => handleDeleteClient(client.id, client.name, account.id, account.id)}
                                               className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
                                               title="Delete Client"
                                             >
@@ -609,18 +673,7 @@ const AccountList = () => {
                       
                       {isAdmin && (
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete "${client.name}"?`)) {
-                              clientService.deleteClient(client.id)
-                                .then(() => {
-                                  setUnassignedClients(prev => prev.filter(c => c.id !== client.id));
-                                })
-                                .catch(err => {
-                                  console.error('Error deleting client:', err);
-                                  setError('Failed to delete client');
-                                });
-                            }
-                          }}
+                          onClick={() => handleDeleteClient(client.id, client.name, null)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                           title="Delete Client"
                         >

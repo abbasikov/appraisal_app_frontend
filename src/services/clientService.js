@@ -23,8 +23,13 @@ export const clientService = {
     return response.data;
   },
 
-  async deleteClient(id) {
-    const response = await api.delete(`/clients/${id}`);
+  async deleteClient(id, accountId = null) {
+    const params = new URLSearchParams();
+    if (accountId) {
+      params.append('account_id', accountId);
+    }
+    const url = accountId ? `/clients/${id}?${params}` : `/clients/${id}`;
+    const response = await api.delete(url);
     return response.data;
   }
 };

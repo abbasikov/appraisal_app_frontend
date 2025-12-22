@@ -18,6 +18,8 @@ const TEMPLATE_KEYWORDS = {
   "handbags": "image_based",
   "watch": "image_based",
   "watches": "image_based",
+  "collectibles": "image_based",
+  "collectible": "image_based",
 
   // Table-based templates (each different)
   "coin": "coin",
@@ -84,6 +86,8 @@ const KEYWORD_TO_ITEM_TYPE = {
   "handbags": "Handbag",
   "watch": "Watches",
   "watches": "Watches",
+  "collectibles": "Collectibles",
+  "collectible": "Collectibles",
   "coin": "Coins",
   "coins": "Coins",
   "content": "Contents",

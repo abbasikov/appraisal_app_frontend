@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { clientService } from '../../services/clientService';
 import { accountService } from '../../services/accountService';
+import { templateService } from '../../services/templateService';
 import Layout from '../../components/Layout';
 import { 
   ArrowLeftIcon,
@@ -54,6 +55,7 @@ const EditProject = () => {
   });
   const [clients, setClients] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [errors, setErrors] = useState({});
 
   const appraisalTypes = [
@@ -80,10 +82,11 @@ const EditProject = () => {
   const fetchData = async () => {
     try {
       setFetchLoading(true);
-      const [projectData, clientsData, accountsData] = await Promise.all([
+      const [projectData, clientsData, accountsData, templatesData] = await Promise.all([
         projectService.getProject(id),
         clientService.getClients(0, 1000),
-        accountService.getAccounts(null, true)
+        accountService.getAccounts(null, true),
+        templateService.getTemplates()
       ]);
       
       const projectFormData = {
@@ -127,6 +130,7 @@ const EditProject = () => {
       setFormData(projectFormData);
       setOriginalData(projectFormData);
       setClients(Array.isArray(clientsData) ? clientsData : []);
+      setTemplates(Array.isArray(templatesData?.templates) ? templatesData.templates : Array.isArray(templatesData) ? templatesData : []);
       
       const allAccounts = accountsData.accounts || [];
       const nonClientAccounts = allAccounts.filter(account => account.account_type !== 'client');
@@ -483,11 +487,11 @@ const EditProject = () => {
             <div className="flex items-center justify-between">
               <div>
                 <button
-                  onClick={() => navigate('/projects')}
+                  onClick={() => navigate(`/projects/${id}`)}
                   className="inline-flex items-center space-x-2 text-indigo-100 hover:text-white transition-colors duration-200 mb-4"
                 >
                   <ArrowLeftIcon className="w-5 h-5" />
-                  <span className="font-medium">Back to Projects</span>
+                  <span className="font-medium">Back to Project</span>
                 </button>
                 
                 <div className="flex items-center space-x-3 mb-2">
@@ -849,7 +853,29 @@ const EditProject = () => {
                   </div>
                 </div>
               )}
-
+              {/* Template Selection */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+                  <DocumentTextIcon className="w-5 h-5 text-purple-500" />
+                  <span>Template Selection</span>
+                </h3>
+                
+                {renderField({
+                  name: 'template_id',
+                  label: 'Report Template',
+                  type: 'select',
+                  description: `Choose a template for generating reports - ${templates.length} templates available`,
+                  options: [
+                    { value: '', label: 'No template selected' },
+                    ...templates
+                      .filter(template => !formData.appraisal_type || template.appraisal_type === formData.appraisal_type)
+                      .map(template => ({
+                        value: template.id,
+                        label: `${template.name} (${template.appraisal_type})`
+                      }))
+                  ]
+                })}
+              </div>
               {/* Additional Information */}
               <div className="space-y-6">
                 <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">

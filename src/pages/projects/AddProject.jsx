@@ -208,13 +208,16 @@ const AddProject = () => {
       newErrors.appraisal_type = 'Please select an appraisal type';
     }
 
-    // 1. case_name required for DIVORCE
-    if (formData.appraisal_type === 'DIVORCE') {
+    // case_name, inspection_date, and effective_date required for all templates EXCEPT estate
+    if (formData.appraisal_type !== 'ESTATE' && formData.appraisal_type !== 'SELECT') {
       if (!formData.case_name || !formData.case_name.trim()) {
-        newErrors.case_name = 'Case Name is required for Divorce appraisals';
+        newErrors.case_name = 'Case Name is required';
+      }
+      if (!formData.inspection_date || !formData.inspection_date.trim()) {
+        newErrors.inspection_date = 'Inspection Date is required';
       }
       if (!formData.effective_date || !formData.effective_date.trim()) {
-        newErrors.effective_date = 'Effective Date is required for Divorce appraisals';
+        newErrors.effective_date = 'Effective Date is required';
       }
     }
     
@@ -232,11 +235,6 @@ const AddProject = () => {
     // Validate address_letter_to
     if (!formData.address_letter_to || !formData.address_letter_to.trim()) {
       newErrors.address_letter_to = 'Address Letter To is required';
-    }
-
-    // Inspection Date (Appointment Date) required for ALL
-    if (!formData.inspection_date || !formData.inspection_date.trim()) {
-      newErrors.inspection_date = 'Inspection Date is required';
     }
     
     // Validate dates if provided
@@ -263,6 +261,16 @@ const AddProject = () => {
           reportDate < inspectionDate) {
         newErrors.report_date = 'Report due date should be after inspection date';
       }
+    }
+    
+    // Project template is required
+    if (!formData.template_id) {
+      newErrors.template_id = 'Please select a project template';
+    }
+
+    // Appraisal location is required
+    if (!formData.appraisal_location || !formData.appraisal_location.trim()) {
+      newErrors.appraisal_location = 'Appraisal Location is required';
     }
     
     // Recipient validation - if a recipient source is selected, require name and address
@@ -894,6 +902,7 @@ const AddProject = () => {
                   {renderField({
                     name: 'case_name',
                     label: 'Case Name',
+                    required: formData.appraisal_type !== 'ESTATE' && formData.appraisal_type !== 'SELECT',
                     placeholder: 'e.g., Estate of John Smith...',
                     description: 'Name of case for this appraisal'
                   })}
@@ -912,6 +921,7 @@ const AddProject = () => {
                     name: 'inspection_date',
                     label: 'Inspection Date',
                     type: 'date',
+                    required: formData.appraisal_type !== 'ESTATE' && formData.appraisal_type !== 'SELECT',
                     description: 'When will the property inspection take place?'
                   })}
 
@@ -926,6 +936,7 @@ const AddProject = () => {
                     name: 'effective_date',
                     label: 'Effective Date',
                     type: 'date',
+                    required: formData.appraisal_type !== 'ESTATE' && formData.appraisal_type !== 'SELECT',
                     description: 'Effective date for the appraisal'
                   })}
                 </div>
@@ -1071,6 +1082,7 @@ const AddProject = () => {
                     name: 'appraisal_location',
                     label: 'Appraisal Location',
                     type: 'text',
+                    required: true,
                     placeholder: formData.appraisal_location_type === 'manual' 
                       ? 'Enter appraisal location...' 
                       : 'Location will be auto-populated based on selection',
@@ -1099,9 +1111,10 @@ const AddProject = () => {
                   name: 'template_id',
                   label: 'Report Template',
                   type: 'select',
-                  description: `Choose a template for generating reports (optional) - ${templates.length} templates available`,
+                  required: true,
+                  description: `Choose a template for generating reports - ${templates.length} templates available`,
                   options: [
-                    { value: '', label: 'No template selected' },
+                    { value: '', label: 'Select a template' },
                     ...templates
                       .filter(template => !formData.appraisal_type || template.appraisal_type === formData.appraisal_type)
                       .map(template => ({

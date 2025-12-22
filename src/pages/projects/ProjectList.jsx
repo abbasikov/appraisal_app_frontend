@@ -128,14 +128,21 @@ const ProjectList = () => {
     return gradients[status] || gradients.DRAFT;
   };
 
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.case_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.client_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClient = selectedClient === '' || project.client_id === parseInt(selectedClient);
-    const matchesStatus = selectedStatus === '' || project.status === selectedStatus;
-    return matchesSearch && matchesClient && matchesStatus;
-  });
+  const filteredProjects = projects
+    .filter(project => {
+      const matchesSearch = project.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           project.case_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           project.client_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesClient = selectedClient === '' || project.client_id === parseInt(selectedClient);
+      const matchesStatus = selectedStatus === '' || project.status === selectedStatus;
+      return matchesSearch && matchesClient && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Sort by updated_at in descending order (most recent first)
+      const dateA = new Date(a.updated_at || a.created_at || 0);
+      const dateB = new Date(b.updated_at || b.created_at || 0);
+      return dateB - dateA;
+    });
 
   const ProjectCard = ({ project }) => {
     const StatusIcon = getStatusIcon(project.status);

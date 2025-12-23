@@ -25,6 +25,7 @@ import {
 
 const AccountList = () => {
   const [accounts, setAccounts] = useState([]);
+  const [allClients, setAllClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
@@ -112,14 +113,18 @@ const AccountList = () => {
       const response = await accountService.getAccounts();
       setAccounts(Array.isArray(response.accounts) ? response.accounts : []);
       
+      // Fetch all clients
+      const clientsResponse = await clientService.getClients(0, 1000);
+      setAllClients(Array.isArray(clientsResponse) ? clientsResponse : []);
+      
       // Fetch unassigned clients
-      const clientsResponse = await clientService.getClients();
       const unassigned = clientsResponse.filter(client => !client.parent_account_id);
       setUnassignedClients(unassigned);
     } catch (err) {
       setError('Failed to load accounts');
       console.error('Error fetching accounts:', err);
       setAccounts([]);
+      setAllClients([]);
     } finally {
       setLoading(false);
     }
@@ -196,12 +201,31 @@ const AccountList = () => {
     { value: 'other', label: 'Other' }
   ];
 
-  const filteredAccounts = accounts.filter(account => {
-    const matchesSearch = account.name?.toLowerCase().includes(filter.toLowerCase()) ||
-                         account.email?.toLowerCase().includes(filter.toLowerCase());
-    const matchesType = selectedType === '' || account.account_type === selectedType;
-    return matchesSearch && matchesType;
-  });
+  // Combine accounts and clients based on selected type
+  const getFilteredItems = () => {
+    if (selectedType === 'client') {
+      // Show all clients when 'client' filter is selected
+      return allClients
+        .filter(client => 
+          client.name?.toLowerCase().includes(filter.toLowerCase()) ||
+          client.email?.toLowerCase().includes(filter.toLowerCase())
+        )
+        .map(client => ({
+          ...client,
+          account_type: 'client' // Add account_type for consistent rendering
+        }));
+    } else {
+      // Show accounts filtered by type
+      return accounts.filter(account => {
+        const matchesSearch = account.name?.toLowerCase().includes(filter.toLowerCase()) ||
+                             account.email?.toLowerCase().includes(filter.toLowerCase());
+        const matchesType = selectedType === '' || account.account_type === selectedType;
+        return matchesSearch && matchesType;
+      });
+    }
+  };
+
+  const filteredAccounts = getFilteredItems();
 
   const getAccountTypeLabel = (type) => {
     if (!type) return 'Unknown';
@@ -466,13 +490,26 @@ const AccountList = () => {
                           </button>
                           
                           {(isAdmin || isEditor) && (
-                            <Link
-                              to={`/accounts/${account.id}/edit`}
-                              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-                              title="Edit Account"
-                            >
-                              <PencilIcon className="w-5 h-5" />
-                            </Link>
+                            account.account_type === 'client' ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedClient(account);
+                                  setEditModalOpen(true);
+                                }}
+                                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                                title="Edit Client"
+                              >
+                                <PencilIcon className="w-5 h-5" />
+                              </button>
+                            ) : (
+                              <Link
+                                to={`/accounts/${account.id}/edit`}
+                                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                                title="Edit Account"
+                              >
+                                <PencilIcon className="w-5 h-5" />
+                              </Link>
+                            )
                           )}
                           
                           {/* {isAdmin && (

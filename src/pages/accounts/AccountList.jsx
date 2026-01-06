@@ -38,6 +38,7 @@ const AccountList = () => {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, clientId: null, clientName: '', parentAccountId: null, accountId: null });
+  const [detailsModal, setDetailsModal] = useState({ isOpen: false, account: null });
   const { isAdmin, isEditor } = useAuth();
 
   useEffect(() => {
@@ -59,8 +60,8 @@ const AccountList = () => {
           })
           .catch(err => console.error('Error refreshing clients:', err));
       } else if (!client.parent_account_id) {
-        // Add to unassigned clients
-        setUnassignedClients(prev => [client, ...prev]);
+        // Add to unassigned clients with account_type
+        setUnassignedClients(prev => [{ ...client, account_type: 'client' }, ...prev]);
       }
     };
 
@@ -73,10 +74,10 @@ const AccountList = () => {
         setUnassignedClients(prev => prev.filter(c => c.id !== client.id));
       } else if (oldParentAccountId && !newParentAccountId) {
         // Client was unassigned
-        setUnassignedClients(prev => [client, ...prev]);
+        setUnassignedClients(prev => [{ ...client, account_type: 'client' }, ...prev]);
       } else if (!oldParentAccountId && !newParentAccountId) {
         // Client updated but still unassigned
-        setUnassignedClients(prev => prev.map(c => c.id === client.id ? client : c));
+        setUnassignedClients(prev => prev.map(c => c.id === client.id ? { ...client, account_type: 'client' } : c));
       }
       
       // Refresh clients for old parent account if it was expanded
@@ -117,8 +118,11 @@ const AccountList = () => {
       const clientsResponse = await clientService.getClients(0, 1000);
       setAllClients(Array.isArray(clientsResponse) ? clientsResponse : []);
       
-      // Fetch unassigned clients
-      const unassigned = clientsResponse.filter(client => !client.parent_account_id);
+      // Fetch unassigned clients and add account_type for consistency
+      const unassigned = clientsResponse.filter(client => !client.parent_account_id).map(client => ({
+        ...client,
+        account_type: 'client'
+      }));
       setUnassignedClients(unassigned);
     } catch (err) {
       setError('Failed to load accounts');
@@ -228,7 +232,7 @@ const AccountList = () => {
   const filteredAccounts = getFilteredItems();
 
   const getAccountTypeLabel = (type) => {
-    if (!type) return 'Unknown';
+    if (!type) return 'Client'; // Default to Client for unassigned clients
     return type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
@@ -288,10 +292,162 @@ const AccountList = () => {
   }
 
   return (
-    <Layout>
-      {/* Delete Client Confirmation Modal */}
-      {deleteModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <>
+      {/* Account Details Modal - Outside Layout for proper centering */}
+      {detailsModal.isOpen && detailsModal.account && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 animate-in fade-in zoom-in">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+              <div className="flex items-center space-x-4">
+                <div className={`p-3 rounded-2xl ${getAccountTypeColor(detailsModal.account.account_type).replace('text-', 'bg-').replace('-800', '-500')} bg-opacity-20 border`}>
+                  {(() => {
+                    const IconComponent = getAccountIcon(detailsModal.account.account_type);
+                    return <IconComponent className="w-6 h-6 text-gray-700" />;
+                  })()}
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">{detailsModal.account.name}</h2>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getAccountTypeColor(detailsModal.account.account_type)}`}>
+                    {getAccountTypeLabel(detailsModal.account.account_type)}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setDetailsModal({ isOpen: false, account: null })}
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-4">
+              {/* Contact Information */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <EnvelopeIcon className="w-5 h-5 mr-2 text-gray-500" />
+                  Contact Information
+                </h3>
+                <div className="grid grid-cols-1 gap-3 pl-7">
+                  {detailsModal.account.email && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Email</span>
+                      <p className="text-gray-900">{detailsModal.account.email}</p>
+                    </div>
+                  )}
+                  {detailsModal.account.phone && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Phone</span>
+                      <p className="text-gray-900">{detailsModal.account.phone}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Company Information */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <BuildingOfficeIcon className="w-5 h-5 mr-2 text-gray-500" />
+                  Company Information
+                </h3>
+                <div className="grid grid-cols-1 gap-3 pl-7">
+                  {detailsModal.account.email && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Company Name</span>
+                      <p className="text-gray-900">{detailsModal.account.company}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Address Information */}
+              {(detailsModal.account.address || detailsModal.account.city || detailsModal.account.state || detailsModal.account.zip) && (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <MapPinIcon className="w-5 h-5 mr-2 text-gray-500" />
+                    Address
+                  </h3>
+                  <div className="pl-7 text-gray-900">
+                    {detailsModal.account.address && <p>{detailsModal.account.address}</p>}
+                    <p>
+                      {[
+                        detailsModal.account.city,
+                        detailsModal.account.state,
+                        detailsModal.account.zip
+                      ].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {/* Additional Information */}
+              {detailsModal.account.notes && (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900">Notes</h3>
+                  <p className="text-gray-700 whitespace-pre-wrap">{detailsModal.account.notes}</p>
+                </div>
+              )}
+
+              {/* Metadata */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <h3 className="text-lg font-semibold text-gray-900">Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {detailsModal.account.created_at && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Created</span>
+                      <p className="text-gray-900">{new Date(detailsModal.account.created_at).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  {detailsModal.account.updated_at && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Last Updated</span>
+                      <p className="text-gray-900">{new Date(detailsModal.account.updated_at).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            {(isAdmin || isEditor) && (
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setDetailsModal({ isOpen: false, account: null })}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                {(detailsModal.account.account_type === 'client' || !detailsModal.account.account_type) ? (
+                  <button
+                    onClick={() => {
+                      setSelectedClient(detailsModal.account);
+                      setEditModalOpen(true);
+                      setDetailsModal({ isOpen: false, account: null });
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <Link
+                    to={`/accounts/${detailsModal.account.id}/edit`}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                  >
+                    Edit
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Layout>
+        {/* Delete Client Confirmation Modal */}
+        {deleteModal.isOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in">
             {/* Icon */}
             <div className="flex justify-center">
@@ -483,6 +639,7 @@ const AccountList = () => {
                         {/* Right Section - Actions */}
                         <div className="flex items-center space-x-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           <button 
+                            onClick={() => setDetailsModal({ isOpen: true, account })}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                             title="View Details"
                           >
@@ -689,6 +846,7 @@ const AccountList = () => {
 
                     <div className="flex items-center space-x-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button 
+                        onClick={() => setDetailsModal({ isOpen: true, account: client })}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                         title="View Details"
                       >
@@ -781,7 +939,8 @@ const AccountList = () => {
           opacity: 0;
         }
       `}</style>
-    </Layout>
+      </Layout>
+    </>
   );
 };
 

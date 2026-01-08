@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { templateService } from '../../services/templateService';
@@ -25,7 +25,8 @@ import {
   ExclamationTriangleIcon,
   ClockIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import Button from '../../components/ui/Button';
 
@@ -37,6 +38,8 @@ const ProjectDetails = () => {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef(null);
   
   // Pagination state for photos
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,6 +48,14 @@ const ProjectDetails = () => {
   const itemsPerPage = 20;
   const { isAdmin, isEditor } = useAuth();
   const { toasts, showSuccess, showError, removeToast } = useToast();
+
+  const statusOptions = [
+    { value: 'DRAFT', label: 'Draft', color: 'gray' },
+    { value: 'IN_PROGRESS', label: 'In Progress', color: 'blue' },
+    { value: 'REVIEW', label: 'Review', color: 'yellow' },
+    { value: 'COMPLETED', label: 'Completed', color: 'green' },
+    { value: 'DELIVERED', label: 'Delivered', color: 'purple' }
+  ];
 
   useEffect(() => {
     fetchProjectDetails();
@@ -62,6 +73,20 @@ const ProjectDetails = () => {
   useEffect(() => {
     fetchPhotos();
   }, [id, currentPage]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+        setStatusDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const fetchProjectDetails = async () => {
     try {
@@ -146,6 +171,18 @@ const ProjectDetails = () => {
     }
   };
 
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await projectService.updateProject(id, { status: newStatus });
+      setProject(prev => ({ ...prev, status: newStatus }));
+      setStatusDropdownOpen(false);
+      showSuccess('Project status updated successfully');
+    } catch (err) {
+      showError('Failed to update project status');
+      console.error('Error updating status:', err);
+    }
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       DRAFT: 'bg-gray-100 text-gray-800 border-gray-300',
@@ -215,6 +252,7 @@ const ProjectDetails = () => {
 
   return (
     <Layout>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -242,12 +280,53 @@ const ProjectDetails = () => {
             </div>
           </div>
 
-          {/* Status Badge */}
-          <div className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${getStatusColor(project?.status)}`}>
-            <StatusIcon className="w-5 h-5" />
-            <span className="font-medium capitalize">
-              {project?.status?.replace('_', ' ') || 'Draft'}
-            </span>
+          {/* Status Badge Dropdown */}
+          <div className="relative" ref={statusDropdownRef}>
+            <button
+              onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${getStatusColor(project?.status)} transition-all hover:shadow-md cursor-pointer`}
+            >
+              <StatusIcon className="w-5 h-5" />
+              <span className="font-medium capitalize">
+                {project?.status?.replace('_', ' ') || 'Draft'}
+              </span>
+              <ChevronDownIcon className={`w-4 h-4 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {statusDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+                {statusOptions.map((option) => {
+                  const OptionIcon = getStatusIcon(option.value);
+                  const isSelected = project?.status === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => handleStatusChange(option.value)}
+                      className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors ${
+                        isSelected ? 'bg-gray-50' : ''
+                      }`}
+                    >
+                      <OptionIcon className={`w-5 h-5 ${
+                        option.color === 'gray' ? 'text-gray-600' :
+                        option.color === 'blue' ? 'text-blue-600' :
+                        option.color === 'yellow' ? 'text-yellow-600' :
+                        option.color === 'green' ? 'text-green-600' :
+                        option.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                      }`} />
+                      <span className={`font-medium ${
+                        isSelected ? 'text-gray-900' : 'text-gray-700'
+                      }`}>
+                        {option.label}
+                      </span>
+                      {isSelected && (
+                        <CheckCircleIcon className="w-4 h-4 text-green-600 ml-auto" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 

@@ -5,9 +5,17 @@ import { appraisalService } from "../../services/appraisalService";
 import { templateService } from "../../services/templateService";
 import Layout from "../../components/Layout";
 import { useToast } from "../../hooks/useToast";
+import ToastContainer from "../../components/ToastContainer";
 import InspectionVerificationModal from "../../components/InspectionVerificationModal";
 import { detectItemTypeFromTemplate } from "../../utils/templateDetector";
 import api from "../../services/api";
+import {
+  DocumentTextIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  ChevronDownIcon
+} from '@heroicons/react/24/outline';
 import {
   Document,
   Packer,
@@ -70,7 +78,8 @@ const ProjectReview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const contentRef = useRef();
-  const { showToast } = useToast();
+  const statusDropdownRef = useRef(null);
+  const { showToast, toasts, removeToast } = useToast();
   
   const [project, setProject] = useState(null);
   const [template, setTemplate] = useState(null);
@@ -82,10 +91,33 @@ const ProjectReview = () => {
   const [showInspectionModal, setShowInspectionModal] = useState(false);
   const [pendingReportType, setPendingReportType] = useState(null);
   const [detectedItemType, setDetectedItemType] = useState(null);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+
+  const statusOptions = [
+    { value: 'DRAFT', label: 'Draft', color: 'gray' },
+    { value: 'IN_PROGRESS', label: 'In Progress', color: 'blue' },
+    { value: 'REVIEW', label: 'Review', color: 'yellow' },
+    { value: 'COMPLETED', label: 'Completed', color: 'green' },
+    { value: 'DELIVERED', label: 'Delivered', color: 'purple' }
+  ];
 
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+        setStatusDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -156,6 +188,40 @@ const ProjectReview = () => {
     // Show inspection verification modal first
     setPendingReportType(reportType);
     setShowInspectionModal(true);
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      DRAFT: 'bg-gray-100 text-gray-800 border-gray-300',
+      IN_PROGRESS: 'bg-blue-100 text-blue-800 border-blue-300',
+      REVIEW: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      COMPLETED: 'bg-green-100 text-green-800 border-green-300',
+      DELIVERED: 'bg-purple-100 text-purple-800 border-purple-300'
+    };
+    return colors[status] || colors.DRAFT;
+  };
+
+  const getStatusIcon = (status) => {
+    const icons = {
+      DRAFT: DocumentTextIcon,
+      IN_PROGRESS: ClockIcon,
+      REVIEW: ExclamationTriangleIcon,
+      COMPLETED: CheckCircleIcon,
+      DELIVERED: CheckCircleIcon
+    };
+    return icons[status] || DocumentTextIcon;
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await projectService.updateProject(id, { status: newStatus });
+      setProject(prev => ({ ...prev, status: newStatus }));
+      setStatusDropdownOpen(false);
+      showToast('Project status updated successfully', 'success');
+    } catch (err) {
+      showToast('Failed to update project status', 'error');
+      console.error('Error updating status:', err);
+    }
   };
 
   const handleInspectionVerification = async (didInspect) => {
@@ -264,12 +330,15 @@ const ProjectReview = () => {
     0
   );
 
+  const StatusIcon = getStatusIcon(project?.status);
+
   return (
     <Layout>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Project Review</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Project Review</h1>
           <div className="flex space-x-3">
             <button
               onClick={() => navigate(`/projects/${id}/appraisal`)}
@@ -333,7 +402,57 @@ const ProjectReview = () => {
           <div ref={contentRef} className="p-8">
             {/* Header */}
             <div className="header">
+            <div className="flex items-center w-full">
               <h1 className="text-3xl font-bold mb-2">Appraisal Report</h1>
+              {/* Status Badge Dropdown */}
+            <div className="relative ml-auto" ref={statusDropdownRef}>
+              <button
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${getStatusColor(project?.status)} transition-all hover:shadow-md cursor-pointer`}
+              >
+                <StatusIcon className="w-5 h-5" />
+                <span className="font-medium capitalize">
+                  {project?.status?.replace('_', ' ') || 'Draft'}
+                </span>
+                <ChevronDownIcon className={`w-4 h-4 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {statusDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+                  {statusOptions.map((option) => {
+                    const OptionIcon = getStatusIcon(option.value);
+                    const isSelected = project?.status === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => handleStatusChange(option.value)}
+                        className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors ${
+                          isSelected ? 'bg-gray-50' : ''
+                        }`}
+                      >
+                        <OptionIcon className={`w-5 h-5 ${
+                          option.color === 'gray' ? 'text-gray-600' :
+                          option.color === 'blue' ? 'text-blue-600' :
+                          option.color === 'yellow' ? 'text-yellow-600' :
+                          option.color === 'green' ? 'text-green-600' :
+                          option.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                        }`} />
+                        <span className={`font-medium ${
+                          isSelected ? 'text-gray-900' : 'text-gray-700'
+                        }`}>
+                          {option.label}
+                        </span>
+                        {isSelected && (
+                          <CheckCircleIcon className="w-4 h-4 text-green-600 ml-auto" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            </div>
               <p className="text-lg text-gray-600">
                 {project.appraisal_type} Appraisal
               </p>

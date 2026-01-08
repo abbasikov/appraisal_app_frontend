@@ -199,10 +199,12 @@ const AccountList = () => {
   const accountTypes = [
     { value: '', label: 'All Types' },
     { value: 'attorney', label: 'Attorney' },
-    { value: 'client', label: 'Client' },
-    { value: 'insurance_company', label: 'Insurance Company' },
-    { value: 'lender', label: 'Lender' },
-    { value: 'other', label: 'Other' }
+    { value: 'estate_planner', label: 'Estate Planner'},
+    { value: 'house_manager', label: 'House Manager'},
+    { value: 'financial_manager', label: 'Financial Manager'},
+    { value: 'assistant', label: 'Assistant'},
+    { value: 'appraiser', label: 'Appraiser'},
+    { value: 'client', label: 'Client'}
   ];
 
   // Combine accounts and clients based on selected type

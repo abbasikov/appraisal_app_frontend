@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Layout from '../../components/Layout';
 import { userService } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
@@ -498,8 +499,8 @@ const UserManagement = () => {
         )}
 
         {/* Invite User Modal */}
-        {showInviteModal && (
-          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        {showInviteModal && createPortal(
+          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-[9999] flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md transform transition-all duration-200 scale-100">
               <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-indigo-50/50">
                 <div className="flex items-center justify-between">
@@ -557,7 +558,7 @@ const UserManagement = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
                   <input
                     type="tel"
                     value={inviteForm.mobile_number}
@@ -610,7 +611,8 @@ const UserManagement = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 

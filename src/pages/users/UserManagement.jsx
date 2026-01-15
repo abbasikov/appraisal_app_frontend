@@ -96,9 +96,11 @@ const UserManagement = () => {
       try {
         await userService.deleteUser(userId);
         showSuccess('User deleted successfully!');
-        fetchUsers();
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+        await fetchUsers();
       } catch (error) {
         showError(error.response?.data?.detail || 'Failed to delete user');
+        fetchUsers();
       }
     }
   };

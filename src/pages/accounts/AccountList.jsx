@@ -356,7 +356,7 @@ const AccountList = () => {
                   Company Information
                 </h3>
                 <div className="grid grid-cols-1 gap-3 pl-7">
-                  {detailsModal.account.email && (
+                  {detailsModal.account.company && (
                     <div>
                       <span className="text-sm font-medium text-gray-500">Company Name</span>
                       <p className="text-gray-900">{detailsModal.account.company}</p>

@@ -197,7 +197,33 @@ const AddAccount = () => {
   };
 
   const selectedType = accountTypes.find(type => type.value === formData.account_type);
-  const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
+  
+  // Calculate total visible fields dynamically based on account type
+  const getTotalVisibleFields = () => {
+    let totalFields = 0;
+    
+    // Basic fields always visible
+    totalFields += 3;
+    
+    // Parent account field - only visible for non-attorney/non-client accounts
+    if (formData.account_type !== 'attorney' && formData.account_type !== 'client') {
+      totalFields += 1; 
+    }
+    
+    // Contact fields
+    totalFields += 4; 
+    
+    // Address fields
+    totalFields += 4; 
+    
+    // Additional fields
+    totalFields += 1;
+    
+    return totalFields;
+  };
+  
+  const totalVisibleFields = getTotalVisibleFields();
+  const progress = totalVisibleFields > 0 ? Math.round((completedFields.size / totalVisibleFields) * 100) : 0;
 
   return (
     <Layout>
@@ -219,7 +245,7 @@ const AddAccount = () => {
           
           {/* Progress indicator */}
           <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-600 font-medium">{progress}% complete</span>
+            <span className="text-sm text-gray-600 font-medium">{completedFields.size} of {totalVisibleFields} fields</span>
             <div className="w-20 h-2 bg-gray-200 rounded-full">
               <div 
                 className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300"
@@ -250,7 +276,7 @@ const AddAccount = () => {
                   New {selectedType?.label || 'Account'}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  {completedFields.size} of {Object.keys(formData).length} fields completed
+                  {completedFields.size} of {totalVisibleFields} fields completed
                 </p>
               </div>
             </div>

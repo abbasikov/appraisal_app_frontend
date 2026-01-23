@@ -341,7 +341,47 @@ const EditProject = () => {
 
   const selectedAppraisalType = appraisalTypes.find(type => type.value === formData.appraisal_type);
   const selectedStatus = statusOptions.find(status => status.value === formData.status);
-  const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
+  
+  // Calculate total visible fields dynamically based on form state
+  const getTotalVisibleFields = () => {
+    let totalFields = 0;
+    
+    // Basic fields always visible
+    totalFields += 3;
+    totalFields += 1;
+    totalFields += 1;
+    totalFields += 1;
+    totalFields += 2; 
+    
+    // Scheduling fields
+    totalFields += 3;
+    
+    // Appraisal location
+    totalFields += 2;
+    
+    // Template
+    totalFields += 1;
+    
+    // Additional info
+    totalFields += 2;
+    
+    // Recipient fields - only count if recipient_source is selected
+    if (formData.recipient_source && formData.recipient_source !== '') {
+      totalFields += 7;
+    } else {
+      totalFields += 1;
+    }
+    
+    // Estate-specific fields - only count if appraisal type is ESTATE
+    if (formData.appraisal_type === 'ESTATE') {
+      totalFields += 2;
+    }
+    
+    return totalFields;
+  };
+  
+  const totalVisibleFields = getTotalVisibleFields();
+  const progress = totalVisibleFields > 0 ? Math.round((completedFields.size / totalVisibleFields) * 100) : 0;
   const changedFields = getChangedFieldsCount();
 
   const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3, value }) => {
@@ -527,7 +567,7 @@ const EditProject = () => {
             <div className="space-y-1">
               <h3 className="font-semibold text-gray-900">Form Progress</h3>
               <p className="text-sm text-gray-600">
-                {completedFields.size} of {Object.keys(formData).length} fields completed
+                {completedFields.size} of {totalVisibleFields} fields completed
                 {hasChanges() && (
                   <span className="text-orange-600 font-medium">
                     {' '}• {changedFields} unsaved change{changedFields !== 1 ? 's' : ''}

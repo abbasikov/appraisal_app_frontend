@@ -299,8 +299,11 @@ const UserManagement = () => {
 
   return (
     <Layout>
+      {createPortal(
+        <ToastContainer toasts={toasts} removeToast={removeToast} />,
+        document.body
+      )}
       <div className="max-w-7xl mx-auto space-y-8">
-        <ToastContainer toasts={toasts} removeToast={removeToast} />
         
         {/* Modern Header Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 p-8 shadow-2xl">

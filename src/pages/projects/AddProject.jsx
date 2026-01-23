@@ -118,9 +118,21 @@ const AddProject = () => {
           [field]: value
         }
       }));
+      
+      // Track recipient field completion
+      if (value && value.trim()) {
+        setCompletedFields(prev => new Set([...prev, name]));
+      } else {
+        setCompletedFields(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(name);
+          return newSet;
+        });
+      }
     } else {
       setFormData(prev => {
         const newData = { ...prev, [name]: value };
+        const autoPopulatedFields = new Set();
         
         // Auto-populate project name when client or type changes
         if (name === 'client_id' || name === 'appraisal_type') {
@@ -131,6 +143,7 @@ const AddProject = () => {
             if (client) {
               const year = new Date().getFullYear();
               newData.project_name = `${client.name}_${appraisalType}_${year}`;
+              autoPopulatedFields.add('project_name');
             }
           }
         }
@@ -148,6 +161,13 @@ const AddProject = () => {
               state: client.state || '',
               zip_code: client.zip_code || ''
             };
+            // Track auto-populated recipient fields
+            if (client.name) autoPopulatedFields.add('recipient.name');
+            if (client.company) autoPopulatedFields.add('recipient.company');
+            if (client.address) autoPopulatedFields.add('recipient.address');
+            if (client.city) autoPopulatedFields.add('recipient.city');
+            if (client.state) autoPopulatedFields.add('recipient.state');
+            if (client.zip_code) autoPopulatedFields.add('recipient.zip_code');
           }
         }
         
@@ -163,28 +183,41 @@ const AddProject = () => {
               state: account.state || '',
               zip_code: account.zip_code || ''
             };
+            // Track auto-populated recipient fields
+            if (account.name) {
+              autoPopulatedFields.add('recipient.name');
+              autoPopulatedFields.add('recipient.company');
+            }
+            if (account.address) autoPopulatedFields.add('recipient.address');
+            if (account.city) autoPopulatedFields.add('recipient.city');
+            if (account.state) autoPopulatedFields.add('recipient.state');
+            if (account.zip_code) autoPopulatedFields.add('recipient.zip_code');
           }
         }
         
+        // Update completed fields with auto-populated ones
+        if (autoPopulatedFields.size > 0) {
+          setCompletedFields(prev => new Set([...prev, ...autoPopulatedFields]));
+        }
         return newData;
       });
+      
+      // Track completed fields for visual feedback
+      if (value && value.trim()) {
+        setCompletedFields(prev => new Set([...prev, name]));
+      } else {
+        setCompletedFields(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(name);
+          return newSet;
+        });
+      }
     }
     
     // Store selected client for reference
     if (name === 'client_id') {
       const client = value ? clients.find(c => c.id === parseInt(value)) : null;
       setSelectedClient(client || null);
-    }
-    
-    // Track completed fields for visual feedback
-    if (value && value.trim()) {
-      setCompletedFields(prev => new Set([...prev, name]));
-    } else {
-      setCompletedFields(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(name);
-        return newSet;
-      });
     }
     
     // Clear error when user starts typing
@@ -395,7 +428,47 @@ const AddProject = () => {
   };
 
   const selectedAppraisalType = appraisalTypes.find(type => type.value === formData.appraisal_type);
-  const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
+  
+  // Calculate total visible fields dynamically based on form state
+  const getTotalVisibleFields = () => {
+    let totalFields = 0;
+    
+    // Basic fields always visible
+    totalFields += 2; // client_id, appraisal_type
+    totalFields += 1; // project_name
+    totalFields += 1; // account_id (optional but still a field)
+    totalFields += 1; // address_letter_to
+    totalFields += 2; // case_number, case_name
+    
+    // Scheduling fields
+    totalFields += 3; // inspection_date, report_date, effective_date
+    
+    // Appraisal location
+    totalFields += 2; // appraisal_location_type, appraisal_location
+    
+    // Template
+    totalFields += 1; // template_id
+    
+    // Additional info
+    totalFields += 2; // purpose, notes
+    
+    // Recipient fields - only count if recipient_source is selected
+    if (formData.recipient_source && formData.recipient_source !== '') {
+      totalFields += 7; // name, title, company, address, city, state, zip_code
+    } else {
+      totalFields += 1; // recipient_source field itself
+    }
+    
+    // Estate-specific fields - only count if appraisal type is ESTATE
+    if (formData.appraisal_type === 'ESTATE') {
+      totalFields += 2; // estate_of, date_of_death
+    }
+    
+    return totalFields;
+  };
+  
+  const totalVisibleFields = getTotalVisibleFields();
+  const progress = totalVisibleFields > 0 ? Math.round((completedFields.size / totalVisibleFields) * 100) : 0;
 
   const renderField = ({ name, label, type = 'text', options = [], required = false, placeholder = '', rows = 3, description = '', disabled = false, value }) => {
     const isCompleted = completedFields.has(name);
@@ -603,7 +676,7 @@ const AddProject = () => {
             <div className="space-y-1">
               <h3 className="font-semibold text-gray-900">Form Progress</h3>
               <p className="text-sm text-gray-600">
-                {completedFields.size} of {Object.keys(formData).length} fields completed
+                {completedFields.size} of {totalVisibleFields} fields completed
               </p>
             </div>
             <div className="flex items-center space-x-3">
@@ -644,7 +717,7 @@ const AddProject = () => {
                     {selectedAppraisalType?.label} Appraisal Project
                   </h2>
                   <p className="text-sm text-gray-600">
-                    {selectedAppraisalType?.description}
+                    {completedFields.size} of {totalVisibleFields} fields completed
                   </p>
                 </div>
               </div>
@@ -742,6 +815,7 @@ const AddProject = () => {
                         value={formData.recipient_source}
                         onChange={(e) => {
                           const source = e.target.value;
+                          const autoPopulatedFields = new Set();
                           
                           setFormData(prev => {
                             const newData = { ...prev, recipient_source: source };
@@ -764,6 +838,13 @@ const AddProject = () => {
                                   state: client.state || '',
                                   zip_code: client.zip_code || ''
                                 };
+                                // Track auto-populated fields
+                                if (client.name) autoPopulatedFields.add('recipient.name');
+                                if (client.company) autoPopulatedFields.add('recipient.company');
+                                if (client.address) autoPopulatedFields.add('recipient.address');
+                                if (client.city) autoPopulatedFields.add('recipient.city');
+                                if (client.state) autoPopulatedFields.add('recipient.state');
+                                if (client.zip_code) autoPopulatedFields.add('recipient.zip_code');
                               }
                             } else if (source === 'account' && prev.account_id) {
                               const account = accounts.find(a => a.id === parseInt(prev.account_id));
@@ -785,6 +866,16 @@ const AddProject = () => {
                                   state: account.state || '',
                                   zip_code: account.zip_code || ''
                                 };
+                                // Track auto-populated fields
+                                if (account.name) {
+                                  autoPopulatedFields.add('recipient.name');
+                                  autoPopulatedFields.add('recipient.company');
+                                }
+                                if (title) autoPopulatedFields.add('recipient.title');
+                                if (account.address) autoPopulatedFields.add('recipient.address');
+                                if (account.city) autoPopulatedFields.add('recipient.city');
+                                if (account.state) autoPopulatedFields.add('recipient.state');
+                                if (account.zip_code) autoPopulatedFields.add('recipient.zip_code');
                               }
                             } else if (source === 'manual') {
                               newData.recipient = {
@@ -800,6 +891,19 @@ const AddProject = () => {
                             
                             return newData;
                           });
+                          
+                          // Update completed fields
+                          if (source) {
+                            setCompletedFields(prev => new Set([...prev, 'recipient_source', ...autoPopulatedFields]));
+                          } else {
+                            setCompletedFields(prev => {
+                              const newSet = new Set(prev);
+                              newSet.delete('recipient_source');
+                              // Remove recipient fields
+                              ['recipient.name', 'recipient.title', 'recipient.company', 'recipient.address', 'recipient.city', 'recipient.state', 'recipient.zip_code'].forEach(f => newSet.delete(f));
+                              return newSet;
+                            });
+                          }
                         }}
                         className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/20"
                       >
@@ -967,6 +1071,9 @@ const AddProject = () => {
                             ? `${selectedClient.address}${selectedClient.city ? `, ${selectedClient.city}` : ''}${selectedClient.state ? `, ${selectedClient.state}` : ''}${selectedClient.zip_code ? ` ${selectedClient.zip_code}` : ''}`.trim()
                             : '';
                           setFormData(prev => ({ ...prev, appraisal_location: clientLocation }));
+                          if (clientLocation) {
+                            setCompletedFields(prev => new Set([...prev, 'appraisal_location_type', 'appraisal_location']));
+                          }
                         } else if (locationType === 'assigned_account' && formData.account_id) {
                           // Use assigned account address
                           const account = accounts.find(a => a.id === parseInt(formData.account_id));
@@ -975,6 +1082,9 @@ const AddProject = () => {
                               ? `${account.address}${account.city ? `, ${account.city}` : ''}${account.state ? `, ${account.state}` : ''}${account.zip_code ? ` ${account.zip_code}` : ''}`.trim()
                               : '';
                             setFormData(prev => ({ ...prev, appraisal_location: accountLocation }));
+                            if (accountLocation) {
+                              setCompletedFields(prev => new Set([...prev, 'appraisal_location_type', 'appraisal_location']));
+                            }
                           }
                         } else if (locationType === 'parent_account' && formData.account_id) {
                           // Use parent account address
@@ -987,13 +1097,28 @@ const AddProject = () => {
                                 ? `${parentAccount.address}${parentAccount.city ? `, ${parentAccount.city}` : ''}${parentAccount.state ? `, ${parentAccount.state}` : ''}${parentAccount.zip_code ? ` ${parentAccount.zip_code}` : ''}`.trim()
                                 : '';
                               setFormData(prev => ({ ...prev, appraisal_location: parentLocation }));
+                              if (parentLocation) {
+                                setCompletedFields(prev => new Set([...prev, 'appraisal_location_type', 'appraisal_location']));
+                              }
                             }
                           }
                         } else if (locationType === 'manual') {
                           setFormData(prev => ({ ...prev, appraisal_location: '' }));
+                          setCompletedFields(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete('appraisal_location');
+                            newSet.add('appraisal_location_type');
+                            return newSet;
+                          });
                         } else if (locationType === 'appraiser') {
                           // Clear location, wait for appraiser selection
                           setFormData(prev => ({ ...prev, appraisal_location: '' }));
+                          setCompletedFields(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete('appraisal_location');
+                            newSet.add('appraisal_location_type');
+                            return newSet;
+                          });
                         }
                       }}
                       className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/20"
@@ -1064,6 +1189,9 @@ const AddProject = () => {
                               ? `${appraiser.address}${appraiser.city ? `, ${appraiser.city}` : ''}${appraiser.state ? `, ${appraiser.state}` : ''}${appraiser.zip_code ? ` ${appraiser.zip_code}` : ''}`.trim()
                               : '';
                             setFormData(prev => ({ ...prev, appraisal_location: appraiserLocation }));
+                            if (appraiserLocation) {
+                              setCompletedFields(prev => new Set([...prev, 'appraisal_location']));
+                            }
                           }
                         }}
                         className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/20"

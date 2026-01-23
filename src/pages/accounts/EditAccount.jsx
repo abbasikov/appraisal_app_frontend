@@ -247,7 +247,33 @@ const EditAccount = () => {
   };
 
   const selectedType = accountTypes.find(type => type.value === formData.account_type);
-  const progress = Math.round((completedFields.size / Object.keys(formData).length) * 100);
+  
+  // Calculate total visible fields dynamically based on account type
+  const getTotalVisibleFields = () => {
+    let totalFields = 0;
+    
+    // Basic fields always visible
+    totalFields += 3; // name, company, account_type
+    
+    // Parent account field - only visible for non-attorney/non-client accounts
+    if (formData.account_type !== 'attorney' && formData.account_type !== 'client') {
+      totalFields += 1; 
+    }
+    
+    // Contact fields
+    totalFields += 4;
+    
+    // Address fields
+    totalFields += 4;
+    
+    // Additional fields
+    totalFields += 1; 
+    
+    return totalFields;
+  };
+  
+  const totalVisibleFields = getTotalVisibleFields();
+  const progress = totalVisibleFields > 0 ? Math.round((completedFields.size / totalVisibleFields) * 100) : 0;
   const changedFields = Object.keys(formData).filter(key => formData[key] !== originalData[key]).length;
 
   if (fetchLoading) {
@@ -323,7 +349,7 @@ const EditAccount = () => {
                   Edit {selectedType?.label || 'Account'}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  {completedFields.size} of {Object.keys(formData).length} fields completed
+                  {completedFields.size} of {totalVisibleFields} fields completed
                   {hasChanges() && ` • ${changedFields} unsaved change${changedFields !== 1 ? 's' : ''}`}
                 </p>
               </div>

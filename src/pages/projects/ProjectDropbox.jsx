@@ -76,6 +76,10 @@ const ProjectDropbox = () => {
             onLinksUpdate={() => {
               // Optionally refresh project data or show success message
             }}
+            onImportComplete={() => {
+              // Navigate to project overview when import completes
+              navigate(`/projects/${id}`);
+            }}
           />
         </div>
 

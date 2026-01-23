@@ -3,7 +3,7 @@ import { projectService } from '../services/projectService';
 import { useToast } from '../context/ToastContext';
 import { useImport } from '../context/ImportContext';
 
-const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
+const DropboxLinksManager = ({ projectId, onLinksUpdate, onImportComplete }) => {
   const [links, setLinks] = useState([]);
   const [newLink, setNewLink] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
@@ -190,11 +190,19 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate }) => {
         clearImportState(); // Clear global import state
         currentTaskRef.current = null;
         
-        // Reload the page after a short delay to show imported images
-        setTimeout(() => {
-          console.log('🔄 Reloading page to show imported photos...');
-          window.location.reload();
-        }, 1500);
+        // Call onImportComplete callback if provided, otherwise reload
+        if (onImportComplete) {
+          setTimeout(() => {
+            console.log('📍 Navigating to project overview...');
+            onImportComplete();
+          }, 1500);
+        } else {
+          // Reload the page after a short delay to show imported images
+          setTimeout(() => {
+            console.log('🔄 Reloading page to show imported photos...');
+            window.location.reload();
+          }, 1500);
+        }
       } else if (status.status === 'failed') {
         console.log('❌ Import failed!');
         

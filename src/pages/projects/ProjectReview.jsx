@@ -154,33 +154,11 @@ const ProjectReview = () => {
           console.error("Failed to load templates:", err);
         }
       }
-      
-      // If project has template, generate preview using template
-      if (projectData.template_id) {
-        await generateTemplatePreview(projectData.template_id);
-      }
     } catch (error) {
       showToast("Failed to load project data", "error");
       navigate("/projects");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const generateTemplatePreview = async (templateId) => {
-    try {
-      const { templateService } = await import(
-        "../../services/templateService"
-      );
-      const result = await templateService.generateReport(
-        templateId,
-        id,
-        "draft",
-        true
-      );
-      // This would generate the actual template-based report preview
-    } catch (error) {
-      console.log("Template preview generation failed, using basic preview");
     }
   };
 

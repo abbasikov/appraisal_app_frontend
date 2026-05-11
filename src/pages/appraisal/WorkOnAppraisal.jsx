@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import AppraisalTable from "../../components/AppraisalTable";
@@ -10,6 +10,7 @@ import { appraisalService } from "../../services/appraisalService";
 import { projectService } from "../../services/projectService";
 import { templateService } from "../../services/templateService";
 import { useToast } from "../../hooks/useToast";
+import { useAuth } from "../../context/AuthContext";
 import { useImport } from "../../context/ImportContext";
 import ToastContainer from "../../components/ToastContainer";
 import { detectItemTypeFromTemplate } from "../../utils/templateDetector";
@@ -18,15 +19,14 @@ import {
   PlayIcon,
   DocumentTextIcon,
   PhotoIcon,
-  Cog6ToothIcon,
   TableCellsIcon,
-  ChartBarIcon,
 } from "@heroicons/react/24/outline";
 
 const WorkOnAppraisal = () => {
   const { id: projectId } = useParams();
   const navigate = useNavigate();
   const { toasts, showSuccess, showError, removeToast } = useToast();
+  const { isAdmin, isEditor } = useAuth();
   const { isImporting, projectId: importProjectId } = useImport();
   
   const [project, setProject] = useState(null);
@@ -360,6 +360,16 @@ const WorkOnAppraisal = () => {
     }
   };
 
+  const handleBulkItemsChanged = useCallback(async () => {
+    try {
+      const data = await appraisalService.getAppraisalItems(projectId);
+      setAppraisalItems(data);
+    } catch (error) {
+      console.error("Error refreshing items:", error);
+      showError("Failed to refresh items.");
+    }
+  }, [projectId, showError]);
+
   const handleItemUpdate = async (itemId, updatedData) => {
     try {
       await appraisalService.updateAppraisalItem(itemId, updatedData);
@@ -569,7 +579,6 @@ const WorkOnAppraisal = () => {
               </Tabs.Trigger> */}
             </Tabs.List>
           </Card>
-
           {/* Settings tab content temporarily hidden */}
           {/* <Tabs.Content value="settings">
             <Card>
@@ -695,6 +704,12 @@ const WorkOnAppraisal = () => {
                 loading={loading}
                 project={project}
                 detectedItemType={detectedItemType}
+            allowBulkToolbar={
+              (isAdmin || isEditor) &&
+              detectedItemType !== "Coins" &&
+              detectedItemType !== "Wine"
+            }
+            onBulkItemsChanged={handleBulkItemsChanged}
               />
             </div>
           </Tabs.Content>

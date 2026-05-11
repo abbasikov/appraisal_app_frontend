@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -15,6 +15,261 @@ import LoadingSpinner from "./ui/LoadingSpinner";
 import Modal from "./ui/Modal";
 import api from "../services/api";
 import { appraisalService } from "../services/appraisalService";
+import { useToast } from "../hooks/useToast";
+
+const ITEM_BULK_PLACEHOLDER = "Select action to perform";
+const ITEM_BULK_LABELS = {
+  bulk_update_room: "Bulk update room",
+};
+const LOCATION_CELL_PLACEHOLDER = "Click to select";
+const COMBO_NO_MATCHES_HINT =
+  "No matches — type in the box above and press Enter for a custom value";
+const EMPTY_OPTS = [];
+const BULK_CLEAR_SELECTED_OPTION = "__CLEAR_SELECTED__";
+const BULK_CLEAR_SELECTED_LABEL = "Clear selected";
+
+function normalizeRoomOrFloorInput(value) {
+  if (value === null || value === undefined || String(value).trim() === "") {
+    return null;
+  }
+  return String(value).trim().toUpperCase();
+}
+
+const COMBO_WRAP =
+  "flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm shadow-sm transition-colors hover:border-gray-400 focus-within:border-blue-500 focus-within:outline-none focus-within:ring-1 focus-within:ring-blue-500 disabled:opacity-50";
+const COMBO_WRAP_CLOSED_GHOST =
+  "flex h-8 w-full min-w-0 items-center gap-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm shadow-none transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:opacity-50";
+
+function SearchableSelectDropdown({
+  ariaLabelledBy,
+  ariaLabel,
+  triggerLabel,
+  placeholderTrigger,
+  menuOpen,
+  onTriggerClick,
+  onClose,
+  menuRef,
+  options = [],
+  onPick,
+  triggerClassName = "w-52",
+  disabled = false,
+  borderOnInteractOnly = false,
+  hideChevronWhenClosed = false,
+  allowClearOnCommit = false,
+}) {
+  const [filter, setFilter] = useState("");
+  const inputRef = useRef(null);
+  const skipBlurCommitRef = useRef(false);
+  const triggerLabelRef = useRef(triggerLabel);
+  triggerLabelRef.current = triggerLabel;
+  const getOptionLabel = useCallback(
+    (option) =>
+      option === BULK_CLEAR_SELECTED_OPTION ? BULK_CLEAR_SELECTED_LABEL : option,
+    []
+  );
+
+  useEffect(() => {
+    if (!menuOpen) {
+      setFilter("");
+      return;
+    }
+    const v = triggerLabelRef.current;
+    setFilter(v != null && v !== "" ? String(v) : "");
+    const id = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(id);
+  }, [menuOpen]);
+
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) =>
+      String(getOptionLabel(o)).toLowerCase().includes(q)
+    );
+  }, [options, filter, getOptionLabel]);
+
+  const notifyPickAndClose = useCallback(
+    (raw) => {
+      const t = String(raw ?? "").trim();
+      if (allowClearOnCommit) {
+        onPick(t === "" ? null : t);
+        onClose();
+        return;
+      }
+      if (t === "") return;
+      onPick(t);
+      onClose();
+    },
+    [allowClearOnCommit, onPick, onClose]
+  );
+
+  const selectedDisplay =
+    triggerLabel != null && triggerLabel !== ""
+      ? String(triggerLabel)
+      : null;
+
+  const closedTriggerWrap =
+    borderOnInteractOnly && !menuOpen
+      ? `${COMBO_WRAP_CLOSED_GHOST} cursor-pointer disabled:cursor-not-allowed`
+      : `${COMBO_WRAP} cursor-pointer disabled:cursor-not-allowed`;
+
+  const showClosedChevron = !(hideChevronWhenClosed && !menuOpen);
+
+  return (
+    <div className={`relative shrink-0 ${triggerClassName}`} ref={menuRef}>
+      {!menuOpen ? (
+        <button
+          type="button"
+          aria-labelledby={ariaLabelledBy ?? undefined}
+          aria-label={ariaLabelledBy ? undefined : ariaLabel}
+          aria-haspopup="listbox"
+          aria-expanded={false}
+          disabled={disabled}
+          onClick={() => !disabled && onTriggerClick()}
+          className={closedTriggerWrap}
+        >
+          <span
+            className={`min-w-0 flex-1 truncate text-left ${selectedDisplay ? "text-gray-900" : "text-gray-400"}`}
+          >
+            {selectedDisplay ?? placeholderTrigger}
+          </span>
+          {showClosedChevron && (
+            <ChevronDownIcon
+              className={`h-4 w-4 shrink-0 ${selectedDisplay && borderOnInteractOnly ? "text-gray-400" : "text-gray-500"}`}
+            />
+          )}
+        </button>
+      ) : (
+        <div
+          className={COMBO_WRAP}
+          role="combobox"
+          aria-expanded={true}
+          aria-haspopup="listbox"
+          aria-labelledby={ariaLabelledBy ?? undefined}
+          aria-label={ariaLabelledBy ? undefined : ariaLabel}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm uppercase text-gray-900 outline-none placeholder:text-gray-400 placeholder:normal-case"
+            placeholder={placeholderTrigger}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            onBlur={(e) => {
+              if (!allowClearOnCommit || skipBlurCommitRef.current) return;
+              const rt = e.relatedTarget;
+              if (rt?.closest?.("[role=listbox]")) return;
+              if (rt?.closest?.("[role=combobox]")) return;
+              notifyPickAndClose(filter);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                skipBlurCommitRef.current = true;
+                notifyPickAndClose(filter);
+                requestAnimationFrame(() => {
+                  skipBlurCommitRef.current = false;
+                });
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                onClose();
+              }
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            tabIndex={-1}
+            className="ml-1 shrink-0 rounded p-0.5 text-gray-500 hover:bg-gray-100"
+            aria-label="Close list"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+          >
+            <ChevronDownIcon className="h-4 w-4 rotate-180" />
+          </button>
+        </div>
+      )}
+      {menuOpen && (
+        <div
+          role="listbox"
+          className="absolute left-0 top-full z-[100] mt-1 max-h-60 min-w-full overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+        >
+          <ul className="max-h-52 overflow-y-auto py-1">
+            {filtered.map((option) => (
+              <li key={option} role="none">
+                <button
+                  type="button"
+                  role="option"
+                  className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onPick(option);
+                    onClose();
+                  }}
+                >
+                  {getOptionLabel(option)}
+                </button>
+              </li>
+            ))}
+            {filtered.length === 0 && (
+              <li className="px-3 py-2 text-sm text-gray-500">
+                {COMBO_NO_MATCHES_HINT}
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ItemLocationComboboxCell({
+  item,
+  field,
+  options,
+  openOptionPicker,
+  setOpenOptionPicker,
+  ariaLabel,
+  onPick,
+}) {
+  const pickerKey = `${item.id}-${field}`;
+  const value = item[field];
+  return (
+    <td
+      className="table-cell align-middle"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <div
+        data-searchable-option-picker
+        className="min-w-[140px] max-w-[260px]"
+      >
+        <SearchableSelectDropdown
+          ariaLabel={ariaLabel}
+          triggerLabel={value || null}
+          placeholderTrigger={LOCATION_CELL_PLACEHOLDER}
+          menuOpen={openOptionPicker === pickerKey}
+          onTriggerClick={() =>
+            setOpenOptionPicker((prev) =>
+              prev === pickerKey ? null : pickerKey
+            )
+          }
+          onClose={() =>
+            setOpenOptionPicker((cur) => (cur === pickerKey ? null : cur))
+          }
+          options={options}
+          onPick={onPick}
+          triggerClassName="w-full"
+          borderOnInteractOnly
+          hideChevronWhenClosed
+          allowClearOnCommit
+        />
+      </div>
+    </td>
+  );
+}
 
 // PhotoModal component to display photo with auth token
 const PhotoModal = ({ photo }) => {
@@ -109,7 +364,8 @@ const PhotoModal = ({ photo }) => {
   );
 };
 
-const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project, detectedItemType }) => {
+const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project, detectedItemType, allowBulkToolbar = false, onBulkItemsChanged, }) => {
+  const { showSuccess, showError } = useToast();
   const [draggedItem, setDraggedItem] = useState(null);
   const [editingCell, setEditingCell] = useState(null);
   const [schema, setSchema] = useState(null);
@@ -118,7 +374,42 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [useTemplateMode, setUseTemplateMode] = useState(true); // Default to template mode
 
-  // Load saved items per page preference from localStorage
+  const [selectedItemIds, setSelectedItemIds] = useState(() => new Set());
+  const [itemBulkMenuOpen, setItemBulkMenuOpen] = useState(false);
+  const [itemActionTriggerLabel, setItemActionTriggerLabel] = useState(null);
+  const [bulkRoomToolbarVisible, setBulkRoomToolbarVisible] = useState(false);
+  const [roomBulkMenuOpen, setRoomBulkMenuOpen] = useState(false);
+  const [roomActionTriggerLabel, setRoomActionTriggerLabel] = useState(null);
+  const [floorBulkMenuOpen, setFloorBulkMenuOpen] = useState(false);
+  const [floorActionTriggerLabel, setFloorActionTriggerLabel] = useState(null);
+  const [openOptionPicker, setOpenOptionPicker] = useState(null);
+  const [inlineDeleteModalOpen, setInlineDeleteModalOpen] = useState(false);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState(null);
+  const [inlineDeleteSubmitting, setInlineDeleteSubmitting] = useState(false);
+  const itemBulkMenuRef = useRef(null);
+  const roomBulkMenuRef = useRef(null);
+  const floorBulkMenuRef = useRef(null);
+  const selectAllHeaderCheckboxRef = useRef(null);
+
+  const showRoomBulk =
+    detectedItemType !== "Coins" && detectedItemType !== "Wine";
+
+  const itemBulkKeys = useMemo(
+    () => [...(showRoomBulk ? ["bulk_update_room"] : [])],
+    [showRoomBulk]
+  );
+
+  useEffect(() => {
+    setSelectedItemIds(new Set());
+    setItemBulkMenuOpen(false);
+    setRoomBulkMenuOpen(false);
+    setFloorBulkMenuOpen(false);
+    setOpenOptionPicker(null);
+    setItemActionTriggerLabel(null);
+    setRoomActionTriggerLabel(null);
+    setFloorActionTriggerLabel(null);
+    setBulkRoomToolbarVisible(false);
+  }, [currentPage, itemsPerPage]);
   useEffect(() => {
     try {
       const savedItemsPerPage = localStorage.getItem('appraisalTableItemsPerPage');
@@ -143,6 +434,64 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
       }
     };
     fetchSchema();
+  }, []);
+
+  useEffect(() => {
+    const validIds = new Set(items.map((i) => i.id));
+    setSelectedItemIds((prev) => {
+      let changed = false;
+      const next = new Set();
+      prev.forEach((id) => {
+        if (validIds.has(id)) next.add(id);
+        else changed = true;
+      });
+      if (prev.size !== next.size) changed = true;
+      return changed ? next : prev;
+    });
+  }, [items]);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (
+        itemBulkMenuRef.current &&
+        !itemBulkMenuRef.current.contains(e.target)
+      ) {
+        setItemBulkMenuOpen(false);
+      }
+      if (
+        roomBulkMenuRef.current &&
+        !roomBulkMenuRef.current.contains(e.target)
+      ) {
+        setRoomBulkMenuOpen(false);
+      }
+      if (
+        floorBulkMenuRef.current &&
+        !floorBulkMenuRef.current.contains(e.target)
+      ) {
+        setFloorBulkMenuOpen(false);
+      }
+      if (
+        openOptionPicker &&
+        !e.target.closest("[data-searchable-option-picker]")
+      ) {
+        setOpenOptionPicker(null);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [openOptionPicker]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setItemBulkMenuOpen(false);
+        setRoomBulkMenuOpen(false);
+        setFloorBulkMenuOpen(false);
+        setOpenOptionPicker(null);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   const handleDragStart = (e, item, index) => {
@@ -301,6 +650,10 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
       } else if (field === "appraised_value") {
         const numericValue = value === "" || value === null ? null : Number(value);
         onItemUpdate(itemId, { appraised_value: isNaN(numericValue) ? null : numericValue });
+      } else if (field === "room_area" || field === "floor_building") {
+        onItemUpdate(itemId, {
+          [field]: normalizeRoomOrFloorInput(value),
+        });
       } else {
         onItemUpdate(itemId, { [field]: value });
       }
@@ -461,6 +814,175 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
     );
   };
 
+  const pageSliceStart = (currentPage - 1) * itemsPerPage;
+  const pageItemsView = items.slice(
+    pageSliceStart,
+    pageSliceStart + itemsPerPage
+  );
+  const someItemsSelectedOnPage = pageItemsView.some((i) =>
+    selectedItemIds.has(i.id)
+  );
+  const allSelectedOnPage =
+    pageItemsView.length > 0 &&
+    pageItemsView.every((i) => selectedItemIds.has(i.id));
+
+  useEffect(() => {
+    const el = selectAllHeaderCheckboxRef.current;
+    if (!el) return;
+    el.indeterminate =
+      pageItemsView.length > 0 &&
+      someItemsSelectedOnPage &&
+      !allSelectedOnPage;
+  }, [
+    pageItemsView.length,
+    someItemsSelectedOnPage,
+    allSelectedOnPage,
+  ]);
+
+  const toggleSelectItem = (itemId) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  };
+
+  const deselectAllItemsOnPage = () => {
+    const pageIds = new Set(pageItemsView.map((i) => i.id));
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      pageIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  };
+
+  const toggleSelectPageSelection = () => {
+    if (pageItemsView.length === 0) return;
+    if (allSelectedOnPage) {
+      deselectAllItemsOnPage();
+    } else {
+      setSelectedItemIds(new Set(pageItemsView.map((i) => i.id)));
+    }
+  };
+
+  const resetItemBulkToNeutral = () => {
+    setItemBulkMenuOpen(false);
+    setItemActionTriggerLabel(null);
+    setBulkRoomToolbarVisible(false);
+    setRoomActionTriggerLabel(null);
+    setFloorActionTriggerLabel(null);
+    setRoomBulkMenuOpen(false);
+    setFloorBulkMenuOpen(false);
+  };
+
+  const runItemBulkAction = (key) => {
+    setItemBulkMenuOpen(false);
+    setItemActionTriggerLabel(ITEM_BULK_LABELS[key]);
+    if (key === "bulk_update_room") {
+      setBulkRoomToolbarVisible(true);
+    } else {
+      setBulkRoomToolbarVisible(false);
+      setRoomActionTriggerLabel(null);
+      setFloorActionTriggerLabel(null);
+      setFloorBulkMenuOpen(false);
+    }
+    switch (key) {
+      case "bulk_update_room":
+        break;
+      default:
+        break;
+    }
+  };
+
+  const applyRoomBulkToSelection = async (room) => {
+    const ids = Array.from(selectedItemIds);
+    if (ids.length === 0) {
+      showError("Select at least one item.");
+      return;
+    }
+    const shouldClear = room === BULK_CLEAR_SELECTED_OPTION;
+    const roomValue = shouldClear ? null : String(room).toUpperCase();
+    try {
+      await Promise.all(
+        ids.map((id) => onItemUpdate(id, { room_area: roomValue }))
+      );
+      if (shouldClear) {
+        showSuccess(`Cleared room/area for ${ids.length} item(s).`);
+        setRoomActionTriggerLabel(null);
+      } else {
+        showSuccess(`Updated room/area for ${ids.length} item(s).`);
+        setRoomActionTriggerLabel(roomValue);
+      }
+    } catch {
+      showError("Could not update all items.");
+    } finally {
+      setRoomBulkMenuOpen(false);
+    }
+  };
+
+  const applyFloorBulkToSelection = async (floor) => {
+    const ids = Array.from(selectedItemIds);
+    if (ids.length === 0) {
+      showError("Select at least one item.");
+      return;
+    }
+    const shouldClear = floor === BULK_CLEAR_SELECTED_OPTION;
+    const floorValue = shouldClear ? null : String(floor).toUpperCase();
+    try {
+      await Promise.all(
+        ids.map((id) => onItemUpdate(id, { floor_building: floorValue }))
+      );
+      if (shouldClear) {
+        showSuccess(`Cleared floor/building for ${ids.length} item(s).`);
+        setFloorActionTriggerLabel(null);
+      } else {
+        showSuccess(`Updated floor/building for ${ids.length} item(s).`);
+        setFloorActionTriggerLabel(floorValue);
+      }
+    } catch {
+      showError("Could not update all items.");
+    } finally {
+      setFloorBulkMenuOpen(false);
+    }
+  };
+
+  const openInlineDeleteModal = (item) => {
+    setPendingDeleteItem(item);
+    setInlineDeleteModalOpen(true);
+  };
+
+  const closeInlineDeleteModal = () => {
+    if (inlineDeleteSubmitting) return;
+    setInlineDeleteModalOpen(false);
+    setPendingDeleteItem(null);
+  };
+
+  const confirmInlineDelete = async () => {
+    if (inlineDeleteSubmitting || !pendingDeleteItem?.id) return;
+    const deleteItemId = pendingDeleteItem.id;
+    const pid = project?.id ?? pendingDeleteItem.project_id;
+    if (!pid) return;
+    setInlineDeleteSubmitting(true);
+    try {
+      await appraisalService.deleteAppraisalItem(pid, deleteItemId);
+      if (onBulkItemsChanged) await onBulkItemsChanged();
+      showSuccess("Item deleted successfully.");
+      setInlineDeleteModalOpen(false);
+      setPendingDeleteItem(null);
+      setSelectedItemIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteItemId);
+        return next;
+      });
+    } catch (e) {
+      console.error(e);
+      showError("Failed to delete item.");
+    } finally {
+      setInlineDeleteSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="p-12">
@@ -495,12 +1017,168 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
   return (
     <>
       <Card className="overflow-hidden">
+        {allowBulkToolbar && (
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/40">
+            <span
+              id="item-bulk-action-label"
+              className="text-sm font-medium text-gray-700 shrink-0 leading-none"
+            >
+              Action
+            </span>
+            <div className="relative shrink-0" ref={itemBulkMenuRef}>
+              <button
+                type="button"
+                id="item-bulk-action"
+                aria-labelledby="item-bulk-action-label item-bulk-action"
+                aria-haspopup="listbox"
+                aria-expanded={itemBulkMenuOpen}
+                onClick={() => setItemBulkMenuOpen((o) => !o)}
+                className="flex h-8 w-52 items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm shadow-sm transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <span
+                  className={`truncate ${itemActionTriggerLabel ? "text-gray-900" : "text-gray-500"}`}
+                >
+                  {itemActionTriggerLabel || ITEM_BULK_PLACEHOLDER}
+                </span>
+                <ChevronDownIcon
+                  className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${itemBulkMenuOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {itemBulkMenuOpen && (
+                <ul
+                  role="listbox"
+                  aria-labelledby="item-bulk-action-label"
+                  className="absolute left-0 top-full z-[100] mt-1 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+                >
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="option"
+                      className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => resetItemBulkToNeutral()}
+                    >
+                      {ITEM_BULK_PLACEHOLDER}
+                    </button>
+                  </li>
+                  {itemBulkKeys.map((key) => {
+                    const disabled =
+                      (key === "bulk_update_room" &&
+                        selectedItemIds.size === 0);
+                    return (
+                      <li key={key} role="none">
+                        <button
+                          type="button"
+                          role="option"
+                          disabled={disabled}
+                          onClick={() => runItemBulkAction(key)}
+                          className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
+                        >
+                          {ITEM_BULK_LABELS[key]}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {bulkRoomToolbarVisible &&
+              showRoomBulk &&
+              (schema?.room_area_options?.length > 0 ||
+                schema?.floor_building_options?.length > 0) && (
+              <>
+                {schema?.room_area_options?.length > 0 && (
+                  <>
+                    <span
+                      id="item-room-bulk-label"
+                      className="text-sm font-medium text-gray-700 shrink-0 leading-none"
+                    >
+                      Room/Area
+                    </span>
+                    <SearchableSelectDropdown
+                      ariaLabelledBy="item-room-bulk-label"
+                      triggerLabel={roomActionTriggerLabel}
+                      placeholderTrigger="Select Room/Area"
+                      menuOpen={roomBulkMenuOpen}
+                      onTriggerClick={() => {
+                        setRoomBulkMenuOpen((o) => !o);
+                        setFloorBulkMenuOpen(false);
+                      }}
+                      onClose={() => setRoomBulkMenuOpen(false)}
+                      menuRef={roomBulkMenuRef}
+                      options={[
+                        BULK_CLEAR_SELECTED_OPTION,
+                        ...(schema.room_area_options ?? EMPTY_OPTS),
+                      ]}
+                      onPick={(option) => applyRoomBulkToSelection(option)}
+                      triggerClassName="w-52"
+                      disabled={selectedItemIds.size === 0}
+                    />
+                  </>
+                )}
+                {schema?.floor_building_options?.length > 0 && (
+                  <>
+                    <span
+                      id="item-floor-bulk-label"
+                      className="text-sm font-medium text-gray-700 shrink-0 leading-none"
+                    >
+                      Floor/Bldg
+                    </span>
+                    <SearchableSelectDropdown
+                      ariaLabelledBy="item-floor-bulk-label"
+                      triggerLabel={floorActionTriggerLabel}
+                      placeholderTrigger="Select Floor/Building"
+                      menuOpen={floorBulkMenuOpen}
+                      onTriggerClick={() => {
+                        setFloorBulkMenuOpen((o) => !o);
+                        setRoomBulkMenuOpen(false);
+                      }}
+                      onClose={() => setFloorBulkMenuOpen(false)}
+                      menuRef={floorBulkMenuRef}
+                      options={[
+                        BULK_CLEAR_SELECTED_OPTION,
+                        ...(schema.floor_building_options ?? EMPTY_OPTS),
+                      ]}
+                      onPick={(option) => applyFloorBulkToSelection(option)}
+                      triggerClassName="w-52"
+                      disabled={selectedItemIds.size === 0}
+                    />
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="table">
             <thead className="table-header">
               <tr>
+                {allowBulkToolbar && (
+                  <th className="table-header-cell w-10 px-2 py-3 align-middle">
+                    <div className="flex justify-center items-center">
+                      <input
+                        ref={selectAllHeaderCheckboxRef}
+                        type="checkbox"
+                        checked={allSelectedOnPage}
+                        disabled={pageItemsView.length === 0}
+                        onChange={toggleSelectPageSelection}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
+                        aria-label={
+                          allSelectedOnPage
+                            ? "Deselect all rows on this page"
+                            : "Select all rows on this page"
+                        }
+                        title={
+                          allSelectedOnPage
+                            ? "Deselect all on this page"
+                            : "Select all on this page"
+                        }
+                      />
+                    </div>
+                  </th>
+                )}
                 <th className="table-header-cell w-16">#</th>
-                <th className="table-header-cell w-20">Photo</th>
+                <th className="table-header-cell w-20 text-center">Photo</th>
                 {/* Hide Room/Area and Floor/Bldg for Coins and Wine */}
                 {detectedItemType !== "Coins" && detectedItemType !== "Wine" && (
                   <>
@@ -554,13 +1232,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
               </tr>
             </thead>
             <tbody className="table-body">
-              {items
-                .slice(
-                  (currentPage - 1) * itemsPerPage,
-                  currentPage * itemsPerPage
-                )
-                .map((item, index) => {
-                  const actualIndex = (currentPage - 1) * itemsPerPage + index;
+              {pageItemsView.map((item, index) => {
+                  const actualIndex = pageSliceStart + index;
                   return (
                     <tr
                       key={item.id}
@@ -570,6 +1243,22 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                       onDrop={(e) => handleDrop(e, actualIndex)}
                       className="table-row cursor-move group"
                     >
+                      {allowBulkToolbar && (
+                        <td
+                          className="table-cell w-10 px-2 py-3 align-middle"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-center items-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedItemIds.has(item.id)}
+                              onChange={() => toggleSelectItem(item.id)}
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label={`Select line ${item.line_number}`}
+                            />
+                          </div>
+                        </td>
+                      )}
                       {/* Line Number */}
                       <td className="table-cell">
                         <div className="flex items-center space-x-2">
@@ -581,9 +1270,10 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                       </td>
 
                       {/* Photo Thumbnail */}
-                      <td className="table-cell">
+                      <td className="table-cell align-middle">
+                        <div className="flex justify-center items-center">
                         {item.photo_id ? (
-                          <div className="relative group/photo">
+                          <div className="relative group/photo shrink-0">
                             <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                               <ThumbnailImage
                                 projectId={item.project_id}
@@ -600,115 +1290,48 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                             </div>
                           </div>
                         ) : (
-                          <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <div className="h-12 w-12 shrink-0 bg-gray-100 rounded-lg flex items-center justify-center">
                             <PhotoIcon className="h-6 w-6 text-gray-400" />
                           </div>
                         )}
+                        </div>
                       </td>
 
                       {/* Room/Area - Hide for Coins and Wine */}
-                      {detectedItemType !== "Coins" && detectedItemType !== "Wine" && (
-                        <td className="table-cell">
-                          {editingCell === `${item.id}-room_area` ? (
-                            <div className="relative">
-                              <input
-                                type="text"
-                                list={`room-area-list-${item.id}`}
-                                defaultValue={item.room_area || ""}
-                                className="form-input text-sm uppercase"
-                                placeholder="Type or select..."
-                                onBlur={(e) =>
-                                  handleCellEdit(
-                                    item.id,
-                                    "room_area",
-                                    e.target.value.toUpperCase()
-                                  )
-                                }
-                                onKeyPress={(e) => {
-                                  if (e.key === "Enter") {
-                                    handleCellEdit(
-                                      item.id,
-                                      "room_area",
-                                      e.target.value.toUpperCase()
-                                    );
-                                  }
-                                }}
-                                autoFocus
-                              />
-                              <datalist id={`room-area-list-${item.id}`}>
-                                {schema?.room_area_options?.map((option) => (
-                                  <option key={option} value={option} />
-                                ))}
-                              </datalist>
-                            </div>
-                          ) : (
-                            <div
-                              className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                              onClick={() =>
-                                handleCellClick(item.id, "room_area")
-                              }
-                            >
-                              {item.room_area || (
-                                <span className="text-gray-400 italic">
-                                  Click to select
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      )}
+                      {detectedItemType !== "Coins" &&
+                        detectedItemType !== "Wine" && (
+                          <ItemLocationComboboxCell
+                            item={item}
+                            field="room_area"
+                            options={
+                              schema?.room_area_options ?? EMPTY_OPTS
+                            }
+                            openOptionPicker={openOptionPicker}
+                            setOpenOptionPicker={setOpenOptionPicker}
+                            ariaLabel={`Room or area for item ${item.line_number}`}
+                            onPick={(v) =>
+                              handleCellEdit(item.id, "room_area", v)
+                            }
+                          />
+                        )}
 
                       {/* Floor/Building - Hide for Coins and Wine */}
-                      {detectedItemType !== "Coins" && detectedItemType !== "Wine" && (
-                        <td className="table-cell">
-                          {editingCell === `${item.id}-floor_building` ? (
-                            <div className="relative">
-                              <input
-                                type="text"
-                                list={`floor-building-list-${item.id}`}
-                                defaultValue={item.floor_building || ""}
-                                className="form-input text-sm uppercase"
-                                placeholder="Type or select..."
-                                onBlur={(e) =>
-                                  handleCellEdit(
-                                    item.id,
-                                    "floor_building",
-                                    e.target.value.toUpperCase()
-                                  )
-                                }
-                                onKeyPress={(e) => {
-                                  if (e.key === "Enter") {
-                                    handleCellEdit(
-                                      item.id,
-                                      "floor_building",
-                                      e.target.value.toUpperCase()
-                                    );
-                                  }
-                                }}
-                                autoFocus
-                              />
-                              <datalist id={`floor-building-list-${item.id}`}>
-                                {schema?.floor_building_options?.map((option) => (
-                                  <option key={option} value={option} />
-                                ))}
-                              </datalist>
-                            </div>
-                          ) : (
-                            <div
-                              className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                              onClick={() =>
-                                handleCellClick(item.id, "floor_building")
-                              }
-                            >
-                              {item.floor_building || (
-                                <span className="text-gray-400 italic">
-                                  Click to select
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      )}
+                      {detectedItemType !== "Coins" &&
+                        detectedItemType !== "Wine" && (
+                          <ItemLocationComboboxCell
+                            item={item}
+                            field="floor_building"
+                            options={
+                              schema?.floor_building_options ?? EMPTY_OPTS
+                            }
+                            openOptionPicker={openOptionPicker}
+                            setOpenOptionPicker={setOpenOptionPicker}
+                            ariaLabel={`Floor or building for item ${item.line_number}`}
+                            onPick={(v) =>
+                              handleCellEdit(item.id, "floor_building", v)
+                            }
+                          />
+                        )}
 
                       {/* Type */}
                       <td className="table-cell">
@@ -733,7 +1356,12 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                             autoFocus
                           >
                             <option value="">Select Type</option>
-                            {schema?.item_type_options?.sort((a, b) => a.localeCompare(b)).map((option) => (
+                            {(schema?.item_type_options
+                              ? [...schema.item_type_options].sort((a, b) =>
+                                  a.localeCompare(b)
+                                )
+                              : []
+                            ).map((option) => (
                               <option key={option} value={option}>
                                 {option}
                               </option>
@@ -857,23 +1485,36 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
 
                       {/* Actions */}
                       <td className="table-cell">
-                        <div className="flex items-center space-x-1">
-                          <Button
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
                             onClick={() => handleMoveUp(actualIndex)}
                             disabled={actualIndex === 0}
-                            variant="ghost"
-                            size="sm"
-                            icon={ChevronUpIcon}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          />
-                          <Button
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-700 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                            aria-label={`Move line ${item.line_number} up`}
+                            title="Move up"
+                          >
+                            <ChevronUpIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleMoveDown(actualIndex)}
                             disabled={actualIndex === items.length - 1}
-                            variant="ghost"
-                            size="sm"
-                            icon={ChevronDownIcon}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          />
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-700 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                            aria-label={`Move line ${item.line_number} down`}
+                            title="Move down"
+                          >
+                            <ChevronDownIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openInlineDeleteModal(item)}
+                            className="inline-flex text-red-600 hover:text-red-900 p-0.5"
+                            title="Delete item"
+                            aria-label={`Delete line ${item.line_number}`}
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1013,6 +1654,37 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
           </div>
         )}
       </Card>
+
+      <Modal
+        isOpen={inlineDeleteModalOpen}
+        onClose={closeInlineDeleteModal}
+        title="Delete item"
+        size="md"
+        closeOnOverlayClick={!inlineDeleteSubmitting}
+      >
+        <div className="space-y-6">
+          <p className="text-gray-700 leading-relaxed">
+            Are you sure you want to delete this appraisal item? This cannot be
+            undone.
+          </p>
+          <div className="flex justify-end space-x-3 pt-2 border-t border-gray-200">
+            <Button
+              variant="outline"
+              onClick={closeInlineDeleteModal}
+              disabled={inlineDeleteSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmInlineDelete}
+              loading={inlineDeleteSubmitting}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Photo Modal */}
       <Modal

@@ -10,30 +10,42 @@ const ThumbnailImage = ({ projectId, photoId, alt, className }) => {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    let isActive = true;
+    let objectUrl = null;
+
     const fetchThumbnail = async () => {
       try {
         setLoading(true);
         const response = await api.get(`/projects/${projectId}/photos/${photoId}/thumbnail`, {
           responseType: 'blob'
         });
-        const imageUrl = URL.createObjectURL(response.data);
-        setImageSrc(imageUrl);
+        objectUrl = URL.createObjectURL(response.data);
+        if (!isActive) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        setImageSrc(objectUrl);
         setError(false);
       } catch (err) {
+        if (!isActive) return;
         console.error('Error loading thumbnail:', err);
         setError(true);
       } finally {
-        setLoading(false);
+        if (isActive) setLoading(false);
       }
     };
 
     if (projectId && photoId) {
       fetchThumbnail();
+    } else {
+      setLoading(false);
+      setError(true);
     }
 
     return () => {
-      if (imageSrc) {
-        URL.revokeObjectURL(imageSrc);
+      isActive = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
       }
     };
   }, [projectId, photoId]);
@@ -84,22 +96,22 @@ const PhotoTable = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="min-w-[600px] w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="w-24 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Photo
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Filename
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
               Date Taken
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
               Size
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="w-14 px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
               Actions
             </th>
           </tr>
@@ -107,7 +119,7 @@ const PhotoTable = ({
         <tbody className="bg-white divide-y divide-gray-200">
           {photos.map((photo) => (
             <tr key={photo.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-3 py-4">
                 <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center overflow-hidden">
                   <ThumbnailImage 
                     projectId={photo.project_id}
@@ -117,8 +129,8 @@ const PhotoTable = ({
                   />
                 </div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+              <td className="px-3 py-4 min-w-0">
+                <div className="text-sm font-medium text-gray-900 max-w-[320px] truncate">
                   {photo.original_filename}
                 </div>
                 <div className="text-sm text-gray-500">
@@ -128,16 +140,16 @@ const PhotoTable = ({
                   {photo.width && photo.height && `${photo.width} × ${photo.height}`}
                 </div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td className="px-3 py-4 text-sm text-gray-900">
                 {formatDate(photo.exif_date)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td className="px-3 py-4 text-sm text-gray-900">
                 {formatFileSize(photo.file_size)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <td className="px-2 py-4 text-center text-sm font-medium">
                 <button
                   onClick={() => onPhotoDelete(photo.id)}
-                  className="text-red-600 hover:text-red-900 p-1"
+                  className="inline-flex text-red-600 hover:text-red-900 p-1"
                   title="Delete photo"
                 >
                   <TrashIcon className="h-4 w-4" />

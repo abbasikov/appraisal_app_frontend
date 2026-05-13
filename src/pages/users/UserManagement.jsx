@@ -306,7 +306,7 @@ const UserManagement = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Modern Header Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 p-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 p-5 sm:p-8 shadow-2xl">
           {/* Animated background elements */}
           <div className="absolute inset-0">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 animate-pulse"></div>
@@ -319,7 +319,7 @@ const UserManagement = () => {
               <div>
                 <div className="flex items-center space-x-3 mb-2">
                   <UsersIcon className="w-8 h-8 text-white" />
-                  <h1 className="text-3xl font-bold text-white">User Management</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white">User Management</h1>
                 </div>
                 <p className="text-violet-100 text-lg">
                   Manage team members and their permissions
@@ -336,10 +336,10 @@ const UserManagement = () => {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center">
                 <button
                   onClick={() => setShowInviteModal(true)}
-                  className="group flex items-center space-x-3 px-6 py-4 bg-white text-purple-600 font-semibold rounded-2xl hover:bg-purple-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="group flex items-center space-x-3 px-5 sm:px-6 py-3 sm:py-4 bg-white text-purple-600 font-semibold rounded-2xl hover:bg-purple-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   <PlusIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   <span>Invite User</span>
@@ -429,8 +429,8 @@ const UserManagement = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <div className="hidden sm:flex items-center space-x-2">
                 <FunnelIcon className="w-5 h-5 text-gray-400" />
                 <span className="text-sm font-medium text-gray-700">Filters:</span>
               </div>
@@ -438,7 +438,7 @@ const UserManagement = () => {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300 transition-all duration-200"
+                className="flex-1 sm:flex-none min-w-[120px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300 transition-all duration-200"
               >
                 <option value="">All Roles</option>
                 <option value="admin">Admin</option>
@@ -449,7 +449,7 @@ const UserManagement = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300 transition-all duration-200"
+                className="flex-1 sm:flex-none min-w-[120px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300 transition-all duration-200"
               >
                 <option value="">All Status</option>
                 <option value="active">Active</option>

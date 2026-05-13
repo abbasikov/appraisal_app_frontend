@@ -302,7 +302,7 @@ const Dashboard = () => {
     <Layout>
       <div className="space-y-8">
         {/* Welcome Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 p-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 p-5 sm:p-8 shadow-2xl">
           {/* Animated background elements */}
           <div className="absolute inset-0">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 animate-pulse"></div>
@@ -316,8 +316,8 @@ const Dashboard = () => {
               <div>
                 <div className="flex items-center space-x-3 mb-2">
                   <SparklesIcon className="w-8 h-8 text-yellow-300 animate-pulse" />
-                  <h1 className="text-3xl font-bold text-white">
-                    Welcome back, {user?.first_name || 'User'}! 
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                    Welcome back, {user?.first_name || 'User'}!
                   </h1>
                 </div>
                 <p className="text-blue-100 text-lg">

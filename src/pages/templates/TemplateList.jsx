@@ -244,7 +244,7 @@ const TemplateList = () => {
         <ToastContainer toasts={toasts} removeToast={removeToast} />
         
         {/* Modern Header Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-700 p-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-700 p-5 sm:p-8 shadow-2xl">
           {/* Animated background elements */}
           <div className="absolute inset-0">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 animate-pulse"></div>
@@ -257,7 +257,7 @@ const TemplateList = () => {
               <div>
                 <div className="flex items-center space-x-3 mb-2">
                   <DocumentTextIcon className="w-8 h-8 text-white" />
-                  <h1 className="text-3xl font-bold text-white">Templates</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white">Templates</h1>
                 </div>
                 <p className="text-purple-100 text-lg">
                   Manage your appraisal report templates
@@ -411,13 +411,13 @@ const TemplateList = () => {
               <table className="w-full">
                 <thead className="bg-gradient-to-r from-gray-50 to-purple-50/30 border-b border-gray-100">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Template</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Version</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Template</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Type</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Description</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Version</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Created</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Status</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

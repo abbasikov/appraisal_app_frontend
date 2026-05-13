@@ -292,22 +292,22 @@ const EditAccount = () => {
     <Layout>
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Header with progress */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate('/accounts')}
-              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-xl hover:bg-gray-100 transition-colors shrink-0"
             >
               <ArrowLeftIcon className="w-6 h-6 text-gray-600" />
             </button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Edit Account</h1>
-              <p className="text-gray-600">Update account information</p>
+              <p className="text-gray-600 text-sm sm:text-base">Update account information</p>
             </div>
           </div>
-          
+
           {/* Progress and changes indicator */}
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-3 pl-14 sm:pl-0">
             {hasChanges() && (
               <div className="flex items-center space-x-2 bg-orange-100 border border-orange-200 rounded-lg px-3 py-1">
                 <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
@@ -356,7 +356,7 @@ const EditAccount = () => {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-8">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6 sm:space-y-8">
             {/* Basic Information */}
             <div className="space-y-6">
               <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
@@ -533,18 +533,18 @@ const EditAccount = () => {
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-100">
+            <div className="flex justify-end space-x-4 form-actions-row pt-6 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => navigate('/accounts')}
-                className="px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                className="btn-responsive px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !formData.name.trim() || !hasChanges()}
-                className="group px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+                className="group btn-responsive px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
               >
                 {loading ? (
                   <>

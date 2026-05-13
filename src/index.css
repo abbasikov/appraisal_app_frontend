@@ -163,3 +163,41 @@
 .badge-info {
   @apply bg-blue-100 text-blue-800;
 }
+
+/* =====================================================
+   MOBILE / TABLET RESPONSIVE OVERRIDES
+   Active below 1024px (Tailwind's `lg` breakpoint).
+   Desktop (>=1024px) renders identical to original.
+   ===================================================== */
+@media (max-width: 1023px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-size: 15px;
+  }
+
+  html,
+  body,
+  #root {
+    overflow-x: hidden;
+  }
+
+  /* Slightly tighter form fields on small screens */
+  .form-input {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+
+  .form-label {
+    @apply text-xs;
+  }
+
+  /* Tighter card padding on small screens */
+  .card-header,
+  .card-body {
+    @apply px-4 py-3;
+  }
+
+  /* Prevent global wide tables from forcing horizontal page scroll */
+  table {
+    max-width: 100%;
+  }
+}

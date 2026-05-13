@@ -343,11 +343,12 @@ const EditClientModal = ({ isOpen, onClose, client, onSuccess }) => {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-100">
+        <div className="flex justify-end space-x-3 form-actions-row pt-6 border-t border-gray-100">
           <Button
             type="button"
             onClick={onClose}
             variant="outline"
+            className="btn-responsive"
           >
             Cancel
           </Button>
@@ -355,7 +356,7 @@ const EditClientModal = ({ isOpen, onClose, client, onSuccess }) => {
             type="submit"
             disabled={loading || !formData.name.trim()}
             variant="primary"
-            className="flex items-center space-x-2"
+            className="btn-responsive flex items-center justify-center space-x-2"
           >
             {loading ? (
               <>

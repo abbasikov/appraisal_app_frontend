@@ -13,9 +13,9 @@ const Badge = ({ children, variant = 'info', size = 'md', className = '', ...pro
   };
 
   const sizes = {
-    sm: 'px-2 py-0.5 text-xs',
-    md: 'px-2.5 py-0.5 text-xs',
-    lg: 'px-3 py-1 text-sm'
+    sm: 'px-2 py-0.5 text-xs max-lg:px-1.5 max-lg:text-[0.65rem]',
+    md: 'px-2.5 py-0.5 text-xs max-lg:px-2 max-lg:text-[0.65rem]',
+    lg: 'px-3 py-1 text-sm max-lg:px-2.5 max-lg:py-0.5 max-lg:text-xs'
   };
 
   const classes = `${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`;

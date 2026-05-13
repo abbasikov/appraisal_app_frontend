@@ -40,7 +40,7 @@ const ProjectDropbox = () => {
     <Layout>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 p-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 p-5 sm:p-8 shadow-2xl">
           <div className="absolute inset-0">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 animate-pulse"></div>
             <div className="absolute -left-5 -bottom-5 w-32 h-32 rounded-full bg-white/5 animate-pulse" style={{ animationDelay: '1s' }}></div>
@@ -57,7 +57,7 @@ const ProjectDropbox = () => {
             
             <div className="flex items-center space-x-3 mb-2">
               <CloudArrowDownIcon className="w-8 h-8 text-white" />
-              <h1 className="text-3xl font-bold text-white">Dropbox Integration</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Dropbox Integration</h1>
             </div>
             <p className="text-blue-100 text-lg mb-4">
               Connect your Dropbox folder to import project images
@@ -70,7 +70,7 @@ const ProjectDropbox = () => {
         </div>
 
         {/* Dropbox Links Manager */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-8">
           <DropboxLinksManager 
             projectId={id} 
             onLinksUpdate={() => {

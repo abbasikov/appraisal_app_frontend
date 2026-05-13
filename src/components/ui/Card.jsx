@@ -14,7 +14,7 @@ const Card = ({ children, className = '', hover = true, ...props }) => {
 
 const CardHeader = ({ children, className = '', ...props }) => {
   return (
-    <div className={`px-6 py-4 border-b border-gray-100 ${className}`} {...props}>
+    <div className={`border-b border-gray-100 px-6 py-4 max-lg:px-4 max-lg:py-3 ${className}`} {...props}>
       {children}
     </div>
   );
@@ -22,7 +22,7 @@ const CardHeader = ({ children, className = '', ...props }) => {
 
 const CardBody = ({ children, className = '', ...props }) => {
   return (
-    <div className={`px-6 py-4 ${className}`} {...props}>
+    <div className={`px-6 py-4 max-lg:px-4 max-lg:py-3 ${className}`} {...props}>
       {children}
     </div>
   );
@@ -30,7 +30,7 @@ const CardBody = ({ children, className = '', ...props }) => {
 
 const CardFooter = ({ children, className = '', ...props }) => {
   return (
-    <div className={`px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-xl ${className}`} {...props}>
+    <div className={`border-t border-gray-100 bg-gray-50 px-6 py-4 max-lg:px-4 max-lg:py-3 rounded-b-xl ${className}`} {...props}>
       {children}
     </div>
   );

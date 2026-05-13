@@ -307,18 +307,18 @@ const AddSubAccountModal = ({ isOpen, onClose, parentAccountId, onSuccess }) => 
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-100">
+          <div className="flex justify-end space-x-3 form-actions-row pt-6 border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="btn-responsive px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !formData.name.trim()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              className="btn-responsive px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
             >
               {loading ? (
                 <>

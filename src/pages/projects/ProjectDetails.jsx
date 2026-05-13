@@ -9,6 +9,7 @@ import { PhotoTableWithPagination } from '../../components/PhotoTable';
 import ProjectReports from '../../components/ProjectReports';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/useToast';
+import useIsMobile from '../../hooks/useIsMobile';
 import ToastContainer from '../../components/ToastContainer';
 import {
   ArrowLeftIcon,
@@ -33,6 +34,7 @@ import Button from '../../components/ui/Button';
 const ProjectDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [project, setProject] = useState(null);
   const [template, setTemplate] = useState(null);
   const [photos, setPhotos] = useState([]);
@@ -208,7 +210,7 @@ const ProjectDetails = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="mx-auto max-w-7xl min-w-0 px-6 py-8 max-lg:px-0 max-lg:py-6">
           <div className="animate-pulse space-y-8">
             <div className="flex items-center space-x-4">
               <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
@@ -236,7 +238,7 @@ const ProjectDetails = () => {
   if (error) {
     return (
       <Layout>
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="mx-auto max-w-7xl min-w-0 px-6 py-8 max-lg:px-0 max-lg:py-6">
           <div className="bg-red-50 border-l-4 border-red-400 rounded-xl p-6">
             <div className="flex items-center">
               <XCircleIcon className="w-6 h-6 text-red-500 mr-3" />
@@ -253,98 +255,179 @@ const ProjectDetails = () => {
   return (
     <Layout>
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <div className="mx-auto max-w-7xl min-w-0 space-y-8 px-6 py-8 max-lg:space-y-6 max-lg:px-0 max-lg:py-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigate('/projects')}
-              className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeftIcon className="w-6 h-6 text-gray-600" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {project?.project_name || 'Untitled Project'}
-              </h1>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <div className="flex items-center space-x-1">
-                  <BuildingOfficeIcon className="w-4 h-4" />
-                  <span>{project?.client_name || 'No client'}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <DocumentTextIcon className="w-4 h-4" />
-                  <span>{project?.appraisal_type || 'No type'}</span>
+        {isMobile ? (
+          <div className="flex min-w-0 flex-row items-start justify-between gap-4 max-lg:flex-col max-lg:gap-4">
+            <div className="flex min-w-0 flex-1 items-start gap-4 max-lg:gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/projects')}
+                className="mt-0.5 shrink-0 rounded-xl p-2 transition-colors hover:bg-gray-100"
+                aria-label="Back to projects"
+              >
+                <ArrowLeftIcon className="h-6 w-6 text-gray-600" />
+              </button>
+              <div className="min-w-0 flex-1">
+                <h1 className="mb-2 break-words text-3xl font-bold leading-tight text-gray-900 max-lg:mb-1 max-lg:text-lg max-lg:leading-snug">
+                  {project?.project_name || 'Untitled Project'}
+                </h1>
+                <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-600 max-lg:flex-col max-lg:items-start max-lg:gap-1.5 max-lg:text-xs">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <BuildingOfficeIcon className="h-4 w-4 shrink-0 text-gray-500" />
+                    <span className="truncate">{project?.client_name || 'No client'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <DocumentTextIcon className="h-4 w-4 shrink-0 text-gray-500" />
+                    <span>{project?.appraisal_type || 'No type'}</span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <div className="relative w-auto shrink-0 max-lg:w-full" ref={statusDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                aria-expanded={statusDropdownOpen}
+                aria-haspopup="listbox"
+                className={`inline-flex w-auto cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 transition-all hover:shadow-md max-lg:w-full max-lg:justify-between ${getStatusColor(project?.status)}`}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <StatusIcon className="h-5 w-5 shrink-0" />
+                  <span className="truncate font-medium capitalize">
+                    {project?.status?.replace('_', ' ') || 'Draft'}
+                  </span>
+                </span>
+                <ChevronDownIcon className={`h-4 w-4 shrink-0 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {statusDropdownOpen && (
+                <div className="absolute right-0 z-50 mt-2 max-h-[min(70vh,24rem)] w-48 overflow-y-auto rounded-xl border border-gray-200 bg-white py-2 shadow-lg max-lg:left-0 max-lg:right-0 max-lg:w-full">
+                  {statusOptions.map((option) => {
+                    const OptionIcon = getStatusIcon(option.value);
+                    const isSelected = project?.status === option.value;
+                    return (
+                      <button
+                        type="button"
+                        key={option.value}
+                        onClick={() => handleStatusChange(option.value)}
+                        className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50 max-lg:py-2.5 ${
+                          isSelected ? 'bg-gray-50' : ''
+                        }`}
+                      >
+                        <OptionIcon className={`w-5 h-5 ${
+                          option.color === 'gray' ? 'text-gray-600' :
+                          option.color === 'blue' ? 'text-blue-600' :
+                          option.color === 'yellow' ? 'text-yellow-600' :
+                          option.color === 'green' ? 'text-green-600' :
+                          option.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                        }`} />
+                        <span className={`font-medium ${
+                          isSelected ? 'text-gray-900' : 'text-gray-700'
+                        }`}>
+                          {option.label}
+                        </span>
+                        {isSelected && (
+                          <CheckCircleIcon className="w-4 h-4 text-green-600 ml-auto" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Status Badge Dropdown */}
-          <div className="relative" ref={statusDropdownRef}>
-            <button
-              onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${getStatusColor(project?.status)} transition-all hover:shadow-md cursor-pointer`}
-            >
-              <StatusIcon className="w-5 h-5" />
-              <span className="font-medium capitalize">
-                {project?.status?.replace('_', ' ') || 'Draft'}
-              </span>
-              <ChevronDownIcon className={`w-4 h-4 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Dropdown Menu */}
-            {statusDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-                {statusOptions.map((option) => {
-                  const OptionIcon = getStatusIcon(option.value);
-                  const isSelected = project?.status === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() => handleStatusChange(option.value)}
-                      className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors ${
-                        isSelected ? 'bg-gray-50' : ''
-                      }`}
-                    >
-                      <OptionIcon className={`w-5 h-5 ${
-                        option.color === 'gray' ? 'text-gray-600' :
-                        option.color === 'blue' ? 'text-blue-600' :
-                        option.color === 'yellow' ? 'text-yellow-600' :
-                        option.color === 'green' ? 'text-green-600' :
-                        option.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                      }`} />
-                      <span className={`font-medium ${
-                        isSelected ? 'text-gray-900' : 'text-gray-700'
-                      }`}>
-                        {option.label}
-                      </span>
-                      {isSelected && (
-                        <CheckCircleIcon className="w-4 h-4 text-green-600 ml-auto" />
-                      )}
-                    </button>
-                  );
-                })}
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/projects')}
+                className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                <ArrowLeftIcon className="w-6 h-6 text-gray-600" />
+              </button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {project?.project_name || 'Untitled Project'}
+                </h1>
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <div className="flex items-center space-x-1">
+                    <BuildingOfficeIcon className="w-4 h-4" />
+                    <span>{project?.client_name || 'No client'}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <DocumentTextIcon className="w-4 h-4" />
+                    <span>{project?.appraisal_type || 'No type'}</span>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
+
+            <div className="relative" ref={statusDropdownRef}>
+              <button
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${getStatusColor(project?.status)} transition-all hover:shadow-md cursor-pointer`}
+              >
+                <StatusIcon className="w-5 h-5" />
+                <span className="font-medium capitalize">
+                  {project?.status?.replace('_', ' ') || 'Draft'}
+                </span>
+                <ChevronDownIcon className={`w-4 h-4 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {statusDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+                  {statusOptions.map((option) => {
+                    const OptionIcon = getStatusIcon(option.value);
+                    const isSelected = project?.status === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => handleStatusChange(option.value)}
+                        className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors ${
+                          isSelected ? 'bg-gray-50' : ''
+                        }`}
+                      >
+                        <OptionIcon className={`w-5 h-5 ${
+                          option.color === 'gray' ? 'text-gray-600' :
+                          option.color === 'blue' ? 'text-blue-600' :
+                          option.color === 'yellow' ? 'text-yellow-600' :
+                          option.color === 'green' ? 'text-green-600' :
+                          option.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                        }`} />
+                        <span className={`font-medium ${
+                          isSelected ? 'text-gray-900' : 'text-gray-700'
+                        }`}>
+                          {option.label}
+                        </span>
+                        {isSelected && (
+                          <CheckCircleIcon className="w-4 h-4 text-green-600 ml-auto" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Project Overview */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/30">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-xl bg-blue-100 border border-blue-200">
-                    <BuildingOfficeIcon className="w-6 h-6 text-blue-600" />
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/30 p-6 max-lg:p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-blue-200 bg-blue-100 p-2">
+                    <BuildingOfficeIcon className="h-6 w-6 text-blue-600 max-lg:h-5 max-lg:w-5" />
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">Project Overview</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 max-lg:text-lg">Project Overview</h2>
                 </div>
               </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="min-w-0 p-6 max-lg:p-4">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 max-lg:gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <UserIcon className="w-4 h-4" />
@@ -419,16 +502,16 @@ const ProjectDetails = () => {
             </div>
 
             {/* Dropbox Integration */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-cyan-50/30">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-xl bg-cyan-100 border border-cyan-200">
-                    <CloudIcon className="w-6 h-6 text-cyan-600" />
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-cyan-50/30 p-6 max-lg:p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-cyan-200 bg-cyan-100 p-2">
+                    <CloudIcon className="h-6 w-6 text-cyan-600 max-lg:h-5 max-lg:w-5" />
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">Dropbox Integration</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 max-lg:text-lg">Dropbox Integration</h2>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="min-w-0 p-6 max-lg:p-4">
                 <DropboxLinksManager 
                   projectId={id}
                   onLinksUpdate={handleLinksUpdate}
@@ -437,20 +520,20 @@ const ProjectDetails = () => {
             </div>
 
             {/* Photos Section */}
-            <div id="photos-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-purple-50/30">
+            <div id="photos-section" className="min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-purple-50/30 p-6 max-lg:p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 rounded-xl bg-purple-100 border border-purple-200">
-                      <PhotoIcon className="w-6 h-6 text-purple-600" />
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl border border-purple-200 bg-purple-100 p-2">
+                      <PhotoIcon className="h-6 w-6 text-purple-600 max-lg:h-5 max-lg:w-5" />
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-900">
+                    <h2 className="text-xl font-semibold text-gray-900 max-lg:text-lg">
                       Photos ({totalItems})
                     </h2>
                   </div>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="min-w-0 p-6 max-lg:p-4">
                 <PhotoTableWithPagination 
                   photos={photos} 
                   onPhotoDelete={handlePhotoDelete}
@@ -485,8 +568,8 @@ const ProjectDetails = () => {
           <div className="space-y-6">
             {/* Quick Actions */}
             {(isAdmin || isEditor) && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm max-lg:p-4">
+                <h3 className="mb-4 text-lg font-semibold text-gray-900 max-lg:mb-3 max-lg:text-base">Quick Actions</h3>
                 <div className="space-y-3">
                   <button
                     onClick={() => navigate(`/projects/${id}/appraisal?detect=true`)}
@@ -508,8 +591,8 @@ const ProjectDetails = () => {
             )}
 
             {/* Project Stats */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Statistics</h3>
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm max-lg:p-4">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900 max-lg:mb-3 max-lg:text-base">Project Statistics</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div className="flex items-center space-x-2">
@@ -549,8 +632,8 @@ const ProjectDetails = () => {
 
             {/* Project Purpose */}
             {project?.purpose && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Purpose</h3>
+              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm max-lg:p-4">
+                <h3 className="mb-3 text-lg font-semibold text-gray-900 max-lg:mb-2 max-lg:text-base">Purpose</h3>
                 <p className="text-gray-700 leading-relaxed">{project.purpose}</p>
               </div>
             )}

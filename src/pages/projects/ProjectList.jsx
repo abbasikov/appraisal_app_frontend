@@ -277,7 +277,7 @@ const ProjectList = () => {
     <Layout>
       <div className="space-y-8">
         {/* Modern Header Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 p-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 p-5 sm:p-8 shadow-2xl">
           {/* Animated background elements */}
           <div className="absolute inset-0">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 animate-pulse"></div>
@@ -290,7 +290,7 @@ const ProjectList = () => {
               <div>
                 <div className="flex items-center space-x-3 mb-2">
                   <BuildingOfficeIcon className="w-8 h-8 text-white" />
-                  <h1 className="text-3xl font-bold text-white">Projects</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white">Projects</h1>
                 </div>
                 <p className="text-blue-100 text-lg">
                   Manage and track your appraisal projects
@@ -339,16 +339,16 @@ const ProjectList = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <div className="hidden sm:flex items-center space-x-2">
                 <FunnelIcon className="w-5 h-5 text-gray-400" />
                 <span className="text-sm font-medium text-gray-700">Filters:</span>
               </div>
-              
+
               <select
                 value={selectedClient}
                 onChange={(e) => setSelectedClient(e.target.value)}
-                className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300 transition-all duration-200"
+                className="flex-1 min-w-[130px] sm:flex-none px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300 transition-all duration-200"
               >
                 <option value="">All Clients</option>
                 {clients.map(client => (
@@ -357,11 +357,11 @@ const ProjectList = () => {
                   </option>
                 ))}
               </select>
-              
+
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300 transition-all duration-200"
+                className="flex-1 min-w-[130px] sm:flex-none px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300 transition-all duration-200"
               >
                 <option value="">All Statuses</option>
                 <option value="DRAFT">Draft</option>
@@ -460,13 +460,13 @@ const ProjectList = () => {
               <table className="w-full">
                 <thead className="bg-gradient-to-r from-gray-50 to-blue-50/30 border-b border-gray-100">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Project</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Client</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Inspection Date</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned To</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Project</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Client</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Type</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Inspection Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Assigned To</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

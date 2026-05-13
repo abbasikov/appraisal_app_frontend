@@ -41,11 +41,11 @@ const TemplatePreview = () => {
   return (
     <Layout>
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 page-header-row">
           <h1 className="text-2xl font-bold text-gray-900">Template Preview</h1>
           <button
             onClick={() => navigate(`/templates/${id}`)}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="btn-responsive px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
           >
             Back to Details
           </button>

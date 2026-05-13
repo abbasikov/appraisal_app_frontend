@@ -298,9 +298,9 @@ const AccountList = () => {
       {/* Account Details Modal - Outside Layout for proper centering */}
       {detailsModal.isOpen && detailsModal.account && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 animate-in fade-in zoom-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 animate-in fade-in zoom-in">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-200 pb-4 max-lg:items-start">
               <div className="flex items-center space-x-4">
                 <div className={`p-3 rounded-2xl ${getAccountTypeColor(detailsModal.account.account_type).replace('text-', 'bg-').replace('-800', '-500')} bg-opacity-20 border`}>
                   {(() => {
@@ -309,7 +309,7 @@ const AccountList = () => {
                   })()}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{detailsModal.account.name}</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{detailsModal.account.name}</h2>
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getAccountTypeColor(detailsModal.account.account_type)}`}>
                     {getAccountTypeLabel(detailsModal.account.account_type)}
                   </span>
@@ -565,7 +565,7 @@ const AccountList = () => {
                 return (
                   <div key={account.id}>
                     <div 
-                      className="group p-6 hover:bg-gray-50 transition-all duration-200 animate-slide-up"
+                      className="group p-3 sm:p-6 hover:bg-gray-50 transition-all duration-200 animate-slide-up"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className="flex items-center justify-between">
@@ -639,8 +639,8 @@ const AccountList = () => {
                         </div>
 
                         {/* Right Section - Actions */}
-                        <div className="flex items-center space-x-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          <button 
+                        <div className="flex items-center space-x-2 flex-shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
+                          <button
                             onClick={() => setDetailsModal({ isOpen: true, account })}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                             title="View Details"
@@ -687,7 +687,7 @@ const AccountList = () => {
                     {/* Expanded Content - Sub-accounts and Clients - Only show for non-client accounts */}
                     {account.account_type !== 'client' && expandedAccounts.has(account.id) && (
                       <div className="bg-gray-50 border-t border-gray-100">
-                        <div className="p-6 pl-16">
+                        <div className="p-3 sm:p-6 pl-6 sm:pl-16">
                           <div className="grid grid-cols-1 gap-6">
                             {/* Sub-accounts (removed since sub-accounts are now just clients) */}
                             
@@ -846,8 +846,8 @@ const AccountList = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <button 
+                    <div className="flex items-center space-x-2 flex-shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
+                      <button
                         onClick={() => setDetailsModal({ isOpen: true, account: client })}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                         title="View Details"

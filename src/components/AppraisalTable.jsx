@@ -36,9 +36,9 @@ function normalizeRoomOrFloorInput(value) {
 }
 
 const COMBO_WRAP =
-  "flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm shadow-sm transition-colors hover:border-gray-400 focus-within:border-blue-500 focus-within:outline-none focus-within:ring-1 focus-within:ring-blue-500 disabled:opacity-50";
+  "flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm shadow-sm transition-colors hover:border-gray-400 focus-within:border-blue-500 focus-within:outline-none focus-within:ring-1 focus-within:ring-blue-500 disabled:opacity-50 max-lg:h-9 max-lg:px-2 max-lg:text-xs";
 const COMBO_WRAP_CLOSED_GHOST =
-  "flex h-8 w-full min-w-0 items-center gap-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm shadow-none transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:opacity-50";
+  "flex h-8 w-full min-w-0 items-center gap-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm shadow-none transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:opacity-50 max-lg:h-9 max-lg:text-xs";
 
 function SearchableSelectDropdown({
   ariaLabelledBy,
@@ -51,7 +51,7 @@ function SearchableSelectDropdown({
   menuRef,
   options = [],
   onPick,
-  triggerClassName = "w-52",
+  triggerClassName = "w-52 min-w-0 max-lg:w-full",
   disabled = false,
   borderOnInteractOnly = false,
   hideChevronWhenClosed = false,
@@ -150,7 +150,7 @@ function SearchableSelectDropdown({
           <input
             ref={inputRef}
             type="text"
-            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm uppercase text-gray-900 outline-none placeholder:text-gray-400 placeholder:normal-case"
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm uppercase text-gray-900 outline-none placeholder:text-gray-400 placeholder:normal-case max-lg:text-xs"
             placeholder={placeholderTrigger}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -195,6 +195,7 @@ function SearchableSelectDropdown({
       {menuOpen && (
         <div
           role="listbox"
+          data-menu="true"
           className="absolute left-0 top-full z-[100] mt-1 max-h-60 min-w-full overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
         >
           <ul className="max-h-52 overflow-y-auto py-1">
@@ -203,7 +204,7 @@ function SearchableSelectDropdown({
                 <button
                   type="button"
                   role="option"
-                  className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                  className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 max-lg:py-2.5 max-lg:text-xs"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     onPick(option);
@@ -215,7 +216,7 @@ function SearchableSelectDropdown({
               </li>
             ))}
             {filtered.length === 0 && (
-              <li className="px-3 py-2 text-sm text-gray-500">
+              <li className="px-3 py-2 text-sm text-gray-500 max-lg:text-xs">
                 {COMBO_NO_MATCHES_HINT}
               </li>
             )}
@@ -244,7 +245,7 @@ function ItemLocationComboboxCell({
     >
       <div
         data-searchable-option-picker
-        className="min-w-[140px] max-w-[260px]"
+        className="min-w-[140px] max-w-[260px] max-lg:min-w-[104px] max-lg:max-w-[min(100vw-6rem,18rem)]"
       >
         <SearchableSelectDropdown
           ariaLabel={ariaLabel}
@@ -313,7 +314,7 @@ const PhotoModal = ({ photo }) => {
     <div className="space-y-4 flex flex-col max-h-[calc(100vh-100px)]">
       <div className="flex-1 overflow-hidden flex items-center justify-center rounded-lg">
         {loading ? (
-          <div className="w-full h-full rounded-lg shadow-medium bg-gray-200 animate-pulse" style={{ minHeight: '550px' }}></div>
+          <div className="h-full min-h-[550px] w-full animate-pulse rounded-lg bg-gray-200 shadow-medium max-lg:min-h-[220px]"></div>
         ) : imageSrc ? (
           <img
             src={imageSrc}
@@ -321,12 +322,12 @@ const PhotoModal = ({ photo }) => {
             className="max-w-full max-h-[calc(100vh-120px)] object-contain rounded-lg shadow-medium"
           />
         ) : (
-          <div className="w-full h-full rounded-lg shadow-medium bg-gray-100 flex items-center justify-center" style={{ minHeight: '550px' }}>
+          <div className="flex h-full min-h-[550px] w-full items-center justify-center rounded-lg bg-gray-100 shadow-medium max-lg:min-h-[220px]">
             <p className="text-gray-500">Failed to load photo</p>
           </div>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-4 text-sm overflow-y-auto">
+      <div className="grid grid-cols-2 gap-4 overflow-y-auto text-sm max-lg:grid-cols-1 max-lg:gap-3 max-lg:text-xs">
         <div>
           <span className="font-medium text-gray-700">Room/Area:</span>
           <p className="text-gray-900">
@@ -339,7 +340,7 @@ const PhotoModal = ({ photo }) => {
             {photo.item_type || "Not specified"}
           </p>
         </div>
-        <div className="col-span-2">
+        <div className="col-span-2 max-lg:col-span-1">
           <span className="font-medium text-gray-700">Description:</span>
           <p className="text-gray-900">
             {photo.description || "No description"}
@@ -711,7 +712,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
           />
         ) : (
           <div
-            className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+            className="cursor-pointer rounded-lg border border-transparent px-3 py-2 text-sm text-gray-900 transition-colors hover:border-blue-200 hover:bg-blue-50 max-lg:px-2 max-lg:py-1.5 max-lg:text-xs"
             onClick={() => handleCellClick(item.id, `attr_${attr}`)}
           >
             {item.attributes?.[attr] || (
@@ -985,10 +986,10 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
 
   if (loading) {
     return (
-      <Card className="p-12">
+      <Card className="p-12 max-lg:p-8">
         <div className="text-center">
           <LoadingSpinner size="lg" />
-          <p className="text-gray-500 mt-4">Loading appraisal items...</p>
+          <p className="mt-4 text-base text-gray-500 max-lg:text-sm">Loading appraisal items...</p>
         </div>
       </Card>
     );
@@ -996,12 +997,12 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
 
   if (items.length === 0) {
     return (
-      <Card className="p-12 text-center">
-        <PhotoIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
+      <Card className="p-12 text-center max-lg:p-8">
+        <PhotoIcon className="mx-auto mb-4 h-16 w-16 text-gray-300 max-lg:h-12 max-lg:w-12" />
+        <h3 className="mb-2 text-lg font-medium text-gray-900 max-lg:text-base">
           No appraisal items found
         </h3>
-        <p className="text-gray-500 mb-6">
+        <p className="mb-6 text-base text-gray-500 max-lg:text-sm">
           Click "Initialize from Photos" to create items from project photos
         </p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
@@ -1018,14 +1019,15 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
     <>
       <Card className="overflow-hidden">
         {allowBulkToolbar && (
-          <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/40">
+          <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/40 px-4 py-3 max-lg:flex-col max-lg:items-stretch max-lg:gap-3 max-lg:px-3 max-lg:py-2.5">
+            <div className="flex min-w-[14rem] flex-wrap items-center gap-2 max-lg:w-full max-lg:min-w-0">
             <span
               id="item-bulk-action-label"
-              className="text-sm font-medium text-gray-700 shrink-0 leading-none"
+              className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
             >
               Action
             </span>
-            <div className="relative shrink-0" ref={itemBulkMenuRef}>
+            <div className="relative min-w-0 w-52 flex-initial max-lg:w-full max-lg:flex-1" ref={itemBulkMenuRef}>
               <button
                 type="button"
                 id="item-bulk-action"
@@ -1033,7 +1035,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                 aria-haspopup="listbox"
                 aria-expanded={itemBulkMenuOpen}
                 onClick={() => setItemBulkMenuOpen((o) => !o)}
-                className="flex h-8 w-52 items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm shadow-sm transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex h-8 w-52 min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm shadow-sm transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 max-lg:h-10 max-lg:w-full max-lg:text-xs"
               >
                 <span
                   className={`truncate ${itemActionTriggerLabel ? "text-gray-900" : "text-gray-500"}`}
@@ -1048,13 +1050,13 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                 <ul
                   role="listbox"
                   aria-labelledby="item-bulk-action-label"
-                  className="absolute left-0 top-full z-[100] mt-1 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+                  className="absolute left-0 top-full z-[100] mt-1 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg max-lg:left-0 max-lg:right-0 max-lg:w-[min(100vw-2rem,18rem)]"
                 >
                   <li role="none">
                     <button
                       type="button"
                       role="option"
-                      className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 max-lg:py-2.5 max-lg:text-xs"
                       onClick={() => resetItemBulkToNeutral()}
                     >
                       {ITEM_BULK_PLACEHOLDER}
@@ -1071,7 +1073,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                           role="option"
                           disabled={disabled}
                           onClick={() => runItemBulkAction(key)}
-                          className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
+                          className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white max-lg:py-2.5 max-lg:text-xs"
                         >
                           {ITEM_BULK_LABELS[key]}
                         </button>
@@ -1081,6 +1083,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                 </ul>
               )}
             </div>
+            </div>
 
             {bulkRoomToolbarVisible &&
               showRoomBulk &&
@@ -1088,10 +1091,10 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                 schema?.floor_building_options?.length > 0) && (
               <>
                 {schema?.room_area_options?.length > 0 && (
-                  <>
+                  <div className="flex w-auto min-w-0 flex-row flex-wrap items-center gap-2 max-lg:w-full max-lg:flex-col max-lg:items-stretch">
                     <span
                       id="item-room-bulk-label"
-                      className="text-sm font-medium text-gray-700 shrink-0 leading-none"
+                      className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
                     >
                       Room/Area
                     </span>
@@ -1111,16 +1114,16 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                         ...(schema.room_area_options ?? EMPTY_OPTS),
                       ]}
                       onPick={(option) => applyRoomBulkToSelection(option)}
-                      triggerClassName="w-52"
+                      triggerClassName="w-52 min-w-0 max-lg:w-full"
                       disabled={selectedItemIds.size === 0}
                     />
-                  </>
+                  </div>
                 )}
                 {schema?.floor_building_options?.length > 0 && (
-                  <>
+                  <div className="flex w-auto min-w-0 flex-row flex-wrap items-center gap-2 max-lg:w-full max-lg:flex-col max-lg:items-stretch">
                     <span
                       id="item-floor-bulk-label"
-                      className="text-sm font-medium text-gray-700 shrink-0 leading-none"
+                      className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
                     >
                       Floor/Bldg
                     </span>
@@ -1140,21 +1143,21 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                         ...(schema.floor_building_options ?? EMPTY_OPTS),
                       ]}
                       onPick={(option) => applyFloorBulkToSelection(option)}
-                      triggerClassName="w-52"
+                      triggerClassName="w-52 min-w-0 max-lg:w-full"
                       disabled={selectedItemIds.size === 0}
                     />
-                  </>
+                  </div>
                 )}
               </>
             )}
           </div>
         )}
-        <div className="overflow-x-auto">
-          <table className="table">
+        <div className="overflow-x-auto max-lg:-mx-1 max-lg:px-1">
+          <table className="table max-lg:min-w-[560px] max-lg:w-full">
             <thead className="table-header">
               <tr>
                 {allowBulkToolbar && (
-                  <th className="table-header-cell w-10 px-2 py-3 align-middle">
+                  <th className="table-header-cell w-10 px-2 py-3 align-middle max-lg:px-1.5 max-lg:py-2">
                     <div className="flex justify-center items-center">
                       <input
                         ref={selectAllHeaderCheckboxRef}
@@ -1245,7 +1248,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                     >
                       {allowBulkToolbar && (
                         <td
-                          className="table-cell w-10 px-2 py-3 align-middle"
+                          className="table-cell w-10 px-2 py-3 align-middle max-lg:px-1.5 max-lg:py-2"
                           onMouseDown={(e) => e.stopPropagation()}
                         >
                           <div className="flex justify-center items-center">
@@ -1261,8 +1264,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                       )}
                       {/* Line Number */}
                       <td className="table-cell">
-                        <div className="flex items-center space-x-2">
-                          <Bars3Icon className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                        <div className="flex items-center space-x-2 max-lg:space-x-1.5">
+                          <Bars3Icon className="h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-gray-600 max-lg:h-3.5 max-lg:w-3.5" />
                           <Badge variant="gray" size="sm">
                             {item.line_number}
                           </Badge>
@@ -1274,7 +1277,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                         <div className="flex justify-center items-center">
                         {item.photo_id ? (
                           <div className="relative group/photo shrink-0">
-                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-200 max-lg:h-10 max-lg:w-10">
                               <ThumbnailImage
                                 projectId={item.project_id}
                                 photoId={item.photo_id}
@@ -1290,8 +1293,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                             </div>
                           </div>
                         ) : (
-                          <div className="h-12 w-12 shrink-0 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <PhotoIcon className="h-6 w-6 text-gray-400" />
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gray-100 max-lg:h-10 max-lg:w-10">
+                            <PhotoIcon className="h-6 w-6 text-gray-400 max-lg:h-5 max-lg:w-5" />
                           </div>
                         )}
                         </div>
@@ -1369,7 +1372,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                           </select>
                         ) : (
                           <div
-                            className="cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                            className="cursor-pointer rounded-lg border border-transparent px-3 py-2 transition-colors hover:border-blue-200 hover:bg-blue-50 max-lg:px-2 max-lg:py-1.5"
                             onClick={() =>
                               handleCellClick(item.id, "item_type")
                             }
@@ -1383,7 +1386,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                                 {item.item_type}
                               </Badge>
                             ) : (
-                              <span className="text-gray-400 italic text-sm">
+                              <span className="text-sm italic text-gray-400 max-lg:text-xs">
                                 Click to select
                               </span>
                             )}
@@ -1396,9 +1399,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                         {editingCell === `${item.id}-description` ? (
                           <textarea
                             defaultValue={item.description || ""}
-                            className="form-input text-sm resize-none"
+                            className="form-input w-full max-w-full min-w-[300px] resize-none text-sm max-lg:min-w-0 max-lg:text-xs"
                             rows="4"
-                            style={{ minWidth: "300px" }}
                             onBlur={(e) =>
                               handleCellEdit(
                                 item.id,
@@ -1425,14 +1427,14 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                           />
                         ) : (
                           <div
-                            className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200 max-w-xs"
+                            className="max-w-xs min-w-0 cursor-pointer rounded-lg border border-transparent px-3 py-2 text-sm text-gray-900 transition-colors hover:border-blue-200 hover:bg-blue-50 max-lg:max-w-full max-lg:px-2 max-lg:py-1.5 max-lg:text-xs"
                             onClick={() =>
                               handleCellClick(item.id, "description")
                             }
                             style={{ maxHeight: "80px", overflow: "hidden" }}
                           >
                             {item.description ? (
-                              <div className="whitespace-pre-line text-xs leading-tight">
+                              <div className="whitespace-pre-line text-xs leading-tight max-lg:text-[0.7rem]">
                                 {item.description.length > 100
                                   ? `${item.description.substring(0, 100)}...`
                                   : item.description}
@@ -1468,7 +1470,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                           />
                         ) : (
                           <div
-                            className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-blue-200"
+                            className="cursor-pointer rounded-lg border border-transparent px-3 py-2 text-sm text-gray-900 transition-colors hover:border-blue-200 hover:bg-blue-50 max-lg:px-2 max-lg:py-1.5 max-lg:text-xs"
                             onClick={() =>
                               handleCellClick(item.id, "appraised_value")
                             }
@@ -1485,12 +1487,12 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
 
                       {/* Actions */}
                       <td className="table-cell">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 max-lg:gap-1">
                           <button
                             type="button"
                             onClick={() => handleMoveUp(actualIndex)}
                             disabled={actualIndex === 0}
-                            className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-700 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-700 opacity-0 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-[40px] max-lg:min-w-[40px] max-lg:p-2 max-lg:opacity-100"
                             aria-label={`Move line ${item.line_number} up`}
                             title="Move up"
                           >
@@ -1500,7 +1502,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                             type="button"
                             onClick={() => handleMoveDown(actualIndex)}
                             disabled={actualIndex === items.length - 1}
-                            className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-700 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-700 opacity-0 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-[40px] max-lg:min-w-[40px] max-lg:p-2 max-lg:opacity-100"
                             aria-label={`Move line ${item.line_number} down`}
                             title="Move down"
                           >
@@ -1509,7 +1511,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                           <button
                             type="button"
                             onClick={() => openInlineDeleteModal(item)}
-                            className="inline-flex text-red-600 hover:text-red-900 p-0.5"
+                            className="inline-flex items-center justify-center rounded-lg p-0.5 text-red-600 hover:text-red-900 max-lg:min-h-[40px] max-lg:min-w-[40px] max-lg:rounded-lg max-lg:p-1.5 max-lg:hover:bg-red-50"
                             title="Delete item"
                             aria-label={`Delete line ${item.line_number}`}
                           >
@@ -1525,21 +1527,21 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
         </div>
 
         {/* Summary Row */}
-        <div className="bg-gradient-to-r from-blue-50 to-green-50 px-6 py-4 border-t border-gray-200">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
+        <div className="border-t border-gray-200 bg-gradient-to-r from-blue-50 to-green-50 px-6 py-4 max-lg:px-4 max-lg:py-3">
+          <div className="flex flex-row items-center justify-between gap-4 max-lg:flex-col max-lg:items-start max-lg:gap-3">
+            <div className="flex flex-wrap items-center gap-4 max-lg:gap-2">
               <Badge variant="info" size="lg">
                 {items.length} Items
               </Badge>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 max-lg:text-xs">
                 Last updated: {new Date().toLocaleTimeString()}
               </span>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600 mb-1">
+            <div className="text-right max-lg:text-left">
+              <p className="mb-0.5 text-sm text-gray-600 max-lg:text-xs">
                 {project?.appraisal_type === 'INSURANCE' || project?.appraisal_type === 'REPLACEMENT' ? 'Total Replacement Value' : 'Total Appraised Value'}
               </p>
-              <p className="text-2xl font-bold text-green-700">
+              <p className="text-2xl font-bold text-green-700 max-lg:text-xl">
                 {formatCurrency(
                   items.reduce(
                     (sum, item) => sum + (item.appraised_value || 0),
@@ -1553,10 +1555,10 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
 
         {/* Pagination */}
         {items.length > 10 && (
-          <div className="bg-white px-6 py-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">Show</span>
+          <div className="border-t border-gray-200 bg-white px-6 py-4 max-lg:px-4 max-lg:py-3">
+            <div className="flex flex-row flex-wrap items-center justify-between gap-4 max-lg:flex-col max-lg:items-stretch max-lg:gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-gray-700 max-lg:text-xs">Show</span>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => {
@@ -1577,17 +1579,17 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                 </select>
-                <span className="text-sm text-gray-700">items per page</span>
+                <span className="text-sm text-gray-700 max-lg:text-xs">items per page</span>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">
+              <div className="flex flex-row flex-wrap items-center justify-end gap-2 max-lg:flex-col max-lg:items-stretch max-lg:gap-3">
+                <span className="text-left text-sm text-gray-700 max-lg:text-center max-lg:text-xs">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                   {Math.min(currentPage * itemsPerPage, items.length)} of{" "}
                   {items.length} items
                 </span>
 
-                <div className="flex space-x-1">
+                <div className="flex flex-wrap items-center justify-end gap-1 max-lg:justify-center">
                   <Button
                     onClick={() =>
                       setCurrentPage((prev) => Math.max(prev - 1, 1))
@@ -1667,7 +1669,7 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
             Are you sure you want to delete this appraisal item? This cannot be
             undone.
           </p>
-          <div className="flex justify-end space-x-3 pt-2 border-t border-gray-200">
+          <div className="flex flex-row justify-end gap-3 border-t border-gray-200 pt-2 max-lg:flex-col-reverse max-lg:gap-2">
             <Button
               variant="outline"
               onClick={closeInlineDeleteModal}

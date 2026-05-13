@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -32,6 +32,28 @@ const Layout = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const uncollapseForMobile = () => {
+      if (!mq.matches) {
+        setSidebarCollapsed(false);
+      }
+    };
+    uncollapseForMobile();
+    mq.addEventListener('change', uncollapseForMobile);
+    return () => mq.removeEventListener('change', uncollapseForMobile);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -102,8 +124,8 @@ const Layout = ({ children }) => {
     item.roles.includes(user?.role)
   );
 
-  const sidebarWidth = sidebarCollapsed ? 'w-20' : 'w-72';
-  const mainMargin = sidebarCollapsed ? 'pl-20' : 'pl-72';
+  const sidebarWidth = sidebarCollapsed ? 'w-72 lg:w-20' : 'w-72';
+  const mainMargin = sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72';
 
   const getRoleColor = (role) => {
     const colors = {
@@ -284,24 +306,26 @@ const Layout = ({ children }) => {
       <div className={`${mainMargin} transition-all duration-300`}>
         {/* Modern Top Header Bar */}
         <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
+          <div className="px-6 py-4 max-lg:px-4 max-lg:py-3">
+            <div className="flex items-center justify-between max-lg:gap-3 max-lg:min-w-0">
               {/* Left side */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 max-lg:min-w-0 max-lg:flex-1 max-lg:space-x-3">
                 {/* Mobile menu button */}
                 <button
+                  type="button"
                   onClick={() => setMobileMenuOpen(true)}
-                  className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                  className="lg:hidden shrink-0 p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                  aria-label="Open menu"
                 >
                   <Bars3Icon className="w-6 h-6 text-gray-600" />
                 </button>
-                
+
                 {/* Page title with modern styling */}
-                <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent capitalize">
+                <div className="max-lg:min-w-0">
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent capitalize max-lg:truncate max-lg:text-lg">
                     {location.pathname.split('/')[1] || 'Dashboard'}
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 mt-1 max-lg:truncate max-lg:text-xs">
                     Welcome back, <span className="font-medium text-blue-600">{user?.first_name}</span>! 👋
                   </p>
                 </div>
@@ -341,7 +365,7 @@ const Layout = ({ children }) => {
         </div>
 
         {/* Page content */}
-        <main className="py-6 px-6">
+        <main className="py-6 px-6 max-lg:px-4 max-lg:py-4">
           <div className="animate-slide-in">
             {children}
           </div>

@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { projectService } from '../services/projectService';
 import { useToast } from '../context/ToastContext';
 import { useImport } from '../context/ImportContext';
+import useIsMobile from '../hooks/useIsMobile';
 
 const DropboxLinksManager = ({ projectId, onLinksUpdate, onImportComplete }) => {
+  const isMobile = useIsMobile();
   const [links, setLinks] = useState([]);
   const [newLink, setNewLink] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
@@ -293,30 +295,31 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate, onImportComplete }) => 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       {/* Add new link input */}
       <div className="space-y-3">
-        <div className="flex gap-2">
+        <div className="min-w-0">
           <input
             type="url"
             value={newLink}
             onChange={(e) => setNewLink(e.target.value)}
             placeholder="Enter Dropbox folder share link..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full min-w-0 rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 max-lg:text-sm"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex min-w-0 flex-row items-stretch gap-2 max-lg:flex-col">
           <input
             type="email"
             value={notificationEmail}
             onChange={(e) => setNotificationEmail(e.target.value)}
-            placeholder="Enter email for import notifications (optional)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Email for import notifications (optional)"
+            className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 max-lg:text-sm"
           />
           <button
+            type="button"
             onClick={addLink}
             disabled={validatingLink || !newLink.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-w-[7.5rem] max-lg:shrink-0 max-lg:self-auto max-lg:text-sm max-lg:font-medium max-lg:w-full max-lg:py-2.5"
           >
             {validatingLink ? 'Adding...' : 'Add Link'}
           </button>
@@ -328,11 +331,15 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate, onImportComplete }) => 
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-gray-700">Configured Dropbox Folders:</h3>
           {links.map((link, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-              <span className="text-sm text-gray-600 truncate flex-1 mr-4">{link}</span>
+            <div
+              key={index}
+              className="flex flex-row items-center justify-between gap-2 rounded-md bg-gray-50 p-3 max-lg:flex-col max-lg:items-stretch"
+            >
+              <span className="text-sm text-gray-600 truncate flex-1 mr-4 max-lg:min-w-0 max-lg:mr-0 max-lg:whitespace-normal max-lg:break-all max-lg:overflow-visible max-lg:text-xs">{link}</span>
               <button
+                type="button"
                 onClick={() => removeLink(index)}
-                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                className="text-sm font-medium text-red-600 hover:text-red-800 max-lg:shrink-0 max-lg:self-start max-lg:rounded-md max-lg:px-3 max-lg:py-1.5 max-lg:hover:bg-red-50"
               >
                 Remove
               </button>
@@ -345,9 +352,10 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate, onImportComplete }) => 
       {links.length > 0 ? (
         <div className="space-y-3">
           <button
+            type="button"
             onClick={importPhotos}
             disabled={importingPhotos}
-            className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 max-lg:text-sm max-lg:font-medium max-lg:py-2.5"
           >
             {importingPhotos ? 'Importing Photos...' : `Import Photos from ${links.length} Folder(s)`}
           </button>
@@ -368,12 +376,23 @@ const DropboxLinksManager = ({ projectId, onLinksUpdate, onImportComplete }) => 
       )}
 
       {/* Help text */}
-      <div className="text-sm text-gray-500">
-        <p>• Share your Dropbox folder and paste the link above</p>
-        <p>• Enter an email address (optional) to receive import completion notifications</p>
-        <p>• You can add up to 10 Dropbox folders per project</p>
-        <p>• Only image files (JPG, PNG, GIF, BMP) will be imported</p>
-      </div>
+      {isMobile ? (
+        <div className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 text-sm leading-relaxed text-gray-600 max-lg:text-xs">
+          <ul className="list-inside list-disc space-y-1.5 marker:text-gray-400">
+            <li>Share your Dropbox folder and paste the link above</li>
+            <li>Optional email for import completion notifications</li>
+            <li>Up to 10 Dropbox folders per project</li>
+            <li>Only image files (JPG, PNG, GIF, BMP) are imported</li>
+          </ul>
+        </div>
+      ) : (
+        <div className="text-sm text-gray-500">
+          <p>• Share your Dropbox folder and paste the link above</p>
+          <p>• Enter an email address (optional) to receive import completion notifications</p>
+          <p>• You can add up to 10 Dropbox folders per project</p>
+          <p>• Only image files (JPG, PNG, GIF, BMP) will be imported</p>
+        </div>
+      )}
     </div>
   );
 };

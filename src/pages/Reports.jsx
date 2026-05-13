@@ -102,7 +102,7 @@ const Reports = () => {
         </div>
 
         {reports.length === 0 ? (
-          <Card className="p-8 text-center">
+          <Card className="p-4 sm:p-8 text-center">
             <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No reports generated</h3>
             <p className="text-gray-500">Reports will appear here once generated from projects</p>
@@ -110,10 +110,10 @@ const Reports = () => {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {reports.map((report) => (
-              <Card key={report.id} className="p-6">
-                <div className="flex items-start justify-between">
+              <Card key={report.id} className="p-4 sm:p-6">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">
                         {report.project_name}
                       </h3>

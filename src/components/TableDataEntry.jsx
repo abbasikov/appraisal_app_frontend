@@ -66,7 +66,7 @@ const TableDataEntry = ({ templateCategory, items, onItemsChange, projectId, loa
 
   if (!config) {
     return (
-      <Card className="p-8 text-center">
+      <Card className="p-4 sm:p-8 text-center">
         <p className="text-gray-500">Unsupported template category: {templateCategory}</p>
       </Card>
     );
@@ -275,7 +275,7 @@ const TableDataEntry = ({ templateCategory, items, onItemsChange, projectId, loa
 
   if (loading) {
     return (
-      <Card className="p-12">
+      <Card className="p-6 sm:p-12">
         <div className="text-center">
           <LoadingSpinner size="lg" />
           <p className="text-gray-500 mt-4">Loading data...</p>
@@ -287,11 +287,11 @@ const TableDataEntry = ({ templateCategory, items, onItemsChange, projectId, loa
   return (
     <Card className="w-full">
       <Card.Header>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <span className="text-2xl">{config.icon}</span>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{config.title}</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-3 min-w-0">
+            <span className="text-2xl shrink-0">{config.icon}</span>
+            <div className="min-w-0">
+              <h3 className="text-lg font-semibold text-gray-900 max-lg:font-bold">{config.title}</h3>
               <p className="text-sm text-gray-600 mt-1">
                 {localItems.length} items • Total value: {formatCurrency(calculateTotal())}
               </p>
@@ -307,23 +307,23 @@ const TableDataEntry = ({ templateCategory, items, onItemsChange, projectId, loa
         </div>
       </Card.Header>
       
-      <div className="w-full overflow-hidden">
-        <table className="w-full table-auto">
+      <div className="w-full overflow-x-auto">
+        <table className="min-w-[600px] lg:w-auto max-lg:w-full table-auto">
           <thead className="bg-gradient-to-r from-gray-50 to-blue-50/30 border-b-2 border-blue-200">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-16">
+              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider max-lg:font-bold w-16">
                 #
               </th>
               {config.columns.map(column => (
                 <th 
                   key={column.key} 
-                  className={`px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider ${column.width || ''}`}
+                  className={`px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider max-lg:font-bold ${column.width || ''}`}
                 >
                   {column.label}
                   {column.required && <span className="text-red-500 ml-1">*</span>}
                 </th>
               ))}
-              <th className="px-3 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
+              <th className="px-3 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider max-lg:font-bold w-32">
                 Actions
               </th>
             </tr>

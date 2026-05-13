@@ -486,7 +486,7 @@ const WorkOnAppraisal = () => {
   if (loading) {
     return (
       <Layout>
-        <Card className="p-12">
+        <Card className="p-6 sm:p-12">
           <div className="text-center">
             <LoadingSpinner size="xl" />
             <p className="text-gray-500 mt-4">Loading appraisal workspace...</p>
@@ -502,38 +502,40 @@ const WorkOnAppraisal = () => {
       
       <div className="space-y-6">
         {/* Header */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <Card className="p-6 max-lg:p-4">
+          <div className="flex flex-row items-center justify-between gap-4 max-lg:flex-col max-lg:items-stretch">
+            <div className="flex min-w-0 items-center gap-4 max-lg:items-start max-lg:gap-3">
               <Button
                 onClick={() => navigate(`/projects/${projectId}`)}
                 variant="ghost"
                 icon={ArrowLeftIcon}
                 size="sm"
+                className="shrink-0"
               />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold text-gray-900 max-lg:text-xl">
                   Appraisal Workspace
                 </h1>
-                <div className="flex items-center space-x-2 mt-1">
-                  <p className="text-sm text-gray-600">
+                <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-gray-600 max-lg:text-xs">
+                  <p className="truncate max-lg:font-medium max-lg:text-gray-800">
                     {project?.project_name}
                   </p>
-                  <span className="text-gray-400">•</span>
-                  <p className="text-sm text-gray-600">
+                  <span className="inline text-gray-400 max-lg:hidden">•</span>
+                  <p className="truncate text-gray-600">
                     {project?.client?.name}
                   </p>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex w-auto flex-row flex-wrap items-center justify-end gap-3 max-lg:w-full max-lg:flex-col max-lg:gap-2">
               <Button
                 onClick={handleSaveAll}
                 loading={saving}
                 disabled={saving}
                 variant="success"
                 icon={DocumentTextIcon}
+                className="w-auto max-lg:w-full"
               >
                 Save All
               </Button>
@@ -549,7 +551,7 @@ const WorkOnAppraisal = () => {
                 Generate Report
               </Button> */}
               
-              <Button onClick={handleReviewMode} icon={PlayIcon}>
+              <Button onClick={handleReviewMode} icon={PlayIcon} className="w-auto max-lg:w-full">
                 Review Mode
               </Button>
             </div>
@@ -558,7 +560,7 @@ const WorkOnAppraisal = () => {
 
         {/* Workspace Tabs */}
         <Tabs defaultValue="items" className="space-y-6">
-          <Card className="p-6">
+          <Card className="p-6 max-lg:p-4">
             <Tabs.List>
               <Tabs.Trigger
                 value="items"
@@ -667,27 +669,28 @@ const WorkOnAppraisal = () => {
               {/* Items Header */}
               <Card>
                 <Card.Header>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                  <div className="flex flex-row items-center justify-between gap-4 max-lg:flex-col max-lg:items-start max-lg:gap-4">
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 max-lg:text-base max-lg:font-bold">
                         Appraisal Items
                       </h3>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="mt-1 text-sm text-gray-600 max-lg:text-xs">
                         {appraisalItems.length} items • {project?.appraisal_type === 'INSURANCE' || project?.appraisal_type === 'REPLACEMENT' ? 'Total Replacement Value' : 'Total value'}: ${appraisalItems.reduce((sum, item) => sum + (item.appraised_value || 0), 0).toLocaleString()}
                       </p>
                     </div>
                     
-                    <div className="flex flex-col items-end space-y-2">
+                    <div className="flex w-auto flex-col items-end gap-2 max-lg:w-full max-lg:items-stretch">
                       <Button
                         onClick={handleInitializeItems}
                         loading={initializing}
                         disabled={initializing || (isImporting && importProjectId === projectId)}
                         icon={PhotoIcon}
+                        className="w-auto max-lg:w-full"
                       >
                         Initialize from Photos
                       </Button>
                       {isImporting && importProjectId === projectId && (
-                        <p className="text-xs text-amber-600 font-medium">
+                        <p className="text-right text-xs font-medium text-amber-600 max-lg:text-center">
                           ⏳ Please wait until photo import process completes
                         </p>
                       )}

@@ -116,15 +116,15 @@ const FieldMappingEditor = () => {
   return (
     <Layout>
       <div className="p-6 max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Edit Field Mappings</h1>
             <p className="text-gray-600 mt-1">Template: {template.name}</p>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => navigate(`/templates/${id}`)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="flex-1 sm:flex-none px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               disabled={saving}
             >
               Cancel
@@ -132,7 +132,7 @@ const FieldMappingEditor = () => {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
+              className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
             >
               {saving && (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -143,7 +143,7 @@ const FieldMappingEditor = () => {
         </div>
 
         <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2">
             <h2 className="text-lg font-medium text-gray-900">Field Mappings</h2>
             <button
               onClick={addNewField}

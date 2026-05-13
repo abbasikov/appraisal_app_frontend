@@ -58,13 +58,13 @@ const ClientList = () => {
 
   return (
     <Layout>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="p-4 sm:p-6">
+        <div className="flex justify-between items-center mb-6 page-header-row">
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
           {(isAdmin || isEditor) && (
-            <Link 
+            <Link
               to="/clients/new"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              className="btn-responsive text-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               Add New Client
             </Link>
@@ -90,26 +90,27 @@ const ClientList = () => {
 
         {/* Table */}
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto">
+          <table className="min-w-[640px] w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                   Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                   Company
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                   Case Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                   Attorney
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                   Phone
                 </th>
                 {(isAdmin || isEditor) && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                     Actions
                   </th>
                 )}
@@ -166,6 +167,7 @@ const ClientList = () => {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </Layout>

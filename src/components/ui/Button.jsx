@@ -24,11 +24,12 @@ const Button = ({
     ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500'
   };
 
+  /* lg+ matches original desktop; below lg adds touch-friendly min-height + slightly smaller type */
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
-    xl: 'px-8 py-4 text-lg'
+    sm: 'px-3 py-1.5 text-sm max-lg:min-h-10 max-lg:px-2.5 max-lg:text-xs',
+    md: 'px-4 py-2 text-sm max-lg:min-h-11 max-lg:px-3 max-lg:text-xs',
+    lg: 'px-6 py-3 text-base max-lg:min-h-12 max-lg:px-4 max-lg:py-2.5 max-lg:text-sm',
+    xl: 'px-8 py-4 text-lg max-lg:min-h-12 max-lg:px-5 max-lg:py-3 max-lg:text-sm'
   };
 
   const classes = `${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`;
@@ -46,9 +47,9 @@ const Button = ({
         </>
       ) : (
         <>
-          {Icon && iconPosition === 'left' && <Icon className="w-4 h-4 mr-2" />}
+          {Icon && iconPosition === 'left' && <Icon className="mr-2 h-4 w-4 shrink-0" />}
           {children}
-          {Icon && iconPosition === 'right' && <Icon className="w-4 h-4 ml-2" />}
+          {Icon && iconPosition === 'right' && <Icon className="ml-2 h-4 w-4 shrink-0" />}
         </>
       )}
     </button>

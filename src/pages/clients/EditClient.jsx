@@ -147,11 +147,11 @@ const EditClient = () => {
     <Layout>
       <div className="p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6 page-header-row">
             <h1 className="text-2xl font-bold text-gray-900">Edit Client</h1>
             <button
               onClick={() => navigate('/clients')}
-              className="text-gray-600 hover:text-gray-900"
+              className="btn-responsive px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </button>
@@ -404,18 +404,18 @@ const EditClient = () => {
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end space-x-4 form-actions-row">
               <button
                 type="button"
                 onClick={() => navigate('/clients')}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="btn-responsive px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="btn-responsive px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
                 {loading ? 'Updating...' : 'Update Client'}
               </button>

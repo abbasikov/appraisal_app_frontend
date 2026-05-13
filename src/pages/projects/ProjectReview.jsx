@@ -5,6 +5,7 @@ import { appraisalService } from "../../services/appraisalService";
 import { templateService } from "../../services/templateService";
 import Layout from "../../components/Layout";
 import { useToast } from "../../hooks/useToast";
+import useIsMobile from "../../hooks/useIsMobile";
 import ToastContainer from "../../components/ToastContainer";
 import InspectionVerificationModal from "../../components/InspectionVerificationModal";
 import { detectItemTypeFromTemplate } from "../../utils/templateDetector";
@@ -80,7 +81,8 @@ const ProjectReview = () => {
   const contentRef = useRef();
   const statusDropdownRef = useRef(null);
   const { showToast, toasts, removeToast } = useToast();
-  
+  const isMobile = useIsMobile();
+
   const [project, setProject] = useState(null);
   const [template, setTemplate] = useState(null);
   const [items, setItems] = useState([]);
@@ -313,42 +315,79 @@ const ProjectReview = () => {
   return (
     <Layout>
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6 max-lg:min-w-0 max-lg:space-y-4">
         {/* Header */}
-        <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Project Review</h1>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => navigate(`/projects/${id}/appraisal`)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Back to Editing
-            </button>
-            <button
-              onClick={() => handleDownload("draft")}
-              disabled={generatingDraft}
-              className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 flex items-center"
-            >
-              {generatingDraft && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              )}
-              {generatingDraft ? "Generating..." : "Download Draft"}
-            </button>
-            <button
-              onClick={() => handleDownload("final")}
-              disabled={generatingFinal}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
-            >
-              {generatingFinal && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              )}
-              {generatingFinal ? "Generating..." : "Download Final"}
-            </button>
+        {isMobile ? (
+          <div className="flex min-w-0 flex-row flex-wrap items-center justify-between gap-3 max-lg:flex-col max-lg:items-stretch">
+            <h1 className="text-2xl font-bold text-gray-900 max-lg:text-lg">Project Review</h1>
+            <div className="flex min-w-0 flex-row flex-wrap items-center justify-end gap-2 max-lg:flex-col max-lg:gap-2">
+              <button
+                type="button"
+                onClick={() => navigate(`/projects/${id}/appraisal`)}
+                className="w-auto rounded-lg border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 max-lg:min-h-10 max-lg:w-full"
+              >
+                Back to Editing
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownload("draft")}
+                disabled={generatingDraft}
+                className="flex w-auto items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-10 max-lg:w-full"
+              >
+                {generatingDraft && (
+                  <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
+                )}
+                {generatingDraft ? "Generating..." : "Download Draft"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDownload("final")}
+                disabled={generatingFinal}
+                className="flex w-auto items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 max-lg:min-h-10 max-lg:w-full"
+              >
+                {generatingFinal && (
+                  <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
+                )}
+                {generatingFinal ? "Generating..." : "Download Final"}
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900">Project Review</h1>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => navigate(`/projects/${id}/appraisal`)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Back to Editing
+              </button>
+              <button
+                onClick={() => handleDownload("draft")}
+                disabled={generatingDraft}
+                className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 flex items-center"
+              >
+                {generatingDraft && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                )}
+                {generatingDraft ? "Generating..." : "Download Draft"}
+              </button>
+              <button
+                onClick={() => handleDownload("final")}
+                disabled={generatingFinal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
+              >
+                {generatingFinal && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                )}
+                {generatingFinal ? "Generating..." : "Download Final"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Report Preview */}
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-white shadow rounded-lg max-lg:min-w-0 max-lg:overflow-hidden">
           <style>
             {`
               .items-table {
@@ -375,101 +414,206 @@ const ProjectReview = () => {
                 background-color: #e3f2fd !important;
                 border-top: 2px solid #1976d2;
               }
+              @media (max-width: 1023px) {
+                .items-table th, .items-table td {
+                  padding: 8px;
+                  font-size: 12px;
+                }
+                .items-table { margin-top: 16px; }
+              }
             `}
           </style>
-          <div ref={contentRef} className="p-8">
+          <div ref={contentRef} className="p-8 max-lg:p-4">
             {/* Header */}
-            <div className="header">
-            <div className="flex items-center w-full">
-              <h1 className="text-3xl font-bold mb-2">Appraisal Report</h1>
-              {/* Status Badge Dropdown */}
-            <div className="relative ml-auto" ref={statusDropdownRef}>
-              <button
-                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${getStatusColor(project?.status)} transition-all hover:shadow-md cursor-pointer`}
-              >
-                <StatusIcon className="w-5 h-5" />
-                <span className="font-medium capitalize">
-                  {project?.status?.replace('_', ' ') || 'Draft'}
-                </span>
-                <ChevronDownIcon className={`w-4 h-4 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Dropdown Menu */}
-              {statusDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-                  {statusOptions.map((option) => {
-                    const OptionIcon = getStatusIcon(option.value);
-                    const isSelected = project?.status === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        onClick={() => handleStatusChange(option.value)}
-                        className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors ${
-                          isSelected ? 'bg-gray-50' : ''
-                        }`}
-                      >
-                        <OptionIcon className={`w-5 h-5 ${
-                          option.color === 'gray' ? 'text-gray-600' :
-                          option.color === 'blue' ? 'text-blue-600' :
-                          option.color === 'yellow' ? 'text-yellow-600' :
-                          option.color === 'green' ? 'text-green-600' :
-                          option.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                        }`} />
-                        <span className={`font-medium ${
-                          isSelected ? 'text-gray-900' : 'text-gray-700'
-                        }`}>
-                          {option.label}
+            {isMobile ? (
+              <div className="header min-w-0">
+                <div className="flex w-full min-w-0 flex-row items-start justify-between gap-4 max-lg:flex-col max-lg:gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="mb-1 break-words text-3xl font-bold text-gray-900 max-lg:text-xl">Appraisal Report</h2>
+                    <p className="text-lg text-gray-600 max-lg:text-sm">
+                      {project.appraisal_type} Appraisal
+                    </p>
+                  </div>
+                  {/* Status Badge Dropdown */}
+                  <div className="relative w-auto shrink-0 max-lg:w-full" ref={statusDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                      aria-expanded={statusDropdownOpen}
+                      aria-haspopup="listbox"
+                      className={`inline-flex w-auto cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 transition-all hover:shadow-md max-lg:w-full max-lg:justify-between ${getStatusColor(project?.status)}`}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <StatusIcon className="h-5 w-5 shrink-0" />
+                        <span className="truncate font-medium capitalize">
+                          {project?.status?.replace('_', ' ') || 'Draft'}
                         </span>
-                        {isSelected && (
-                          <CheckCircleIcon className="w-4 h-4 text-green-600 ml-auto" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            </div>
-              <p className="text-lg text-gray-600">
-                {project.appraisal_type} Appraisal
-              </p>
-            </div>
+                      </span>
+                      <ChevronDownIcon className={`h-4 w-4 shrink-0 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
 
-            {/* Project Information */}
-            <div className="project-info">
-              <h2 className="text-xl font-semibold mb-4">
-                Project Information
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <strong>Project Name:</strong> {project.project_name}
-                </div>
-                <div>
-                  <strong>Client:</strong> {project.client_name}
-                </div>
-                <div>
-                  <strong>Case Number:</strong> {project.case_number || "N/A"}
-                </div>
-                <div>
-                  <strong>Appraisal Type:</strong> {project.appraisal_type}
-                </div>
-                <div>
-                  <strong>Inspection Date:</strong>{" "}
-                  {project.inspection_date || "N/A"}
-                </div>
-                <div>
-                  <strong>Report Date:</strong>{" "}
-                  {project.report_date || new Date().toLocaleDateString()}
+                    {statusDropdownOpen && (
+                      <div className="absolute right-0 z-50 mt-2 max-h-[min(70vh,24rem)] w-48 overflow-y-auto rounded-xl border border-gray-200 bg-white py-2 shadow-lg max-lg:left-0 max-lg:right-0 max-lg:w-full">
+                        {statusOptions.map((option) => {
+                          const OptionIcon = getStatusIcon(option.value);
+                          const isSelected = project?.status === option.value;
+                          return (
+                            <button
+                              type="button"
+                              key={option.value}
+                              onClick={() => handleStatusChange(option.value)}
+                              className={`flex w-full items-center gap-2 px-4 py-2 text-left text-base transition-colors hover:bg-gray-50 max-lg:py-2.5 max-lg:text-sm ${
+                                isSelected ? 'bg-gray-50' : ''
+                              }`}
+                            >
+                              <OptionIcon className={`w-5 h-5 ${
+                                option.color === 'gray' ? 'text-gray-600' :
+                                option.color === 'blue' ? 'text-blue-600' :
+                                option.color === 'yellow' ? 'text-yellow-600' :
+                                option.color === 'green' ? 'text-green-600' :
+                                option.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                              }`} />
+                              <span className={`font-bold ${
+                                isSelected ? 'text-gray-900' : 'text-gray-700'
+                              }`}>
+                                {option.label}
+                              </span>
+                              {isSelected && (
+                                <CheckCircleIcon className="w-4 h-4 text-green-600 ml-auto" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="header">
+                <div className="flex items-center w-full">
+                  <h1 className="text-3xl font-bold mb-2">Appraisal Report</h1>
+                  <div className="relative ml-auto" ref={statusDropdownRef}>
+                    <button
+                      onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${getStatusColor(project?.status)} transition-all hover:shadow-md cursor-pointer`}
+                    >
+                      <StatusIcon className="w-5 h-5" />
+                      <span className="font-medium capitalize">
+                        {project?.status?.replace('_', ' ') || 'Draft'}
+                      </span>
+                      <ChevronDownIcon className={`w-4 h-4 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
 
-            {/* Items Table */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Appraisal Items</h2>
-              
-              <table className="items-table">
+                    {statusDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+                        {statusOptions.map((option) => {
+                          const OptionIcon = getStatusIcon(option.value);
+                          const isSelected = project?.status === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() => handleStatusChange(option.value)}
+                              className={`w-full flex items-center space-x-2 px-4 py-2 hover:bg-gray-50 transition-colors ${
+                                isSelected ? 'bg-gray-50' : ''
+                              }`}
+                            >
+                              <OptionIcon className={`w-5 h-5 ${
+                                option.color === 'gray' ? 'text-gray-600' :
+                                option.color === 'blue' ? 'text-blue-600' :
+                                option.color === 'yellow' ? 'text-yellow-600' :
+                                option.color === 'green' ? 'text-green-600' :
+                                option.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                              }`} />
+                              <span className={`font-medium ${
+                                isSelected ? 'text-gray-900' : 'text-gray-700'
+                              }`}>
+                                {option.label}
+                              </span>
+                              {isSelected && (
+                                <CheckCircleIcon className="w-4 h-4 text-green-600 ml-auto" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-lg text-gray-600">
+                  {project.appraisal_type} Appraisal
+                </p>
+              </div>
+            )}
+
+            {/* Project Information */}
+            {isMobile ? (
+              <div className="project-info mt-8 min-w-0 max-lg:mt-6">
+                <h3 className="mb-3 text-xl font-bold text-gray-900 max-lg:text-lg">
+                  Project Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1 max-lg:gap-3">
+                  <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Project name</p>
+                    <p className="mt-1 break-words text-sm text-gray-900">{project.project_name}</p>
+                  </div>
+                  <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Client</p>
+                    <p className="mt-1 break-words text-sm text-gray-900">{project.client_name}</p>
+                  </div>
+                  <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Case number</p>
+                    <p className="mt-1 text-sm text-gray-900">{project.case_number || "N/A"}</p>
+                  </div>
+                  <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Appraisal type</p>
+                    <p className="mt-1 text-sm text-gray-900">{project.appraisal_type}</p>
+                  </div>
+                  <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Inspection date</p>
+                    <p className="mt-1 text-sm text-gray-900">{project.inspection_date || "N/A"}</p>
+                  </div>
+                  <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Report date</p>
+                    <p className="mt-1 text-sm text-gray-900">{project.report_date || new Date().toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="project-info">
+                <h2 className="text-xl font-semibold mb-4">
+                  Project Information
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <strong>Project Name:</strong> {project.project_name}
+                  </div>
+                  <div>
+                    <strong>Client:</strong> {project.client_name}
+                  </div>
+                  <div>
+                    <strong>Case Number:</strong> {project.case_number || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Appraisal Type:</strong> {project.appraisal_type}
+                  </div>
+                  <div>
+                    <strong>Inspection Date:</strong>{" "}
+                    {project.inspection_date || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Report Date:</strong>{" "}
+                    {project.report_date || new Date().toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Items Table — horizontal scroll contained here only */}
+            <div className="max-lg:min-w-0">
+              <h2 className="text-xl font-semibold mb-4 max-lg:mb-3 max-lg:mt-6 max-lg:text-lg max-lg:font-bold max-lg:text-gray-900">Appraisal Items</h2>
+              <div className="max-lg:overflow-x-auto max-lg:-mx-4 max-lg:px-4">
+              <table className="items-table min-w-0 max-lg:min-w-[520px]">
                 <thead>
                   <tr>
                     <th>Item #</th>
@@ -525,12 +669,13 @@ const ProjectReview = () => {
                   </tr>
                 </tbody>
               </table>
+              </div>
             </div>
 
             {/* Summary */}
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold mb-4">Summary</h2>
-              <p>
+            <div className="mt-8 max-lg:mt-6">
+              <h2 className="text-xl font-semibold mb-4 max-lg:mb-3 max-lg:text-lg max-lg:font-bold max-lg:text-gray-900">Summary</h2>
+              <p className="max-lg:text-sm">
                 This appraisal report contains {items.length} items with a total{" "}
                 {project.appraisal_type === 'INSURANCE' || project.appraisal_type === 'REPLACEMENT' ? 'replacement' : 'appraised'} value of ${totalValue.toLocaleString()}. The appraisal
                 was conducted for {project.appraisal_type.toLowerCase()}{" "}

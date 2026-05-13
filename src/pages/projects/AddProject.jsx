@@ -621,7 +621,7 @@ const AddProject = () => {
       <Layout>
         <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-700 p-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-700 p-5 sm:p-8 shadow-2xl">
           {/* Animated background elements */}
           <div className="absolute inset-0">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 animate-pulse"></div>
@@ -643,7 +643,7 @@ const AddProject = () => {
                 
                 <div className="flex items-center space-x-3 mb-2">
                   <PlusIcon className="w-8 h-8 text-white" />
-                  <h1 className="text-3xl font-bold text-white">Create New Project</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white">Create New Project</h1>
                 </div>
                 <p className="text-emerald-100 text-lg">
                   Set up a new appraisal project with all the details
@@ -723,7 +723,7 @@ const AddProject = () => {
               </div>
             </div>
 
-            <div className="p-8 space-y-8">
+            <div className="p-4 sm:p-8 space-y-6 sm:space-y-8">
               {/* Basic Information */}
               <div className="space-y-6">
                 <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
@@ -1310,18 +1310,18 @@ const AddProject = () => {
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 p-6 border-t border-gray-100 bg-gray-50/50">
+            <div className="flex justify-end space-x-4 form-actions-row p-4 sm:p-6 border-t border-gray-100 bg-gray-50/50">
               <button
                 type="button"
                 onClick={() => navigate('/projects')}
-                className="px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                className="btn-responsive px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !formData.project_name.trim() || !formData.client_id}
-                className="group px-6 py-3 bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+                className="group btn-responsive px-6 py-3 bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
               >
                 {loading ? (
                   <>

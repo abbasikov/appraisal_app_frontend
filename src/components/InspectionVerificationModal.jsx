@@ -84,10 +84,11 @@ const InspectionVerificationModal = ({ isOpen, onClose, onConfirm }) => {
           </button>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+        <div className="flex justify-end space-x-3 form-actions-row pt-4 border-t border-gray-200">
           <Button
             onClick={handleCancel}
             variant="outline"
+            className="btn-responsive"
           >
             Cancel
           </Button>
@@ -95,6 +96,7 @@ const InspectionVerificationModal = ({ isOpen, onClose, onConfirm }) => {
             onClick={handleConfirm}
             variant="primary"
             disabled={selectedOption === null}
+            className="btn-responsive"
           >
             Confirm
           </Button>

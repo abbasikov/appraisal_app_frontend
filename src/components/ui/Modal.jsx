@@ -58,9 +58,9 @@ const Modal = ({
         <div className={`relative z-10 bg-white rounded-xl shadow-strong ${sizeClasses[size]} w-full max-h-[95vh] overflow-y-auto animate-slide-in`}>
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between border-b border-gray-200 p-6 max-lg:p-4">
               {title && (
-                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 max-lg:pr-2 max-lg:font-bold max-lg:text-base">{title}</h3>
               )}
               {showCloseButton && (
                 <Button
@@ -75,7 +75,7 @@ const Modal = ({
           )}
           
           {/* Content */}
-          <div className="p-6">
+          <div className="p-6 max-lg:p-4">
             {children}
           </div>
         </div>
@@ -88,19 +88,19 @@ const Modal = ({
 };
 
 const ModalHeader = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>
+  <div className={`border-b border-gray-200 px-6 py-4 max-lg:px-4 max-lg:py-3 ${className}`}>
     {children}
   </div>
 );
 
 const ModalBody = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 ${className}`}>
+  <div className={`px-6 py-4 max-lg:px-4 max-lg:py-3 ${className}`}>
     {children}
   </div>
 );
 
 const ModalFooter = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl ${className}`}>
+  <div className={`border-t border-gray-200 bg-gray-50 px-6 py-4 max-lg:px-4 max-lg:py-3 rounded-b-xl ${className}`}>
     {children}
   </div>
 );

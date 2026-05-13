@@ -83,9 +83,9 @@ const TemplateDetails = () => {
   return (
     <Layout>
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 page-header-row">
           <h1 className="text-2xl font-bold text-gray-900">Template Details</h1>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => navigate('/templates')}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
@@ -179,22 +179,22 @@ const TemplateDetails = () => {
 
           {/* Field Mappings */}
           <div className="px-6 py-4">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Field Mappings</h2>
+            <h2 className="mb-4 text-lg font-bold text-gray-900">Field Mappings</h2>
             {template.field_mappings && Object.keys(template.field_mappings).length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                         Field Name
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                         Type
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                         Required
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-lg:font-bold max-lg:text-gray-700">
                         Default Value
                       </th>
                     </tr>

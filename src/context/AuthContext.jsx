@@ -1,5 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/authService';
+import useIdleLogout from '../hooks/useIdleLogout';
+
+const IDLE_MS = 60 * 60 * 1000;       // 1 hour
+const REFRESH_MS = 5 * 60 * 1000;     // 5 minutes
 
 const AuthContext = createContext();
 
@@ -46,6 +50,20 @@ export const AuthProvider = ({ children }) => {
     authService.logout();
     setUser(null);
   };
+
+  const handleIdleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    window.location.href = '/login?reason=idle';
+  }, []);
+
+  useIdleLogout({
+    enabled: !!user,
+    idleMs: IDLE_MS,
+    refreshMs: REFRESH_MS,
+    onIdle: handleIdleLogout,
+  });
 
   const loginWithMFA = async (credentials, otpCode) => {
     try {

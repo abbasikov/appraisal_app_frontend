@@ -383,6 +383,9 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
   const [roomActionTriggerLabel, setRoomActionTriggerLabel] = useState(null);
   const [floorBulkMenuOpen, setFloorBulkMenuOpen] = useState(false);
   const [floorActionTriggerLabel, setFloorActionTriggerLabel] = useState(null);
+  const [pendingRoomValue, setPendingRoomValue] = useState(null);
+  const [pendingFloorValue, setPendingFloorValue] = useState(null);
+  const [applyingBulkChange, setApplyingBulkChange] = useState(false);
   const [openOptionPicker, setOpenOptionPicker] = useState(null);
   const [inlineDeleteModalOpen, setInlineDeleteModalOpen] = useState(false);
   const [pendingDeleteItem, setPendingDeleteItem] = useState(null);
@@ -875,6 +878,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
     setFloorActionTriggerLabel(null);
     setRoomBulkMenuOpen(false);
     setFloorBulkMenuOpen(false);
+    setPendingRoomValue(null);
+    setPendingFloorValue(null);
   };
 
   const runItemBulkAction = (key) => {
@@ -887,6 +892,8 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
       setRoomActionTriggerLabel(null);
       setFloorActionTriggerLabel(null);
       setFloorBulkMenuOpen(false);
+      setPendingRoomValue(null);
+      setPendingFloorValue(null);
     }
     switch (key) {
       case "bulk_update_room":
@@ -896,55 +903,65 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
     }
   };
 
-  const applyRoomBulkToSelection = async (room) => {
-    const ids = Array.from(selectedItemIds);
-    if (ids.length === 0) {
-      showError("Select at least one item.");
-      return;
+  const stageRoomBulk = (raw) => {
+    if (raw == null || raw === "") {
+      setPendingRoomValue(null);
+      setRoomActionTriggerLabel(null);
+    } else if (raw === BULK_CLEAR_SELECTED_OPTION) {
+      setPendingRoomValue(BULK_CLEAR_SELECTED_OPTION);
+      setRoomActionTriggerLabel(BULK_CLEAR_SELECTED_LABEL);
+    } else {
+      const value = String(raw).toUpperCase();
+      setPendingRoomValue(value);
+      setRoomActionTriggerLabel(value);
     }
-    const shouldClear = room === BULK_CLEAR_SELECTED_OPTION;
-    const roomValue = shouldClear ? null : String(room).toUpperCase();
-    try {
-      await Promise.all(
-        ids.map((id) => onItemUpdate(id, { room_area: roomValue }))
-      );
-      if (shouldClear) {
-        showSuccess(`Cleared room/area for ${ids.length} item(s).`);
-        setRoomActionTriggerLabel(null);
-      } else {
-        showSuccess(`Updated room/area for ${ids.length} item(s).`);
-        setRoomActionTriggerLabel(roomValue);
-      }
-    } catch {
-      showError("Could not update all items.");
-    } finally {
-      setRoomBulkMenuOpen(false);
-    }
+    setRoomBulkMenuOpen(false);
   };
 
-  const applyFloorBulkToSelection = async (floor) => {
+  const stageFloorBulk = (raw) => {
+    if (raw == null || raw === "") {
+      setPendingFloorValue(null);
+      setFloorActionTriggerLabel(null);
+    } else if (raw === BULK_CLEAR_SELECTED_OPTION) {
+      setPendingFloorValue(BULK_CLEAR_SELECTED_OPTION);
+      setFloorActionTriggerLabel(BULK_CLEAR_SELECTED_LABEL);
+    } else {
+      const value = String(raw).toUpperCase();
+      setPendingFloorValue(value);
+      setFloorActionTriggerLabel(value);
+    }
+    setFloorBulkMenuOpen(false);
+  };
+
+  const applyBulkChanges = async () => {
     const ids = Array.from(selectedItemIds);
     if (ids.length === 0) {
       showError("Select at least one item.");
       return;
     }
-    const shouldClear = floor === BULK_CLEAR_SELECTED_OPTION;
-    const floorValue = shouldClear ? null : String(floor).toUpperCase();
+    if (pendingRoomValue == null && pendingFloorValue == null) {
+      showError("Choose Room/Area or Floor/Bldg before clicking Change.");
+      return;
+    }
+    const update = {};
+    if (pendingRoomValue != null) {
+      update.room_area = pendingRoomValue === BULK_CLEAR_SELECTED_OPTION ? null : pendingRoomValue;
+    }
+    if (pendingFloorValue != null) {
+      update.floor_building = pendingFloorValue === BULK_CLEAR_SELECTED_OPTION ? null : pendingFloorValue;
+    }
+    setApplyingBulkChange(true);
     try {
-      await Promise.all(
-        ids.map((id) => onItemUpdate(id, { floor_building: floorValue }))
-      );
-      if (shouldClear) {
-        showSuccess(`Cleared floor/building for ${ids.length} item(s).`);
-        setFloorActionTriggerLabel(null);
-      } else {
-        showSuccess(`Updated floor/building for ${ids.length} item(s).`);
-        setFloorActionTriggerLabel(floorValue);
-      }
+      await Promise.all(ids.map((id) => onItemUpdate(id, update)));
+      showSuccess(`Updated ${ids.length} item(s).`);
+      setPendingRoomValue(null);
+      setPendingFloorValue(null);
+      setRoomActionTriggerLabel(null);
+      setFloorActionTriggerLabel(null);
     } catch {
       showError("Could not update all items.");
     } finally {
-      setFloorBulkMenuOpen(false);
+      setApplyingBulkChange(false);
     }
   };
 
@@ -1019,137 +1036,156 @@ const AppraisalTable = ({ items, onItemUpdate, onItemsReorder, loading, project,
     <>
       <Card className="overflow-hidden">
         {allowBulkToolbar && (
-          <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/40 px-4 py-3 max-lg:flex-col max-lg:items-stretch max-lg:gap-3 max-lg:px-3 max-lg:py-2.5">
-            <div className="flex min-w-[14rem] flex-wrap items-center gap-2 max-lg:w-full max-lg:min-w-0">
-            <span
-              id="item-bulk-action-label"
-              className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
-            >
-              Action
-            </span>
-            <div className="relative min-w-0 w-52 flex-initial max-lg:w-full max-lg:flex-1" ref={itemBulkMenuRef}>
-              <button
-                type="button"
-                id="item-bulk-action"
-                aria-labelledby="item-bulk-action-label item-bulk-action"
-                aria-haspopup="listbox"
-                aria-expanded={itemBulkMenuOpen}
-                onClick={() => setItemBulkMenuOpen((o) => !o)}
-                className="flex h-8 w-52 min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm shadow-sm transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 max-lg:h-10 max-lg:w-full max-lg:text-xs"
-              >
+          <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50/40 px-4 py-3 max-lg:px-3 max-lg:py-2.5">
+            <p className="mb-2 text-sm text-gray-600 max-lg:text-xs">
+              Select the items to modify and click bulk update from dropdown choose Room/Area and/or Floor/Bldg, then click <strong>Change</strong>.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 max-lg:flex-col max-lg:items-stretch max-lg:gap-3">
+              <div className="flex min-w-[14rem] flex-wrap items-center gap-2 max-lg:w-full max-lg:min-w-0">
                 <span
-                  className={`truncate ${itemActionTriggerLabel ? "text-gray-900" : "text-gray-500"}`}
+                  id="item-bulk-action-label"
+                  className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
                 >
-                  {itemActionTriggerLabel || ITEM_BULK_PLACEHOLDER}
+                  Action
                 </span>
-                <ChevronDownIcon
-                  className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${itemBulkMenuOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {itemBulkMenuOpen && (
-                <ul
-                  role="listbox"
-                  aria-labelledby="item-bulk-action-label"
-                  className="absolute left-0 top-full z-[100] mt-1 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg max-lg:left-0 max-lg:right-0 max-lg:w-[min(100vw-2rem,18rem)]"
-                >
-                  <li role="none">
-                    <button
-                      type="button"
-                      role="option"
-                      className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 max-lg:py-2.5 max-lg:text-xs"
-                      onClick={() => resetItemBulkToNeutral()}
+                <div className="relative min-w-0 w-52 flex-initial max-lg:w-full max-lg:flex-1" ref={itemBulkMenuRef}>
+                  <button
+                    type="button"
+                    id="item-bulk-action"
+                    aria-labelledby="item-bulk-action-label item-bulk-action"
+                    aria-haspopup="listbox"
+                    aria-expanded={itemBulkMenuOpen}
+                    onClick={() => setItemBulkMenuOpen((o) => !o)}
+                    className="flex h-8 w-52 min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm shadow-sm transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 max-lg:h-10 max-lg:w-full max-lg:text-xs"
+                  >
+                    <span
+                      className={`truncate ${itemActionTriggerLabel ? "text-gray-900" : "text-gray-500"}`}
                     >
-                      {ITEM_BULK_PLACEHOLDER}
-                    </button>
-                  </li>
-                  {itemBulkKeys.map((key) => {
-                    const disabled =
-                      (key === "bulk_update_room" &&
-                        selectedItemIds.size === 0);
-                    return (
-                      <li key={key} role="none">
+                      {itemActionTriggerLabel || ITEM_BULK_PLACEHOLDER}
+                    </span>
+                    <ChevronDownIcon
+                      className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${itemBulkMenuOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {itemBulkMenuOpen && (
+                    <ul
+                      role="listbox"
+                      aria-labelledby="item-bulk-action-label"
+                      className="absolute left-0 top-full z-[100] mt-1 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg max-lg:left-0 max-lg:right-0 max-lg:w-[min(100vw-2rem,18rem)]"
+                    >
+                      <li role="none">
                         <button
                           type="button"
                           role="option"
-                          disabled={disabled}
-                          onClick={() => runItemBulkAction(key)}
-                          className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white max-lg:py-2.5 max-lg:text-xs"
+                          className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 max-lg:py-2.5 max-lg:text-xs"
+                          onClick={() => resetItemBulkToNeutral()}
                         >
-                          {ITEM_BULK_LABELS[key]}
+                          {ITEM_BULK_PLACEHOLDER}
                         </button>
                       </li>
-                    );
-                  })}
-                </ul>
+                      {itemBulkKeys.map((key) => {
+                        const disabled =
+                          (key === "bulk_update_room" &&
+                            selectedItemIds.size === 0);
+                        return (
+                          <li key={key} role="none">
+                            <button
+                              type="button"
+                              role="option"
+                              disabled={disabled}
+                              onClick={() => runItemBulkAction(key)}
+                              className="flex w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white max-lg:py-2.5 max-lg:text-xs"
+                            >
+                              {ITEM_BULK_LABELS[key]}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              {bulkRoomToolbarVisible &&
+                showRoomBulk &&
+                (schema?.room_area_options?.length > 0 ||
+                  schema?.floor_building_options?.length > 0) && (
+                <>
+                  {schema?.room_area_options?.length > 0 && (
+                    <div className="flex w-auto min-w-0 flex-row flex-wrap items-center gap-2 max-lg:w-full max-lg:flex-col max-lg:items-stretch">
+                      <span
+                        id="item-room-bulk-label"
+                        className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
+                      >
+                        Room/Area
+                      </span>
+                      <SearchableSelectDropdown
+                        ariaLabelledBy="item-room-bulk-label"
+                        triggerLabel={roomActionTriggerLabel}
+                        placeholderTrigger="Select or type Room/Area"
+                        menuOpen={roomBulkMenuOpen}
+                        onTriggerClick={() => {
+                          setRoomBulkMenuOpen((o) => !o);
+                          setFloorBulkMenuOpen(false);
+                        }}
+                        onClose={() => setRoomBulkMenuOpen(false)}
+                        menuRef={roomBulkMenuRef}
+                        options={[
+                          BULK_CLEAR_SELECTED_OPTION,
+                          ...(schema.room_area_options ?? EMPTY_OPTS),
+                        ]}
+                        onPick={stageRoomBulk}
+                        triggerClassName="w-52 min-w-0 max-lg:w-full"
+                        disabled={selectedItemIds.size === 0}
+                        allowClearOnCommit
+                      />
+                    </div>
+                  )}
+                  {schema?.floor_building_options?.length > 0 && (
+                    <div className="flex w-auto min-w-0 flex-row flex-wrap items-center gap-2 max-lg:w-full max-lg:flex-col max-lg:items-stretch">
+                      <span
+                        id="item-floor-bulk-label"
+                        className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
+                      >
+                        Floor/Bldg
+                      </span>
+                      <SearchableSelectDropdown
+                        ariaLabelledBy="item-floor-bulk-label"
+                        triggerLabel={floorActionTriggerLabel}
+                        placeholderTrigger="Select or type Floor/Building"
+                        menuOpen={floorBulkMenuOpen}
+                        onTriggerClick={() => {
+                          setFloorBulkMenuOpen((o) => !o);
+                          setRoomBulkMenuOpen(false);
+                        }}
+                        onClose={() => setFloorBulkMenuOpen(false)}
+                        menuRef={floorBulkMenuRef}
+                        options={[
+                          BULK_CLEAR_SELECTED_OPTION,
+                          ...(schema.floor_building_options ?? EMPTY_OPTS),
+                        ]}
+                        onPick={stageFloorBulk}
+                        triggerClassName="w-52 min-w-0 max-lg:w-full"
+                        disabled={selectedItemIds.size === 0}
+                        allowClearOnCommit
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={applyBulkChanges}
+                    disabled={
+                      selectedItemIds.size === 0
+                      || (pendingRoomValue == null && pendingFloorValue == null)
+                      || applyingBulkChange
+                    }
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 max-lg:w-full max-lg:py-2.5"
+                  >
+                    {applyingBulkChange ? "Applying…" : "Change"}
+                  </button>
+                </>
               )}
             </div>
-            </div>
-
-            {bulkRoomToolbarVisible &&
-              showRoomBulk &&
-              (schema?.room_area_options?.length > 0 ||
-                schema?.floor_building_options?.length > 0) && (
-              <>
-                {schema?.room_area_options?.length > 0 && (
-                  <div className="flex w-auto min-w-0 flex-row flex-wrap items-center gap-2 max-lg:w-full max-lg:flex-col max-lg:items-stretch">
-                    <span
-                      id="item-room-bulk-label"
-                      className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
-                    >
-                      Room/Area
-                    </span>
-                    <SearchableSelectDropdown
-                      ariaLabelledBy="item-room-bulk-label"
-                      triggerLabel={roomActionTriggerLabel}
-                      placeholderTrigger="Select Room/Area"
-                      menuOpen={roomBulkMenuOpen}
-                      onTriggerClick={() => {
-                        setRoomBulkMenuOpen((o) => !o);
-                        setFloorBulkMenuOpen(false);
-                      }}
-                      onClose={() => setRoomBulkMenuOpen(false)}
-                      menuRef={roomBulkMenuRef}
-                      options={[
-                        BULK_CLEAR_SELECTED_OPTION,
-                        ...(schema.room_area_options ?? EMPTY_OPTS),
-                      ]}
-                      onPick={(option) => applyRoomBulkToSelection(option)}
-                      triggerClassName="w-52 min-w-0 max-lg:w-full"
-                      disabled={selectedItemIds.size === 0}
-                    />
-                  </div>
-                )}
-                {schema?.floor_building_options?.length > 0 && (
-                  <div className="flex w-auto min-w-0 flex-row flex-wrap items-center gap-2 max-lg:w-full max-lg:flex-col max-lg:items-stretch">
-                    <span
-                      id="item-floor-bulk-label"
-                      className="shrink-0 text-sm font-medium leading-none text-gray-700 max-lg:text-xs"
-                    >
-                      Floor/Bldg
-                    </span>
-                    <SearchableSelectDropdown
-                      ariaLabelledBy="item-floor-bulk-label"
-                      triggerLabel={floorActionTriggerLabel}
-                      placeholderTrigger="Select Floor/Building"
-                      menuOpen={floorBulkMenuOpen}
-                      onTriggerClick={() => {
-                        setFloorBulkMenuOpen((o) => !o);
-                        setRoomBulkMenuOpen(false);
-                      }}
-                      onClose={() => setFloorBulkMenuOpen(false)}
-                      menuRef={floorBulkMenuRef}
-                      options={[
-                        BULK_CLEAR_SELECTED_OPTION,
-                        ...(schema.floor_building_options ?? EMPTY_OPTS),
-                      ]}
-                      onPick={(option) => applyFloorBulkToSelection(option)}
-                      triggerClassName="w-52 min-w-0 max-lg:w-full"
-                      disabled={selectedItemIds.size === 0}
-                    />
-                  </div>
-                )}
-              </>
-            )}
           </div>
         )}
         <div className="overflow-x-auto max-lg:-mx-1 max-lg:px-1">

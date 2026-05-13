@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ToastContainer';
@@ -29,6 +29,8 @@ const Login = () => {
   
   const { login, loginWithMFA } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const wasIdleLogout = new URLSearchParams(location.search).get('reason') === 'idle';
   const { toasts, showSuccess, showError, removeToast } = useToast();
 
   const handleChange = (e) => {
@@ -134,6 +136,12 @@ const Login = () => {
               Sign in to your AppraisalPro account
             </p>
           </div>
+
+          {wasIdleLogout && (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 animate-slide-up" style={{ animationDelay: '150ms' }}>
+              You were signed out due to 1 hour of inactivity. Please sign in again to continue.
+            </div>
+          )}
 
           {/* Main Card */}
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8 animate-slide-up" style={{ animationDelay: '200ms' }}>
